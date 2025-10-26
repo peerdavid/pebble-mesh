@@ -4,30 +4,33 @@
 static Window *s_main_window;
 static TextLayer *s_time_layer;
 static TextLayer *s_date_layer;
-// NEW: Battery Layer
 static TextLayer *s_battery_layer;
+static TextLayer *s_steps_layer;
 static Layer *s_glitch_layer;
 static Layer *s_grid_layer;
 
+static GBitmap *s_step_icon_bitmap;
+static BitmapLayer *s_step_icon_layer;
+
 // Pointer for the animation AppTimer
 #define GRID_SIZE 15
-static AppTimer *s_animation_timer = NULL;
-#define ANIMATION_RATE_MS 5
-#define NUM_ANIMATION_FRAMES 50
-#define NUM_GLITCHES 180
-#define NUM_GLITCHES_IF_ANIMATION_STOPPED 60
-#define BORDER_THICKNESS 6
-static int current_animation_frame = 0;
+#define CROSS_SIZE 0
+#define ANIMATION_RATE_MS 20
+#define NUM_ANIMATION_FRAMES 500
+#define ANIMATION_DECREASE_STEP 10
+#define NUM_GLITCHES_IF_ANIMATION_STOPPED 0
+#define BORDER_THICKNESS 0
 
-static int glitch_even[NUM_GLITCHES][4];
-static int glitch_odd[NUM_GLITCHES][4];
+// Animation
+static AppTimer *s_animation_timer = NULL;
+static int current_animation_frame = 0;
 
 
 // Buffer to hold the time string (e.g., "12:34" or "23:59")
 static char s_time_buffer[9];
 static char s_date_buffer[8];
-// NEW: Buffer for battery text
 static char s_battery_buffer[5]; 
+static char s_step_buffer[20];
 
 // Flag to track the state of the animation
 static bool s_is_animation_running = false; 
@@ -42,7 +45,6 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed);
 static void animation_timer_callback(void *data);
 static void try_start_animation_timer();
 static void try_stop_animation_timer();
-static void generate_two_glitches();
 static void draw_grid(Layer *layer, GContext *ctx);
 
 
@@ -56,6 +58,10 @@ static void update_time() {
 
   strftime(s_date_buffer, sizeof(s_date_buffer), " %a %d", tick_time);
   text_layer_set_text(s_date_layer, s_date_buffer);
+
+  int steps = (int) health_service_sum_today(HealthMetricStepCount);
+  snprintf(s_step_buffer, sizeof(s_step_buffer), "%d", steps);
+  text_layer_set_text(s_steps_layer, s_step_buffer);
 }
 
 // --- Battery Handler ---
@@ -94,8 +100,7 @@ static void try_start_animation_timer() {
   }
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Start animation timer");
-  current_animation_frame = 0;
-  generate_two_glitches();
+  current_animation_frame = NUM_ANIMATION_FRAMES;
   s_is_animation_running = true;
   s_animation_timer = app_timer_register(ANIMATION_RATE_MS, animation_timer_callback, NULL);
 }
@@ -109,8 +114,8 @@ static void animation_timer_callback(void *data) {
         return;
     }
     
-    current_animation_frame++;
-    if(current_animation_frame >= NUM_ANIMATION_FRAMES) {
+    current_animation_frame -= ANIMATION_DECREASE_STEP;
+    if(current_animation_frame <= 0) {
       // Animation duration completed, stop the animation
       // but still draw the frame otherwise its not shown.
       try_stop_animation_timer();
@@ -124,37 +129,20 @@ static void animation_timer_callback(void *data) {
 }
 
 
-static void generate_glitch_for_pointer_to_array(int (*glitch_array)[4]) {
-  GRect bounds = layer_get_bounds(s_glitch_layer);
-  for (int i = 0; i < NUM_GLITCHES; i++) {
-    glitch_array[i][0] = rand() % bounds.size.w; // x
-    glitch_array[i][1] = rand() % bounds.size.h; // y
-    glitch_array[i][2] = rand() % (bounds.size.w / 5) + 10; // width
-    glitch_array[i][3] = 1; // height
-  }
-}
-
-static void generate_two_glitches() {
-  GRect bounds = layer_get_bounds(s_glitch_layer);
-  generate_glitch_for_pointer_to_array(glitch_even);
-  generate_glitch_for_pointer_to_array(glitch_odd);
-}
-
 // --- Glitch Layer Drawing Update Procedure (Unchanged) ---
 static void glitch_update_proc(Layer *layer, GContext *ctx) {  
   GRect bounds = layer_get_bounds(layer);
 
   // 1. Draw the white border frame
-  graphics_context_set_stroke_color(ctx, GColorWhite);
-  graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
-  graphics_draw_rect(ctx, GRect(1, 1, bounds.size.w - 2, bounds.size.h - 2));
+  if(BORDER_THICKNESS > 0) {
+    graphics_context_set_stroke_color(ctx, GColorWhite);
+    graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
+    graphics_draw_rect(ctx, GRect(1, 1, bounds.size.w - 2, bounds.size.h - 2));
+  }
 
-
-  // Draw glitches
-  int (*glitch_array)[4] = (rand() % 2 == 0) ? glitch_even : glitch_odd;
 
   // Draw the glitches from the selected array
-  int num_glitches_to_draw = s_is_animation_running ? NUM_GLITCHES : NUM_GLITCHES_IF_ANIMATION_STOPPED;
+  int num_glitches_to_draw = current_animation_frame;
   for (int i = 0; i < num_glitches_to_draw; i++) {
     // Randomly choose color for more variation (white or black to obscure text)
     if (i % 2 == 0) {
@@ -164,8 +152,12 @@ static void glitch_update_proc(Layer *layer, GContext *ctx) {
       graphics_context_set_fill_color(ctx, GColorBlack);
     }
 
-    // Draw the static line/box
-    graphics_fill_rect(ctx, GRect(glitch_array[i][0], glitch_array[i][1], glitch_array[i][2], glitch_array[i][3]), 0, GCornerNone);
+    // Draw a random dot somewhere in the bounds
+    int x = rand() % bounds.size.w;
+    int y = rand() % bounds.size.h;
+    int w = (rand() % 20) + 3; // Width between 5 and 24
+    int h = (rand() % 5) + 2;  // Height between 2 and 6
+    graphics_fill_rect(ctx, GRect(x, y, w, h), 0, GCornerNone);
   }
 }
 
@@ -174,27 +166,32 @@ static void draw_grid(Layer *layer, GContext *ctx) {
   graphics_context_set_stroke_color(ctx, GColorWhite);
   graphics_context_set_stroke_width(ctx, 1);
   
-  // Draw horizontal lines (every 10 pixels)
-  for (int y = 0; y < bounds.size.h; y += GRID_SIZE) {
-    if (y < 70 || y > bounds.size.h - 70) {
-        graphics_draw_line(ctx, GPoint(0, y), GPoint(bounds.size.w, y));
-        continue;
-    }
-    graphics_draw_line(ctx, GPoint(0, y), GPoint(17, y));
-    graphics_draw_line(ctx, GPoint(bounds.size.w - 17, y), GPoint(bounds.size.w, y));
-  }
+  // The grid drawing logic now focuses on the intersection points
   
-  // Draw vertical lines (every 10 pixels)
-  for (int x = 0; x < bounds.size.w; x += GRID_SIZE) {
-    if(x < 20 || x > bounds.size.w - 20) {
-        graphics_draw_line(ctx, GPoint(x, 0), GPoint(x, bounds.size.h));
-        continue;
+  // Iterate through all the vertical positions (y) where a grid line would be
+  for (int y = 0; y < bounds.size.h; y += GRID_SIZE) {
+    // Iterate through all the horizontal positions (x) where a grid line would be
+    for (int x = 0; x < bounds.size.w; x += GRID_SIZE) {
+      // At the intersection (x, y), draw a small cross
+      
+      // 1. Draw the horizontal part of the cross
+      // Starts at x - CROSS_SIZE and ends at x + CROSS_SIZE, centered on y
+      graphics_draw_line(
+        ctx, 
+        GPoint(x - CROSS_SIZE, y), 
+        GPoint(x + CROSS_SIZE, y)
+      );
+      
+      // 2. Draw the vertical part of the cross
+      // Starts at y - CROSS_SIZE and ends at y + CROSS_SIZE, centered on x
+      graphics_draw_line(
+        ctx, 
+        GPoint(x, y - CROSS_SIZE), 
+        GPoint(x, y + CROSS_SIZE)
+      );
     }
-    graphics_draw_line(ctx, GPoint(x, 0), GPoint(x, bounds.size.h / 2 - 20));
-    graphics_draw_line(ctx, GPoint(x, bounds.size.h / 2 + 20), GPoint(x, bounds.size.h));
   }
 }
-
 // --- Tick Handler ---
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -214,12 +211,13 @@ static void main_window_appear(Window *window) {
 
 static void main_window_load(Window *window) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Window load");
-  GRect bounds = layer_get_bounds(window_get_root_layer(window));
+  Layer *window_layer = window_get_root_layer(window);
+  GRect bounds = layer_get_bounds(window_layer);
 
   // Create grid layer
   s_grid_layer = layer_create(bounds);
   layer_set_update_proc(s_grid_layer, draw_grid);
-  layer_add_child(window_get_root_layer(window), s_grid_layer);
+  layer_add_child(window_layer, s_grid_layer);
 
   // Create Time Layer
   s_time_layer = text_layer_create(
@@ -230,34 +228,56 @@ static void main_window_load(Window *window) {
   text_layer_set_text(s_time_layer, "00:00"); 
   text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS));
   text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_time_layer));
+  layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
 
   // Create the Date Layer (Upper Left)
   s_date_layer = text_layer_create(
-      GRect(GRID_SIZE, GRID_SIZE-8, 60, 24)); // Positioned at upper left
+      GRect(GRID_SIZE/2-4, GRID_SIZE-14, 54, 24)); // Positioned at upper left
 
-  text_layer_set_background_color(s_date_layer, GColorBlack);
+  text_layer_set_background_color(s_date_layer, GColorClear);
   text_layer_set_text_color(s_date_layer, GColorWhite);
   text_layer_set_text(s_date_layer, "Mon 01");
   text_layer_set_font(s_date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_alignment(s_date_layer, GTextAlignmentLeft);
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_date_layer));
+  layer_add_child(window_layer, text_layer_get_layer(s_date_layer));
   
   // Create the Battery Layer (Upper Right)
   s_battery_layer = text_layer_create(
-      GRect(bounds.size.w - 70, GRID_SIZE-8, 50, 24)); // Positioned at upper right
+      GRect(bounds.size.w - 56, GRID_SIZE-14, 50, 24)); // Positioned at upper right
       
-  text_layer_set_background_color(s_battery_layer, GColorBlack);
+  text_layer_set_background_color(s_battery_layer, GColorClear);
   text_layer_set_text_color(s_battery_layer, GColorWhite);
   text_layer_set_text(s_battery_layer, "100%"); // Default text
   text_layer_set_font(s_battery_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_alignment(s_battery_layer, GTextAlignmentRight);
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_battery_layer));
+  layer_add_child(window_layer, text_layer_get_layer(s_battery_layer));
+  
+  // Load icon
+  const int icon_x = GRID_SIZE/2-4; // Example X position
+  const int icon_y = bounds.size.h - GRID_SIZE - 12; // Example Y position
+
+  s_step_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STEP);
+  s_step_icon_layer = bitmap_layer_create(
+      GRect(icon_x, icon_y, 24, 24)
+  );
+  bitmap_layer_set_bitmap(s_step_icon_layer, s_step_icon_bitmap);
+  bitmap_layer_set_compositing_mode(s_step_icon_layer, GCompOpSet); // Renders the icon cleanly
+  layer_add_child(window_layer, bitmap_layer_get_layer(s_step_icon_layer));
+
+  // Create Steps Layer (Lower Left) - Placeholder for future use
+  s_steps_layer = text_layer_create(
+      GRect(icon_x + 24, icon_y, 50, 24)); // Positioned at lower left
+  text_layer_set_background_color(s_steps_layer, GColorClear);
+  text_layer_set_text_color(s_steps_layer, GColorWhite);
+  text_layer_set_text(s_steps_layer, "???"); // Placeholder text
+  text_layer_set_font(s_steps_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_text_alignment(s_steps_layer, GTextAlignmentLeft);
+  layer_add_child(window_layer, text_layer_get_layer(s_steps_layer));
 
   // Create Glitch Layer on top of the Text Layer
   s_glitch_layer = layer_create(bounds);
   layer_set_update_proc(s_glitch_layer, glitch_update_proc);
-  layer_add_child(window_get_root_layer(window), s_glitch_layer);
+  layer_add_child(window_layer, s_glitch_layer);
 
   // Make sure the initial time is displayed
   update_time();
@@ -267,10 +287,12 @@ static void main_window_unload(Window *window) {
   // Destroy the Layers
   text_layer_destroy(s_time_layer);
   text_layer_destroy(s_date_layer);
-  // NEW: Destroy battery layer
   text_layer_destroy(s_battery_layer);
+  text_layer_destroy(s_steps_layer);
   layer_destroy(s_grid_layer);
   layer_destroy(s_glitch_layer);
+  bitmap_layer_destroy(s_step_icon_layer);
+  gbitmap_destroy(s_step_icon_bitmap);
 }
 
 
@@ -304,7 +326,6 @@ static void deinit() {
   try_stop_animation_timer();
   window_destroy(s_main_window);
   tick_timer_service_unsubscribe();
-  // NEW: Unsubscribe from battery state updates
   battery_state_service_unsubscribe();
 }
 
