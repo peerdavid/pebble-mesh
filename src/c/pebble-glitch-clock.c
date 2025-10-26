@@ -6,6 +6,7 @@ static TextLayer *s_time_layer;
 static TextLayer *s_date_layer;
 static TextLayer *s_battery_layer;
 static TextLayer *s_steps_layer;
+static TextLayer *s_header_layer;
 static Layer *s_glitch_layer;
 static Layer *s_frame_layer;
 
@@ -15,7 +16,9 @@ static BitmapLayer *s_step_icon_layer;
 // Pointer for the animation AppTimer
 #define GRID_SIZE 8
 #define CROSS_SIZE 0
-#define INFO_DISTANCE 22
+#define INFO_DISTANCE_X 22
+#define INFO_DISTANCE_Y 26
+
 #define ANIMATION_RATE_MS 20
 #define NUM_ANIMATION_FRAMES 500
 #define ANIMATION_DECREASE_STEP 20
@@ -190,14 +193,14 @@ static void draw_frame(Layer *layer, GContext *ctx) {
   int line_length = bounds.size.w * 0.8;
   int line_x_start = (bounds.size.w - line_length) / 2;
   int time_y = bounds.size.h / 2;
-  int line_y_offset = 28; // Distance from the center of the time text
+  int line_y_offset = 29; // Distance from the center of the time text
   
   graphics_context_set_stroke_color(ctx, GColorWhite);
-  graphics_context_set_stroke_width(ctx, 2);
+  graphics_context_set_stroke_width(ctx, 3);
   graphics_draw_line(
     ctx, 
-    GPoint(line_x_start, time_y - line_y_offset), 
-    GPoint(line_x_start + line_length, time_y - line_y_offset)
+    GPoint(line_x_start, time_y - line_y_offset-3), 
+    GPoint(line_x_start + line_length, time_y - line_y_offset-3)
   );
   graphics_draw_line(
     ctx, 
@@ -234,8 +237,9 @@ static void main_window_load(Window *window) {
   layer_add_child(window_layer, s_frame_layer);
 
   // Create Time Layer
+  const int time_y_pos = bounds.size.h / 2 - 21 - 14;
   s_time_layer = text_layer_create(
-      GRect(0, bounds.size.h / 2 - 21 - 6, bounds.size.w, bounds.size.h));
+      GRect(0, time_y_pos, bounds.size.w, bounds.size.h));
 
   text_layer_set_background_color(s_time_layer, GColorClear);
   text_layer_set_text_color(s_time_layer, GColorWhite);
@@ -244,20 +248,34 @@ static void main_window_load(Window *window) {
   text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
 
-  // Create the Date Layer (Upper Left)
+  // Create the Date Layer (Center below time)
   s_date_layer = text_layer_create(
-      GRect(INFO_DISTANCE/2-4, INFO_DISTANCE-14, 54, 24)); // Positioned at upper left
+      GRect(0, time_y_pos + 40, bounds.size.w, 24)); // Positioned at upper left
 
   text_layer_set_background_color(s_date_layer, GColorClear);
   text_layer_set_text_color(s_date_layer, GColorWhite);
   text_layer_set_text(s_date_layer, "Mon 01");
   text_layer_set_font(s_date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(s_date_layer, GTextAlignmentLeft);
+  text_layer_set_text_alignment(s_date_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(s_date_layer));
   
-  // Create the Battery Layer (Upper Right)
+  // Create the header that just says "Pebble"
+  s_header_layer = text_layer_create(
+      GRect(0, 8, bounds.size.w, 32)); // Positioned at top center
+
+  text_layer_set_background_color(s_header_layer, GColorClear);
+  text_layer_set_text_color(s_header_layer, GColorWhite);
+  text_layer_set_text(s_header_layer, "Pebble");
+  text_layer_set_font(s_header_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
+  text_layer_set_text_alignment(s_header_layer, GTextAlignmentCenter);
+  layer_add_child(window_layer, text_layer_get_layer(s_header_layer));
+
+  // Create the Battery Layer
+  const int lower_y = bounds.size.h - INFO_DISTANCE_Y - 14; // Example Y position
+
+  const int battery_width = 44;
   s_battery_layer = text_layer_create(
-      GRect(bounds.size.w - 62, INFO_DISTANCE-14, 50, 24)); // Positioned at upper right
+      GRect(bounds.size.w - battery_width - INFO_DISTANCE_X, lower_y, 50, 24)); // Positioned at upper right
       
   text_layer_set_background_color(s_battery_layer, GColorClear);
   text_layer_set_text_color(s_battery_layer, GColorWhite);
@@ -267,12 +285,10 @@ static void main_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_battery_layer));
   
   // Load icon
-  const int icon_x = INFO_DISTANCE/2-4; // Example X position
-  const int icon_y = bounds.size.h - INFO_DISTANCE - 14; // Example Y position
-
+  const int icon_x = INFO_DISTANCE_X/2-4; // Example X position
   s_step_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STEP);
   s_step_icon_layer = bitmap_layer_create(
-      GRect(icon_x, icon_y, 24, 24)
+      GRect(icon_x, lower_y, 24, 24)
   );
   bitmap_layer_set_bitmap(s_step_icon_layer, s_step_icon_bitmap);
   bitmap_layer_set_compositing_mode(s_step_icon_layer, GCompOpSet); // Renders the icon cleanly
@@ -280,7 +296,7 @@ static void main_window_load(Window *window) {
 
   // Create Steps Layer (Lower Left) - Placeholder for future use
   s_steps_layer = text_layer_create(
-      GRect(icon_x + 24, icon_y, 50, 24)); // Positioned at lower left
+      GRect(icon_x + 24, lower_y, 50, 24)); // Positioned at lower left
   text_layer_set_background_color(s_steps_layer, GColorClear);
   text_layer_set_text_color(s_steps_layer, GColorWhite);
   text_layer_set_text(s_steps_layer, "???"); // Placeholder text
