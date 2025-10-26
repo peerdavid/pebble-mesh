@@ -3,6 +3,9 @@
 // A pointer to the main window and layers
 static Window *s_main_window;
 static TextLayer *s_time_layer;
+static TextLayer *s_date_layer;
+// NEW: Battery Layer
+static TextLayer *s_battery_layer;
 static Layer *s_glitch_layer;
 static Layer *s_grid_layer;
 
@@ -22,6 +25,9 @@ static int glitch_odd[NUM_GLITCHES][4];
 
 // Buffer to hold the time string (e.g., "12:34" or "23:59")
 static char s_time_buffer[9];
+static char s_date_buffer[8];
+// NEW: Buffer for battery text
+static char s_battery_buffer[5]; 
 
 // Flag to track the state of the animation
 static bool s_is_animation_running = false; 
@@ -29,6 +35,8 @@ static bool s_is_animation_running = false;
 
 // Forward declarations
 static void update_time();
+// NEW: Forward declaration for battery handler
+static void battery_handler(BatteryChargeState state);
 static void glitch_update_proc(Layer *layer, GContext *ctx);
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed);
 static void animation_timer_callback(void *data);
@@ -45,8 +53,19 @@ static void update_time() {
   struct tm *tick_time = localtime(&temp);
   clock_copy_time_string(s_time_buffer, sizeof(s_time_buffer));
   text_layer_set_text(s_time_layer, s_time_buffer);
+
+  strftime(s_date_buffer, sizeof(s_date_buffer), " %a %d", tick_time);
+  text_layer_set_text(s_date_layer, s_date_buffer);
 }
 
+// --- Battery Handler ---
+static void battery_handler(BatteryChargeState state) {
+  // Write the battery percentage into the buffer
+  snprintf(s_battery_buffer, sizeof(s_battery_buffer), "%d%%", state.charge_percent);
+  
+  // Update the TextLayer
+  text_layer_set_text(s_battery_layer, s_battery_buffer);
+}
 
 /**
  * @brief Stops the animation timer and resets the running flag.
@@ -188,23 +207,24 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 static void main_window_appear(Window *window) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Window appear");
     try_start_animation_timer();
+    
+    // NEW: Get the current battery state and display it
+    battery_handler(battery_state_service_peek());
 }
 
 static void main_window_load(Window *window) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Window load");
   GRect bounds = layer_get_bounds(window_get_root_layer(window));
 
-  // 1. Create grid layer
+  // Create grid layer
   s_grid_layer = layer_create(bounds);
-  // Draw the grid in its update procedure
   layer_set_update_proc(s_grid_layer, draw_grid);
   layer_add_child(window_get_root_layer(window), s_grid_layer);
 
-  // 1. Create TextLayer for the time
+  // Create Time Layer
   s_time_layer = text_layer_create(
       GRect(0, bounds.size.h / 2 - 21 - 6, bounds.size.w, bounds.size.h));
 
-  // Transparent background for the text layer
   text_layer_set_background_color(s_time_layer, GColorClear);
   text_layer_set_text_color(s_time_layer, GColorWhite);
   text_layer_set_text(s_time_layer, "00:00"); 
@@ -212,7 +232,29 @@ static void main_window_load(Window *window) {
   text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_time_layer));
 
-  // 2. Create Glitch Layer on top of the Text Layer
+  // Create the Date Layer (Upper Left)
+  s_date_layer = text_layer_create(
+      GRect(GRID_SIZE, GRID_SIZE-8, 60, 24)); // Positioned at upper left
+
+  text_layer_set_background_color(s_date_layer, GColorBlack);
+  text_layer_set_text_color(s_date_layer, GColorWhite);
+  text_layer_set_text(s_date_layer, "Mon 01");
+  text_layer_set_font(s_date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_text_alignment(s_date_layer, GTextAlignmentLeft);
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_date_layer));
+  
+  // Create the Battery Layer (Upper Right)
+  s_battery_layer = text_layer_create(
+      GRect(bounds.size.w - 70, GRID_SIZE-8, 50, 24)); // Positioned at upper right
+      
+  text_layer_set_background_color(s_battery_layer, GColorBlack);
+  text_layer_set_text_color(s_battery_layer, GColorWhite);
+  text_layer_set_text(s_battery_layer, "100%"); // Default text
+  text_layer_set_font(s_battery_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_text_alignment(s_battery_layer, GTextAlignmentRight);
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_battery_layer));
+
+  // Create Glitch Layer on top of the Text Layer
   s_glitch_layer = layer_create(bounds);
   layer_set_update_proc(s_glitch_layer, glitch_update_proc);
   layer_add_child(window_get_root_layer(window), s_glitch_layer);
@@ -224,6 +266,10 @@ static void main_window_load(Window *window) {
 static void main_window_unload(Window *window) {
   // Destroy the Layers
   text_layer_destroy(s_time_layer);
+  text_layer_destroy(s_date_layer);
+  // NEW: Destroy battery layer
+  text_layer_destroy(s_battery_layer);
+  layer_destroy(s_grid_layer);
   layer_destroy(s_glitch_layer);
 }
 
@@ -244,6 +290,10 @@ static void init() {
     
     // Subscribe to MINUTE_UNIT (for time update/minute-start trigger) and SECOND_UNIT (for stop trigger)
     tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+    
+    // NEW: Subscribe to battery state updates
+    battery_state_service_subscribe(battery_handler);
+    
     window_stack_push(s_main_window, true);
 
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Finished init");
@@ -254,6 +304,8 @@ static void deinit() {
   try_stop_animation_timer();
   window_destroy(s_main_window);
   tick_timer_service_unsubscribe();
+  // NEW: Unsubscribe from battery state updates
+  battery_state_service_unsubscribe();
 }
 
 // --- Main Program Loop ---
