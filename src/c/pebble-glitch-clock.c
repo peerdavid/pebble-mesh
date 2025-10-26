@@ -13,13 +13,14 @@ static GBitmap *s_step_icon_bitmap;
 static BitmapLayer *s_step_icon_layer;
 
 // Pointer for the animation AppTimer
-#define GRID_SIZE 15
+#define GRID_SIZE 8
 #define CROSS_SIZE 0
+#define INFO_DISTANCE 18
 #define ANIMATION_RATE_MS 20
 #define NUM_ANIMATION_FRAMES 500
-#define ANIMATION_DECREASE_STEP 10
+#define ANIMATION_DECREASE_STEP 20
 #define NUM_GLITCHES_IF_ANIMATION_STOPPED 0
-#define BORDER_THICKNESS 0
+#define BORDER_THICKNESS 7
 
 // Animation
 static AppTimer *s_animation_timer = NULL;
@@ -232,7 +233,7 @@ static void main_window_load(Window *window) {
 
   // Create the Date Layer (Upper Left)
   s_date_layer = text_layer_create(
-      GRect(GRID_SIZE/2-4, GRID_SIZE-14, 54, 24)); // Positioned at upper left
+      GRect(INFO_DISTANCE/2-4, INFO_DISTANCE-14, 54, 24)); // Positioned at upper left
 
   text_layer_set_background_color(s_date_layer, GColorClear);
   text_layer_set_text_color(s_date_layer, GColorWhite);
@@ -243,7 +244,7 @@ static void main_window_load(Window *window) {
   
   // Create the Battery Layer (Upper Right)
   s_battery_layer = text_layer_create(
-      GRect(bounds.size.w - 56, GRID_SIZE-14, 50, 24)); // Positioned at upper right
+      GRect(bounds.size.w - 58, INFO_DISTANCE-14, 50, 24)); // Positioned at upper right
       
   text_layer_set_background_color(s_battery_layer, GColorClear);
   text_layer_set_text_color(s_battery_layer, GColorWhite);
@@ -253,8 +254,8 @@ static void main_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_battery_layer));
   
   // Load icon
-  const int icon_x = GRID_SIZE/2-4; // Example X position
-  const int icon_y = bounds.size.h - GRID_SIZE - 12; // Example Y position
+  const int icon_x = INFO_DISTANCE/2-4; // Example X position
+  const int icon_y = bounds.size.h - INFO_DISTANCE - 14; // Example Y position
 
   s_step_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STEP);
   s_step_icon_layer = bitmap_layer_create(

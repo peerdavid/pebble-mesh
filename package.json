@@ -1,7 +1,7 @@
 {
   "name": "pebble-glitch-clock",
-  "author": "MakeAwesomeHappen",
-  "version": "1.0.0",
+  "author": "David Peer",
+  "version": "1.1",
   "keywords": ["pebble-app"],
   "private": true,
   "dependencies": {},
