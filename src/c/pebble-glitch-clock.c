@@ -7,7 +7,7 @@ static TextLayer *s_date_layer;
 static TextLayer *s_battery_layer;
 static TextLayer *s_steps_layer;
 static Layer *s_glitch_layer;
-static Layer *s_grid_layer;
+static Layer *s_frame_layer;
 
 static GBitmap *s_step_icon_bitmap;
 static BitmapLayer *s_step_icon_layer;
@@ -15,7 +15,7 @@ static BitmapLayer *s_step_icon_layer;
 // Pointer for the animation AppTimer
 #define GRID_SIZE 8
 #define CROSS_SIZE 0
-#define INFO_DISTANCE 18
+#define INFO_DISTANCE 22
 #define ANIMATION_RATE_MS 20
 #define NUM_ANIMATION_FRAMES 500
 #define ANIMATION_DECREASE_STEP 20
@@ -46,7 +46,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed);
 static void animation_timer_callback(void *data);
 static void try_start_animation_timer();
 static void try_stop_animation_timer();
-static void draw_grid(Layer *layer, GContext *ctx);
+static void draw_frame(Layer *layer, GContext *ctx);
 
 
 // --- Update Time Function ---
@@ -133,15 +133,6 @@ static void animation_timer_callback(void *data) {
 // --- Glitch Layer Drawing Update Procedure (Unchanged) ---
 static void glitch_update_proc(Layer *layer, GContext *ctx) {  
   GRect bounds = layer_get_bounds(layer);
-
-  // 1. Draw the white border frame
-  if(BORDER_THICKNESS > 0) {
-    graphics_context_set_stroke_color(ctx, GColorWhite);
-    graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
-    graphics_draw_rect(ctx, GRect(1, 1, bounds.size.w - 2, bounds.size.h - 2));
-  }
-
-
   // Draw the glitches from the selected array
   int num_glitches_to_draw = current_animation_frame;
   for (int i = 0; i < num_glitches_to_draw; i++) {
@@ -162,19 +153,21 @@ static void glitch_update_proc(Layer *layer, GContext *ctx) {
   }
 }
 
-static void draw_grid(Layer *layer, GContext *ctx) {
+static void draw_frame(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
+  
+  // Frame
+  if(BORDER_THICKNESS > 0) {
+    graphics_context_set_stroke_color(ctx, GColorWhite);
+    graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
+    graphics_draw_rect(ctx, GRect(1, 1, bounds.size.w - 2, bounds.size.h - 2));
+  }
+
+  // Dots
   graphics_context_set_stroke_color(ctx, GColorWhite);
   graphics_context_set_stroke_width(ctx, 1);
-  
-  // The grid drawing logic now focuses on the intersection points
-  
-  // Iterate through all the vertical positions (y) where a grid line would be
   for (int y = 0; y < bounds.size.h; y += GRID_SIZE) {
-    // Iterate through all the horizontal positions (x) where a grid line would be
     for (int x = 0; x < bounds.size.w; x += GRID_SIZE) {
-      // At the intersection (x, y), draw a small cross
-      
       // 1. Draw the horizontal part of the cross
       // Starts at x - CROSS_SIZE and ends at x + CROSS_SIZE, centered on y
       graphics_draw_line(
@@ -192,9 +185,29 @@ static void draw_grid(Layer *layer, GContext *ctx) {
       );
     }
   }
-}
-// --- Tick Handler ---
 
+  // Horizontal lines above and below the time with 80% width
+  int line_length = bounds.size.w * 0.8;
+  int line_x_start = (bounds.size.w - line_length) / 2;
+  int time_y = bounds.size.h / 2;
+  int line_y_offset = 28; // Distance from the center of the time text
+  
+  graphics_context_set_stroke_color(ctx, GColorWhite);
+  graphics_context_set_stroke_width(ctx, 2);
+  graphics_draw_line(
+    ctx, 
+    GPoint(line_x_start, time_y - line_y_offset), 
+    GPoint(line_x_start + line_length, time_y - line_y_offset)
+  );
+  graphics_draw_line(
+    ctx, 
+    GPoint(line_x_start, time_y + line_y_offset), 
+    GPoint(line_x_start + line_length, time_y + line_y_offset)
+  );
+}
+
+
+// --- Tick Handler ---
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   try_start_animation_timer();
   update_time();
@@ -216,9 +229,9 @@ static void main_window_load(Window *window) {
   GRect bounds = layer_get_bounds(window_layer);
 
   // Create grid layer
-  s_grid_layer = layer_create(bounds);
-  layer_set_update_proc(s_grid_layer, draw_grid);
-  layer_add_child(window_layer, s_grid_layer);
+  s_frame_layer = layer_create(bounds);
+  layer_set_update_proc(s_frame_layer, draw_frame);
+  layer_add_child(window_layer, s_frame_layer);
 
   // Create Time Layer
   s_time_layer = text_layer_create(
@@ -244,7 +257,7 @@ static void main_window_load(Window *window) {
   
   // Create the Battery Layer (Upper Right)
   s_battery_layer = text_layer_create(
-      GRect(bounds.size.w - 58, INFO_DISTANCE-14, 50, 24)); // Positioned at upper right
+      GRect(bounds.size.w - 62, INFO_DISTANCE-14, 50, 24)); // Positioned at upper right
       
   text_layer_set_background_color(s_battery_layer, GColorClear);
   text_layer_set_text_color(s_battery_layer, GColorWhite);
@@ -290,7 +303,7 @@ static void main_window_unload(Window *window) {
   text_layer_destroy(s_date_layer);
   text_layer_destroy(s_battery_layer);
   text_layer_destroy(s_steps_layer);
-  layer_destroy(s_grid_layer);
+  layer_destroy(s_frame_layer);
   layer_destroy(s_glitch_layer);
   bitmap_layer_destroy(s_step_icon_layer);
   gbitmap_destroy(s_step_icon_bitmap);
