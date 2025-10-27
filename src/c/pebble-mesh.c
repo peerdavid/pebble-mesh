@@ -7,7 +7,6 @@ static TextLayer *s_date_layer;
 static TextLayer *s_battery_layer;
 static TextLayer *s_steps_layer;
 static TextLayer *s_header_layer;
-static Layer *s_glitch_layer;
 static Layer *s_frame_layer;
 
 static GBitmap *s_step_icon_bitmap;
@@ -19,16 +18,19 @@ static BitmapLayer *s_step_icon_layer;
 #define INFO_DISTANCE_X 22
 #define INFO_DISTANCE_Y 26
 
+#define VERY_FIRST_ANIMATION_FRAME 500
 #define ANIMATION_RATE_MS 20
+
 #define NUM_ANIMATION_FRAMES 500
-#define ANIMATION_DECREASE_STEP 20
-#define NUM_GLITCHES_IF_ANIMATION_STOPPED 0
+#define ANIMATION_DECREASE_STEP 15
+#define SLOW_DOWN_ANIMATION_FRAME 130
+
 #define BORDER_THICKNESS 7
 
 // Animation
 static AppTimer *s_animation_timer = NULL;
-static int current_animation_frame = 0;
-
+static int current_animation_frame = 0; // Ranges from NUM_ANIMATION_FRAMES down to 0
+static int current_decrease_rate =  1;
 
 // Buffer to hold the time string (e.g., "12:34" or "23:59")
 static char s_time_buffer[9];
@@ -42,9 +44,7 @@ static bool s_is_animation_running = false;
 
 // Forward declarations
 static void update_time();
-// NEW: Forward declaration for battery handler
 static void battery_handler(BatteryChargeState state);
-static void glitch_update_proc(Layer *layer, GContext *ctx);
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed);
 static void animation_timer_callback(void *data);
 static void try_start_animation_timer();
@@ -55,9 +55,22 @@ static void draw_frame(Layer *layer, GContext *ctx);
 // --- Update Time Function ---
 
 static void update_time() {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Update time");
+
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
-  clock_copy_time_string(s_time_buffer, sizeof(s_time_buffer));
+  
+  // Use strftime to get the time in the user's 12h or 24h format
+  if (clock_is_24h_style()) {
+      strftime(s_time_buffer, sizeof(s_time_buffer), "%H:%M", tick_time);
+  } else {
+      strftime(s_time_buffer, sizeof(s_time_buffer), "%I:%M", tick_time);
+      // Remove leading zero on 12-hour clock
+      if (s_time_buffer[0] == '0') {
+          memmove(s_time_buffer, &s_time_buffer[1], sizeof(s_time_buffer) - 1);
+      }
+  }
+
   text_layer_set_text(s_time_layer, s_time_buffer);
 
   strftime(s_date_buffer, sizeof(s_date_buffer), " %a %d", tick_time);
@@ -70,10 +83,8 @@ static void update_time() {
 
 // --- Battery Handler ---
 static void battery_handler(BatteryChargeState state) {
-  // Write the battery percentage into the buffer
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Battery handler");
   snprintf(s_battery_buffer, sizeof(s_battery_buffer), "%d%%", state.charge_percent);
-  
-  // Update the TextLayer
   text_layer_set_text(s_battery_layer, s_battery_buffer);
 }
 
@@ -93,6 +104,8 @@ static void try_stop_animation_timer() {
 
     s_is_animation_running = false; 
     current_animation_frame = 0;
+    // Ensure the final state is drawn (full length)
+    layer_mark_dirty(s_frame_layer);
 }
 
 /**
@@ -105,57 +118,40 @@ static void try_start_animation_timer() {
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Start animation timer");
   current_animation_frame = NUM_ANIMATION_FRAMES;
+  current_decrease_rate = ANIMATION_DECREASE_STEP;
   s_is_animation_running = true;
-  s_animation_timer = app_timer_register(ANIMATION_RATE_MS, animation_timer_callback, NULL);
+
+  s_animation_timer = app_timer_register(VERY_FIRST_ANIMATION_FRAME, animation_timer_callback, NULL);
 }
 
 /**
- * @brief AppTimer callback that triggers the glitch redraw and reschedules itself.
+ * @brief AppTimer callback that triggers the frame redraw and reschedules itself.
  */
 static void animation_timer_callback(void *data) {
-    // If the animation was stopped between the last timer call and now, don't restart it
-    if (!s_is_animation_running) {
-        return;
-    }
-    
-    current_animation_frame -= ANIMATION_DECREASE_STEP;
-    if(current_animation_frame <= 0) {
-      // Animation duration completed, stop the animation
-      // but still draw the frame otherwise its not shown.
-      try_stop_animation_timer();
-    }
-    
-    // Mark the layer as dirty to trigger a redraw
-    layer_mark_dirty(s_glitch_layer);
-    
-    // Reschedule the timer for the next frame, creating a continuous loop
-    s_animation_timer = app_timer_register(ANIMATION_RATE_MS, animation_timer_callback, NULL);
-}
-
-
-// --- Glitch Layer Drawing Update Procedure (Unchanged) ---
-static void glitch_update_proc(Layer *layer, GContext *ctx) {  
-  GRect bounds = layer_get_bounds(layer);
-  // Draw the glitches from the selected array
-  int num_glitches_to_draw = current_animation_frame;
-  for (int i = 0; i < num_glitches_to_draw; i++) {
-    // Randomly choose color for more variation (white or black to obscure text)
-    if (i % 2 == 0) {
-      graphics_context_set_fill_color(ctx, GColorWhite);
-    } else {
-      // Use the background color (Black) to create a cut-off effect on the text
-      graphics_context_set_fill_color(ctx, GColorBlack);
-    }
-
-    // Draw a random dot somewhere in the bounds
-    int x = rand() % bounds.size.w;
-    int y = rand() % bounds.size.h;
-    int w = (rand() % 20) + 3; // Width between 5 and 24
-    int h = (rand() % 5) + 2;  // Height between 2 and 6
-    graphics_fill_rect(ctx, GRect(x, y, w, h), 0, GCornerNone);
+  // If the animation was stopped between the last timer call and now, don't restart it
+  if (!s_is_animation_running) {
+      return;
   }
+  
+  current_animation_frame -= current_decrease_rate;
+  if(current_animation_frame < 0) {
+    try_stop_animation_timer();
+    return; // try_stop_animation_timer will trigger the final redraw
+  }
+
+  if(current_animation_frame <= SLOW_DOWN_ANIMATION_FRAME && current_decrease_rate > 2) {
+    current_decrease_rate -= 1;
+  }
+  
+  // Mark the frame layer as dirty to trigger a redraw for the animation effect
+  layer_mark_dirty(s_frame_layer);
+  
+  // Reschedule the timer for the next frame, creating a continuous loop
+  s_animation_timer = app_timer_register(ANIMATION_RATE_MS, animation_timer_callback, NULL);
 }
 
+
+// --- Frame Layer Drawing Update Procedure (Modified for Line Fly-In) ---
 static void draw_frame(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   
@@ -190,22 +186,39 @@ static void draw_frame(Layer *layer, GContext *ctx) {
   }
 
   // Horizontal lines above and below the time with 80% width
-  int line_length = bounds.size.w * 0.8;
-  int line_x_start = (bounds.size.w - line_length) / 2;
-  int time_y = bounds.size.h / 2;
-  int line_y_offset = 29; // Distance from the center of the time text
+  const int max_line_length = bounds.size.w * 0.8;
+  const int line_x_start_full = (bounds.size.w - max_line_length) / 2;
+  const int time_y = bounds.size.h / 2;
+  const int line_y_offset = 29; // Distance from the center of the time text
   
+  // Calculate the current animated line length. It goes from 0 up to max_line_length.
+  // current_animation_frame ranges from NUM_ANIMATION_FRAMES (max) down to 0.
+  // The factor should go from 0 (when frame is max) up to 1 (when frame is 0).
+  float animation_factor = 1.0f - ((float)current_animation_frame / NUM_ANIMATION_FRAMES);
+  int current_line_length = (int)(max_line_length * animation_factor);
+  
+  // Safety check
+  if (current_line_length < 0) current_line_length = 0;
+  if (current_line_length > max_line_length) current_line_length = max_line_length;
+
+
   graphics_context_set_stroke_color(ctx, GColorWhite);
   graphics_context_set_stroke_width(ctx, 3);
+
+  // ANIMATE: Top line flies in from LEFT
+  // Start X is fixed (line_x_start_full), End X is animated.
   graphics_draw_line(
     ctx, 
-    GPoint(line_x_start, time_y - line_y_offset-3), 
-    GPoint(line_x_start + line_length, time_y - line_y_offset-3)
+    GPoint(line_x_start_full, time_y - line_y_offset - 3), 
+    GPoint(line_x_start_full + current_line_length, time_y - line_y_offset - 3)
   );
+
+  // ANIMATE: Bottom line flies in from RIGHT
+  // End X is fixed (line_x_start_full + max_line_length), Start X is animated.
   graphics_draw_line(
     ctx, 
-    GPoint(line_x_start, time_y + line_y_offset), 
-    GPoint(line_x_start + line_length, time_y + line_y_offset)
+    GPoint(line_x_start_full + max_line_length - current_line_length, time_y + line_y_offset), 
+    GPoint(line_x_start_full + max_line_length, time_y + line_y_offset)
   );
 }
 
@@ -220,18 +233,18 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 // --- Window Load/Unload Handlers ---
 static void main_window_appear(Window *window) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Window appear");
+
     try_start_animation_timer();
-    
-    // NEW: Get the current battery state and display it
     battery_handler(battery_state_service_peek());
 }
 
 static void main_window_load(Window *window) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Window load");
+
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  // Create grid layer
+  // Create frame layer
   s_frame_layer = layer_create(bounds);
   layer_set_update_proc(s_frame_layer, draw_frame);
   layer_add_child(window_layer, s_frame_layer);
@@ -266,14 +279,14 @@ static void main_window_load(Window *window) {
   text_layer_set_background_color(s_header_layer, GColorClear);
   text_layer_set_text_color(s_header_layer, GColorWhite);
   text_layer_set_text(s_header_layer, "Pebble");
-  text_layer_set_font(s_header_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
+  text_layer_set_font(s_header_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
   text_layer_set_text_alignment(s_header_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(s_header_layer));
 
   // Create the Battery Layer
-  const int lower_y = bounds.size.h - INFO_DISTANCE_Y - 14; // Example Y position
+  const int lower_y = bounds.size.h - INFO_DISTANCE_Y - 6; // Example Y position
 
-  const int battery_width = 44;
+  const int battery_width = 38;
   s_battery_layer = text_layer_create(
       GRect(bounds.size.w - battery_width - INFO_DISTANCE_X, lower_y, 50, 24)); // Positioned at upper right
       
@@ -304,11 +317,6 @@ static void main_window_load(Window *window) {
   text_layer_set_text_alignment(s_steps_layer, GTextAlignmentLeft);
   layer_add_child(window_layer, text_layer_get_layer(s_steps_layer));
 
-  // Create Glitch Layer on top of the Text Layer
-  s_glitch_layer = layer_create(bounds);
-  layer_set_update_proc(s_glitch_layer, glitch_update_proc);
-  layer_add_child(window_layer, s_glitch_layer);
-
   // Make sure the initial time is displayed
   update_time();
 }
@@ -319,8 +327,8 @@ static void main_window_unload(Window *window) {
   text_layer_destroy(s_date_layer);
   text_layer_destroy(s_battery_layer);
   text_layer_destroy(s_steps_layer);
+  text_layer_destroy(s_header_layer);
   layer_destroy(s_frame_layer);
-  layer_destroy(s_glitch_layer);
   bitmap_layer_destroy(s_step_icon_layer);
   gbitmap_destroy(s_step_icon_bitmap);
 }
@@ -337,13 +345,13 @@ static void init() {
     window_set_window_handlers(s_main_window, (WindowHandlers) {
         .load = main_window_load,
         .unload = main_window_unload,
-        .appear = main_window_appear // NEW: Window appear handler
+        .appear = main_window_appear
     });
     
     // Subscribe to MINUTE_UNIT (for time update/minute-start trigger) and SECOND_UNIT (for stop trigger)
     tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
     
-    // NEW: Subscribe to battery state updates
+    // Subscribe to battery state updates
     battery_state_service_subscribe(battery_handler);
     
     window_stack_push(s_main_window, true);

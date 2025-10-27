@@ -1,22 +1,19 @@
 {
-  "name": "pebble-glitch-clock",
+  "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.1",
-  "keywords": ["pebble-app"],
+  "version": "1.0",
+  "keywords": ["clock", "minimal", "mesh", "dark"],
   "private": true,
   "dependencies": {},
   "pebble": {
-    "displayName": "pebble-glitch-clock",
+    "displayName": "Pebble Mesh",
     "uuid": "556723f4-387d-48f8-9318-419a041222d5",
     "sdkVersion": "3",
     "enableMultiJS": true,
     "targetPlatforms": [
       "aplite",
       "basalt",
-      "chalk",
-      "diorite",
-      "emery",
-      "flint"
+      "diorite"
     ],
     "watchapp": {
       "watchface": true
