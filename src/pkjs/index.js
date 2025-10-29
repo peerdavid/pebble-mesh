@@ -26,15 +26,9 @@ function getLocation() {
       getCityName(position.coords.latitude, position.coords.longitude);
     },
     function(error) {
-      console.log('Location error code: ' + error.code + ', message: ' + error.message);
-      
-      // Try fallback location (example coordinates for testing)
-      console.log('Using fallback location (New York)');
-      var fallbackLat = 40.7128;
-      var fallbackLon = -74.0060;
-      
-      getWeatherData(fallbackLat, fallbackLon);
-      weatherData.location = 'New York';
+      // Set error values
+      weatherData.location = 'N/A';
+      weatherData.temperature = 'N/A';
       sendWeatherToPebble();
     },
     {
