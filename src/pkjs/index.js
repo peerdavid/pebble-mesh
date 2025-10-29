@@ -1,4 +1,12 @@
-// PebbleKit JS component for weather data
+// Default configuration
+var config = {
+  location: 'Navis' // Default location
+};
+
+// Load saved configuration
+if (localStorage.getItem('WEATHER_LOCATION_CONFIG')) {
+  config.location = localStorage.getItem('WEATHER_LOCATION_CONFIG');
+}
 
 // Variables to store weather data
 var weatherData = {
@@ -6,37 +14,78 @@ var weatherData = {
   location: 'Loading...'
 };
 
-// Function to get current position
-function getLocation() {
-  console.log('Requesting location...');
+// Function to get coordinates for a city name
+function getCoordinatesForCity(cityName) {
+  console.log('Getting coordinates for: ' + cityName);
   
-  // Check if geolocation is available
-  if (!navigator.geolocation) {
-    console.log('Geolocation is not supported');
-    weatherData.location = 'No GPS';
+  var url = 'https://geocoding-api.open-meteo.com/v1/search?name=' + 
+            encodeURIComponent(cityName) + '&count=1&language=en&format=json';
+  
+  console.log('Geocoding URL: ' + url);
+  
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        try {
+          var response = JSON.parse(xhr.responseText);
+          console.log('Geocoding response: ' + xhr.responseText);
+          
+          if (response.results && response.results.length > 0) {
+            var result = response.results[0];
+            var latitude = result.latitude;
+            var longitude = result.longitude;
+            var locationName = result.name || cityName;
+            
+            console.log('Found coordinates: ' + latitude + ',' + longitude + ' for ' + locationName);
+            weatherData.location = locationName;
+            
+            // Now get weather data for these coordinates
+            getWeatherData(latitude, longitude);
+          } else {
+            console.log('No results found for city: ' + cityName);
+            weatherData.location = 'City Not Found';
+            weatherData.temperature = 'N/A';
+            sendWeatherToPebble();
+          }
+        } catch (e) {
+          console.log('Geocoding JSON parse error: ' + e.message);
+          weatherData.location = 'Parse Error';
+          weatherData.temperature = 'N/A';
+          sendWeatherToPebble();
+        }
+      } else {
+        console.log('Geocoding request failed with status: ' + xhr.status);
+        weatherData.location = 'Geocode Error';
+        weatherData.temperature = 'N/A';
+        sendWeatherToPebble();
+      }
+    }
+  };
+  
+  xhr.open('GET', url, true);
+  xhr.timeout = 10000;
+  xhr.ontimeout = function() {
+    console.log('Geocoding request timed out');
+    weatherData.location = 'Timeout';
     weatherData.temperature = 'N/A';
     sendWeatherToPebble();
-    return;
-  }
-  
-  navigator.geolocation.getCurrentPosition(
-    function(position) {
-      console.log('Location found: ' + position.coords.latitude + ',' + position.coords.longitude);
-      getWeatherData(position.coords.latitude, position.coords.longitude);
-      getCityName(position.coords.latitude, position.coords.longitude);
-    },
-    function(error) {
-      // Set error values
-      weatherData.location = 'N/A';
-      weatherData.temperature = 'N/A';
-      sendWeatherToPebble();
-    },
-    {
-      timeout: 30000,
-      maximumAge: 300000, // 5 minutes
-      enableHighAccuracy: false
-    }
-  );
+  };
+  xhr.onerror = function() {
+    console.log('Geocoding request network error');
+    weatherData.location = 'Net Error';
+    weatherData.temperature = 'N/A';
+    sendWeatherToPebble();
+  };
+  xhr.send();
+}
+
+// Main function to fetch weather for configured location
+function fetchWeatherForLocation() {
+  console.log('Fetching weather for configured location: ' + config.location);
+  weatherData.location = 'Loading...';
+  weatherData.temperature = '--';
+  getCoordinatesForCity(config.location);
 }
 
 // Function to get weather data from Open-Meteo API
@@ -58,7 +107,7 @@ function getWeatherData(latitude, longitude) {
           
           if (response.current_weather && response.current_weather.temperature !== undefined) {
             var temp = Math.round(response.current_weather.temperature);
-            weatherData.temperature = temp + '°';
+            weatherData.temperature = temp + 'C';
             console.log('Temperature: ' + weatherData.temperature);
             sendWeatherToPebble();
           } else {
@@ -94,60 +143,6 @@ function getWeatherData(latitude, longitude) {
   xhr.send();
 }
 
-// Function to get city name using reverse geocoding
-function getCityName(latitude, longitude) {
-  // Use Open-Meteo geocoding API with coordinates
-  var url = 'https://geocoding-api.open-meteo.com/v1/search?name=location&latitude=' + 
-            latitude + '&longitude=' + longitude + '&count=1';
-  
-  console.log('Fetching location from: ' + url);
-  
-  var xhr = new XMLHttpRequest();
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState === 4) {
-      if (xhr.status === 200) {
-        try {
-          var response = JSON.parse(xhr.responseText);
-          console.log('Location response: ' + xhr.responseText);
-          
-          if (response.results && response.results.length > 0) {
-            var result = response.results[0];
-            var cityName = result.name || result.admin1 || result.admin2 || 'Unknown';
-            weatherData.location = cityName;
-            console.log('Location: ' + weatherData.location);
-          } else {
-            weatherData.location = 'Unknown';
-          }
-          sendWeatherToPebble();
-        } catch (e) {
-          console.log('Location JSON parse error: ' + e.message);
-          weatherData.location = 'Parse Error';
-          sendWeatherToPebble();
-        }
-      } else {
-        console.log('Location request failed with status: ' + xhr.status);
-        // Try backup method with approximate location
-        weatherData.location = 'Lat:' + Math.round(latitude * 100) / 100;
-        sendWeatherToPebble();
-      }
-    }
-  };
-  
-  xhr.open('GET', url, true);
-  xhr.timeout = 10000;
-  xhr.ontimeout = function() {
-    console.log('Location request timed out');
-    weatherData.location = 'Timeout';
-    sendWeatherToPebble();
-  };
-  xhr.onerror = function() {
-    console.log('Location request network error');
-    weatherData.location = 'Net Error';
-    sendWeatherToPebble();
-  };
-  xhr.send();
-}
-
 // Function to send weather data to Pebble
 function sendWeatherToPebble() {
   console.log('Sending to Pebble - Temperature: ' + weatherData.temperature + ', Location: ' + weatherData.location);
@@ -170,11 +165,11 @@ function sendWeatherToPebble() {
 // Event listeners
 Pebble.addEventListener('ready', function() {
   console.log('PebbleKit JS ready!');
-  console.log('Starting initial weather fetch...');
+  console.log('Starting initial weather fetch for: ' + config.location);
   
   // Small delay to ensure everything is ready
   setTimeout(function() {
-    getLocation();
+    fetchWeatherForLocation();
   }, 1000);
 });
 
@@ -184,12 +179,39 @@ Pebble.addEventListener('appmessage', function(e) {
   // Check if it's a weather update request
   if (e.payload.WEATHER_REQUEST) {
     console.log('Weather update requested from watch');
-    getLocation();
+    fetchWeatherForLocation();
+  }
+  
+  // Check if it's a location configuration update
+  if (e.payload.WEATHER_LOCATION_CONFIG) {
+    config.location = e.payload.WEATHER_LOCATION_CONFIG;
+    console.log('Location configuration updated to: ' + config.location);
+    fetchWeatherForLocation();
+  }
+});
+
+Pebble.addEventListener('webviewclosed', function(e) {
+  console.log('Configuration window closed');
+  
+  if (e.response) {
+    try {
+      var configData = JSON.parse(decodeURIComponent(e.response));
+      console.log('Configuration received: ' + JSON.stringify(configData));
+      
+      if (configData.WEATHER_LOCATION_CONFIG) {
+        config.location = configData.WEATHER_LOCATION_CONFIG;
+        localStorage.setItem('WEATHER_LOCATION_CONFIG', config.location);
+        console.log('Location saved to: ' + config.location);
+        fetchWeatherForLocation();
+      }
+    } catch (ex) {
+      console.log('Configuration parse error: ' + ex.message);
+    }
   }
 });
 
 // Update weather every 30 minutes
 setInterval(function() {
-  console.log('Periodic weather update (30min timer)');
-  getLocation();
+  console.log('Periodic weather update (30min timer) for: ' + config.location);
+  fetchWeatherForLocation();
 }, 30 * 60 * 1000);

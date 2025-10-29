@@ -2,9 +2,16 @@
   "name": "pebble-mesh",
   "author": "David Peer",
   "version": "1.0",
-  "keywords": ["clock", "minimal", "mesh", "dark"],
+  "keywords": [
+    "clock",
+    "minimal",
+    "mesh",
+    "dark"
+  ],
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "pebble-clay": "^1.0.4"
+  },
   "pebble": {
     "displayName": "Pebble Mesh",
     "uuid": "556723f4-387d-48f8-9318-419a041222d5",
@@ -21,7 +28,8 @@
     "messageKeys": [
       "WEATHER_TEMPERATURE",
       "WEATHER_LOCATION",
-      "WEATHER_REQUEST"
+      "WEATHER_REQUEST",
+      "WEATHER_LOCATION_CONFIG"
     ],
     "resources": {
       "media": [

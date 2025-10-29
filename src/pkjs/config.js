@@ -5,6 +5,17 @@ module.exports = [
   },
   {
     "type": "text",
-    "defaultValue": "Weather data is automatically fetched from Open-Meteo API."
+    "defaultValue": "Configure your weather location below. Weather data is fetched from Open-Meteo API."
+  },
+  {
+    "type": "input",
+    "messageKey": "WEATHER_LOCATION_CONFIG",
+    "label": "Location",
+    "defaultValue": "Navis",
+    "description": "Enter your city name (e.g., Vienna, New York, Tokyo)"
+  },
+  {
+    "type": "submit",
+    "defaultValue": "Save Settings"
   }
 ];

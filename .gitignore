@@ -1,6 +1,7 @@
 # Custom
 build/
 .lock*
+node_modules/
 
 # Prerequisites
 *.d
