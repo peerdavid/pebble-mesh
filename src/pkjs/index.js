@@ -227,7 +227,7 @@ Pebble.addEventListener('showConfiguration', function() {
   }));
   
   // Use the correct path for Pebble configuration pages
-  var configUrl = 'https://raw.githubusercontent.com/peerdavid/pebble-mesh/refs/heads/main/config/index.html?settings=' + currentSettings;
+  var configUrl = 'https://peerdavid.github.io/pebble-mesh/?settings=' + currentSettings;
   console.log('Opening configuration URL: ' + configUrl);
   
   Pebble.openURL(configUrl);
