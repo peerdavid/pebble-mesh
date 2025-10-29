@@ -19,7 +19,9 @@
       "watchface": true
     },
     "messageKeys": [
-      "dummy"
+      "WEATHER_TEMPERATURE",
+      "WEATHER_LOCATION",
+      "WEATHER_REQUEST"
     ],
     "resources": {
       "media": [

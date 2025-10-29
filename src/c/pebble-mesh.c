@@ -6,7 +6,8 @@ static TextLayer *s_time_layer;
 static TextLayer *s_date_layer;
 static TextLayer *s_battery_layer;
 static TextLayer *s_steps_layer;
-static TextLayer *s_header_layer;
+static TextLayer *s_temperature_layer;
+static TextLayer *s_location_layer;
 static Layer *s_frame_layer;
 
 static GBitmap *s_step_icon_bitmap;
@@ -37,6 +38,8 @@ static char s_time_buffer[9];
 static char s_date_buffer[8];
 static char s_battery_buffer[5]; 
 static char s_step_buffer[20];
+static char s_temperature_buffer[8];
+static char s_location_buffer[20];
 
 // Flag to track the state of the animation
 static bool s_is_animation_running = false; 
@@ -50,6 +53,46 @@ static void animation_timer_callback(void *data);
 static void try_start_animation_timer();
 static void try_stop_animation_timer();
 static void draw_frame(Layer *layer, GContext *ctx);
+static void inbox_received_callback(DictionaryIterator *iterator, void *context);
+static void request_weather_update();
+
+
+// --- Weather Functions ---
+
+static void request_weather_update() {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting weather update");
+  
+  DictionaryIterator *iter;
+  app_message_outbox_begin(&iter);
+  
+  if (iter == NULL) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to create message iterator");
+    return;
+  }
+  
+  dict_write_uint8(iter, MESSAGE_KEY_WEATHER_REQUEST, 1);
+  app_message_outbox_send();
+}
+
+static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Message received");
+  
+  // Read temperature
+  Tuple *temperature_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_TEMPERATURE);
+  if (temperature_tuple) {
+    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "%s", temperature_tuple->value->cstring);
+    text_layer_set_text(s_temperature_layer, s_temperature_buffer);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Temperature: %s", s_temperature_buffer);
+  }
+  
+  // Read location
+  Tuple *location_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_LOCATION);
+  if (location_tuple) {
+    snprintf(s_location_buffer, sizeof(s_location_buffer), "%s", location_tuple->value->cstring);
+    text_layer_set_text(s_location_layer, s_location_buffer);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Location: %s", s_location_buffer);
+  }
+}
 
 
 // --- Update Time Function ---
@@ -236,6 +279,9 @@ static void main_window_appear(Window *window) {
 
     try_start_animation_timer();
     battery_handler(battery_state_service_peek());
+    
+    // Request weather update when window appears
+    request_weather_update();
 }
 
 static void main_window_load(Window *window) {
@@ -272,16 +318,27 @@ static void main_window_load(Window *window) {
   text_layer_set_text_alignment(s_date_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(s_date_layer));
   
-  // Create the header that just says "Pebble"
-  s_header_layer = text_layer_create(
-      GRect(0, 8, bounds.size.w, 32)); // Positioned at top center
+  // Create the Temperature Layer (Top Left)
+  s_temperature_layer = text_layer_create(
+      GRect(12, 8, 60, 24)); // Positioned at top left
 
-  text_layer_set_background_color(s_header_layer, GColorClear);
-  text_layer_set_text_color(s_header_layer, GColorWhite);
-  text_layer_set_text(s_header_layer, "Pebble");
-  text_layer_set_font(s_header_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
-  text_layer_set_text_alignment(s_header_layer, GTextAlignmentCenter);
-  layer_add_child(window_layer, text_layer_get_layer(s_header_layer));
+  text_layer_set_background_color(s_temperature_layer, GColorClear);
+  text_layer_set_text_color(s_temperature_layer, GColorWhite);
+  text_layer_set_text(s_temperature_layer, "--°");
+  text_layer_set_font(s_temperature_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_text_alignment(s_temperature_layer, GTextAlignmentLeft);
+  layer_add_child(window_layer, text_layer_get_layer(s_temperature_layer));
+  
+  // Create the Location Layer (Top Right)
+  s_location_layer = text_layer_create(
+      GRect(bounds.size.w - 85, 8, 72, 24)); // Positioned at top right
+
+  text_layer_set_background_color(s_location_layer, GColorClear);
+  text_layer_set_text_color(s_location_layer, GColorWhite);
+  text_layer_set_text(s_location_layer, "Loading...");
+  text_layer_set_font(s_location_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_text_alignment(s_location_layer, GTextAlignmentRight);
+  layer_add_child(window_layer, text_layer_get_layer(s_location_layer));
 
   // Create the Battery Layer
   const int lower_y = bounds.size.h - INFO_DISTANCE_Y - 6; // Example Y position
@@ -327,7 +384,8 @@ static void main_window_unload(Window *window) {
   text_layer_destroy(s_date_layer);
   text_layer_destroy(s_battery_layer);
   text_layer_destroy(s_steps_layer);
-  text_layer_destroy(s_header_layer);
+  text_layer_destroy(s_temperature_layer);
+  text_layer_destroy(s_location_layer);
   layer_destroy(s_frame_layer);
   bitmap_layer_destroy(s_step_icon_layer);
   gbitmap_destroy(s_step_icon_bitmap);
@@ -339,6 +397,10 @@ static void main_window_unload(Window *window) {
 static void init() {
     srand(time(NULL)); 
     
+    // Initialize weather data buffers
+    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "--°");
+    snprintf(s_location_buffer, sizeof(s_location_buffer), "Loading...");
+    
     s_main_window = window_create();
     window_set_background_color(s_main_window, GColorBlack); 
     
@@ -347,6 +409,10 @@ static void init() {
         .unload = main_window_unload,
         .appear = main_window_appear
     });
+    
+    // Initialize App Message
+    app_message_register_inbox_received(inbox_received_callback);
+    app_message_open(64, 64); // Increase buffer size for weather data
     
     // Subscribe to MINUTE_UNIT (for time update/minute-start trigger) and SECOND_UNIT (for stop trigger)
     tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
