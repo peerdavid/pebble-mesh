@@ -11,7 +11,7 @@ module.exports = [
     "type": "input",
     "messageKey": "WEATHER_LOCATION_CONFIG",
     "label": "Location",
-    "defaultValue": "Navis",
+    "defaultValue": "Vienna",
     "description": "Enter your city name (e.g., Vienna, New York, Tokyo)"
   },
   {

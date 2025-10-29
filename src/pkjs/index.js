@@ -1,6 +1,6 @@
 // Default configuration
 var config = {
-  location: 'Navis' // Default location
+  location: 'Vienna' // Default location
 };
 
 // Load saved configuration
