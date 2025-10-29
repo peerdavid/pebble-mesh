@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pebble Mesh Weather Settings</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            opacity: 0.8;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.3);
+        }
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .description {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        .save-btn {
+            width: 100%;
+            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .save-btn:hover {
+            background: #45a049;
+        }
+        .weather-icon {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="weather-icon">🌤️</div>
+        <h1>Weather Settings</h1>
+        <p class="subtitle">Configure your weather location</p>
+        
+        <form id="configForm">
+            <div class="form-group">
+                <label for="location">📍 Location</label>
+                <input type="text" id="location" name="location" 
+                       placeholder="e.g., Vienna, New York, Tokyo" required>
+                <div class="description">Enter any city name worldwide</div>
+            </div>
+            
+            <button type="submit" class="save-btn">💾 Save Settings</button>
+        </form>
+    </div>
+
+    <script>
+        // Parse URL parameters to get current settings
+        function getUrlParams() {
+            var params = {};
+            var urlParams = new URLSearchParams(window.location.search);
+            var settings = urlParams.get('settings');
+            if (settings) {
+                try {
+                    params = JSON.parse(decodeURIComponent(settings));
+                } catch (e) {
+                    console.log('Error parsing settings: ' + e);
+                }
+            }
+            return params;
+        }
+
+        // Load current settings into form
+        function loadSettings() {
+            var settings = getUrlParams();
+            if (settings.WEATHER_LOCATION_CONFIG) {
+                document.getElementById('location').value = settings.WEATHER_LOCATION_CONFIG;
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('configForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var location = document.getElementById('location').value.trim();
+            if (!location) {
+                alert('Please enter a location');
+                return;
+            }
+
+            var settings = {
+                'WEATHER_LOCATION_CONFIG': location
+            };
+
+            console.log('Saving settings: ' + JSON.stringify(settings));
+            
+            // Return settings to Pebble
+            var returnUrl = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(settings));
+            document.location = returnUrl;
+        });
+
+        // Load settings when page loads
+        document.addEventListener('DOMContentLoaded', loadSettings);
+    </script>
+</body>
+</html>

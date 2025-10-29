@@ -102,11 +102,6 @@ static void update_time() {
 
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
-
-  // IF we have 5 minutes, we fetch weather update
-  if(tick_time->tm_min % 5 == 0) {
-    request_weather_update();
-  }
   
   // Use strftime to get the time in the user's 12h or 24h format
   if (clock_is_24h_style()) {

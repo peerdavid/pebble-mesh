@@ -215,3 +215,20 @@ setInterval(function() {
   console.log('Periodic weather update (30min timer) for: ' + config.location);
   fetchWeatherForLocation();
 }, 30 * 60 * 1000);
+
+
+// Handle configuration page request
+Pebble.addEventListener('showConfiguration', function() {
+  console.log('Showing configuration page');
+  
+  // Create the configuration URL with current settings
+  var currentSettings = encodeURIComponent(JSON.stringify({
+    'WEATHER_LOCATION_CONFIG': config.location
+  }));
+  
+  // Use the correct path for Pebble configuration pages
+  var configUrl = 'config/index.html?settings=' + currentSettings;
+  console.log('Opening configuration URL: ' + configUrl);
+  
+  Pebble.openURL(configUrl);
+});
