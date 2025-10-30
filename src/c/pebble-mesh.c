@@ -65,11 +65,11 @@ static uint32_t get_weather_image_resource(int weather_code) {
   else if (weather_code <= 3) return RESOURCE_ID_IMAGE_PARTLY_CLOUDY; // Partly cloudy
   else if (weather_code <= 48) return RESOURCE_ID_IMAGE_CLOUDY; // Overcast
   else if (weather_code <= 57) return RESOURCE_ID_IMAGE_LIGHT_RAIN; // Drizzle
-  else if (weather_code <= 67) return RESOURCE_ID_IMAGE_HEAVY_RAIN; // Rain
+  else if (weather_code <= 67) return RESOURCE_ID_IMAGE_RAIN_SNOW; // Rain and snow
   else if (weather_code <= 77) return RESOURCE_ID_IMAGE_LIGHT_SNOW; // Snow
   else if (weather_code <= 82) return RESOURCE_ID_IMAGE_LIGHT_RAIN; // Rain showers
   else if (weather_code <= 86) return RESOURCE_ID_IMAGE_HEAVY_SNOW; // Snow showers
-  else if (weather_code <= 99) return RESOURCE_ID_IMAGE_RAIN_SNOW; // Thunderstorm
+  else if (weather_code <= 99) return RESOURCE_ID_IMAGE_THUNDERSTORM; // Thunderstorm
   else return RESOURCE_ID_IMAGE_GENERIC_WEATHER; // Unknown
 }
 

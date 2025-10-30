@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.1",
+  "version": "1.2",
   "keywords": [
     "clock",
     "minimal",
@@ -86,6 +86,11 @@
           "type": "bitmap",
           "name": "IMAGE_GENERIC_WEATHER",
           "file": "images/weather/generic_weather.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_THUNDERSTORM",
+          "file": "images/weather/thunderstorm.png"
         }
       ]
     }
