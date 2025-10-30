@@ -355,7 +355,7 @@ static void main_window_load(Window *window) {
   
   // Create the Temperature Layer (Top Right)
   s_temperature_layer = text_layer_create(
-      GRect(bounds.size.w - 72, 10, 60, 24)); // Positioned at top right, moved up
+      GRect(bounds.size.w - 72, 8, 60, 24)); // Positioned at top right, moved up
 
   text_layer_set_background_color(s_temperature_layer, GColorClear);
   text_layer_set_text_color(s_temperature_layer, GColorWhite);
@@ -366,7 +366,7 @@ static void main_window_load(Window *window) {
   
   // Create the Location Layer (Below temperature)
   s_location_layer = text_layer_create(
-      GRect(bounds.size.w - 85, 28, 72, 24)); // Positioned below temperature
+      GRect(bounds.size.w - 85, 26, 72, 24)); // Positioned below temperature
 
   text_layer_set_background_color(s_location_layer, GColorClear);
   text_layer_set_text_color(s_location_layer, GColorWhite);
