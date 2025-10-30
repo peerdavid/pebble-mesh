@@ -93,6 +93,24 @@
             color: #007acc;
             margin-right: 8px;
         }
+        .donate-section {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+        }
+        .donate-text {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 15px;
+        }
+        .donate-button {
+            display: inline-block;
+            transition: opacity 0.3s;
+        }
+        .donate-button:hover {
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
@@ -112,6 +130,13 @@
             
             <button type="submit" class="save-btn">Save Settings</button>
         </form>
+        
+        <div class="donate-section">
+            <div class="donate-text">If you like this watchface and want to buy me a coffee:</div>
+            <a href="https://www.paypal.com/donate/?hosted_button_id=Y4PDJU84LC3N2" class="donate-button" target="_blank">
+                <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" alt="Donate with PayPal" />
+            </a>
+        </div>
     </div>
 
     <script>
