@@ -11,7 +11,8 @@ if (localStorage.getItem('WEATHER_LOCATION_CONFIG')) {
 // Variables to store weather data
 var weatherData = {
   temperature: '--',
-  location: 'Loading...'
+  location: 'Loading...',
+  condition: 0  // Weather code for condition
 };
 
 // Function to get coordinates for a city name
@@ -46,18 +47,21 @@ function getCoordinatesForCity(cityName) {
             console.log('No results found for city: ' + cityName);
             weatherData.location = 'City Not Found';
             weatherData.temperature = 'N/A';
+            weatherData.condition = 0;
             sendWeatherToPebble();
           }
         } catch (e) {
           console.log('Geocoding JSON parse error: ' + e.message);
           weatherData.location = 'Parse Error';
           weatherData.temperature = 'N/A';
+          weatherData.condition = 0;
           sendWeatherToPebble();
         }
       } else {
         console.log('Geocoding request failed with status: ' + xhr.status);
         weatherData.location = 'Geocode Error';
         weatherData.temperature = 'N/A';
+        weatherData.condition = 0;
         sendWeatherToPebble();
       }
     }
@@ -69,12 +73,14 @@ function getCoordinatesForCity(cityName) {
     console.log('Geocoding request timed out');
     weatherData.location = 'Timeout';
     weatherData.temperature = 'N/A';
+    weatherData.condition = 0;
     sendWeatherToPebble();
   };
   xhr.onerror = function() {
     console.log('Geocoding request network error');
     weatherData.location = 'Net Error';
     weatherData.temperature = 'N/A';
+    weatherData.condition = 0;
     sendWeatherToPebble();
   };
   xhr.send();
@@ -107,22 +113,26 @@ function getWeatherData(latitude, longitude) {
           
           if (response.current_weather && response.current_weather.temperature !== undefined) {
             var temp = Math.round(response.current_weather.temperature);
-            weatherData.temperature = temp + 'C';
-            console.log('Temperature: ' + weatherData.temperature);
+            weatherData.temperature = temp.toString();
+            weatherData.condition = response.current_weather.weathercode || 0;
+            console.log('Temperature: ' + weatherData.temperature + ', Weather code: ' + weatherData.condition);
             sendWeatherToPebble();
           } else {
             console.log('Invalid weather response format - no current_weather');
             weatherData.temperature = 'N/A';
+            weatherData.condition = 0;
             sendWeatherToPebble();
           }
         } catch (e) {
           console.log('Weather JSON parse error: ' + e.message);
           weatherData.temperature = 'Error';
+          weatherData.condition = 0;
           sendWeatherToPebble();
         }
       } else {
         console.log('Weather request failed with status: ' + xhr.status + ', response: ' + xhr.responseText);
         weatherData.temperature = 'Error';
+        weatherData.condition = 0;
         sendWeatherToPebble();
       }
     }
@@ -133,11 +143,13 @@ function getWeatherData(latitude, longitude) {
   xhr.ontimeout = function() {
     console.log('Weather request timed out');
     weatherData.temperature = 'Timeout';
+    weatherData.condition = 0;
     sendWeatherToPebble();
   };
   xhr.onerror = function() {
     console.log('Weather request network error');
     weatherData.temperature = 'Net Error';
+    weatherData.condition = 0;
     sendWeatherToPebble();
   };
   xhr.send();
@@ -145,11 +157,12 @@ function getWeatherData(latitude, longitude) {
 
 // Function to send weather data to Pebble
 function sendWeatherToPebble() {
-  console.log('Sending to Pebble - Temperature: ' + weatherData.temperature + ', Location: ' + weatherData.location);
+  console.log('Sending to Pebble - Temperature: ' + weatherData.temperature + ', Location: ' + weatherData.location + ', Condition: ' + weatherData.condition);
   
   var message = {
     'WEATHER_TEMPERATURE': weatherData.temperature,
-    'WEATHER_LOCATION': weatherData.location
+    'WEATHER_LOCATION': weatherData.location,
+    'WEATHER_CONDITION': weatherData.condition
   };
   
   Pebble.sendAppMessage(message,

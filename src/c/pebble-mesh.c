@@ -8,10 +8,12 @@ static TextLayer *s_battery_layer;
 static TextLayer *s_steps_layer;
 static TextLayer *s_temperature_layer;
 static TextLayer *s_location_layer;
+static BitmapLayer *s_weather_icon_layer;
 static Layer *s_frame_layer;
 
 static GBitmap *s_step_icon_bitmap;
 static BitmapLayer *s_step_icon_layer;
+static GBitmap *s_weather_icon_bitmap;
 
 // Pointer for the animation AppTimer
 #define GRID_SIZE 8
@@ -56,6 +58,21 @@ static void draw_frame(Layer *layer, GContext *ctx);
 static void inbox_received_callback(DictionaryIterator *iterator, void *context);
 static void request_weather_update();
 
+// Function to map weather codes to image resource IDs
+static uint32_t get_weather_image_resource(int weather_code) {
+  // Based on WMO Weather interpretation codes
+  if (weather_code == 0) return RESOURCE_ID_IMAGE_SUNNY; // Clear sky
+  else if (weather_code <= 3) return RESOURCE_ID_IMAGE_PARTLY_CLOUDY; // Partly cloudy
+  else if (weather_code <= 48) return RESOURCE_ID_IMAGE_CLOUDY; // Overcast
+  else if (weather_code <= 57) return RESOURCE_ID_IMAGE_LIGHT_RAIN; // Drizzle
+  else if (weather_code <= 67) return RESOURCE_ID_IMAGE_HEAVY_RAIN; // Rain
+  else if (weather_code <= 77) return RESOURCE_ID_IMAGE_LIGHT_SNOW; // Snow
+  else if (weather_code <= 82) return RESOURCE_ID_IMAGE_LIGHT_RAIN; // Rain showers
+  else if (weather_code <= 86) return RESOURCE_ID_IMAGE_HEAVY_SNOW; // Snow showers
+  else if (weather_code <= 99) return RESOURCE_ID_IMAGE_RAIN_SNOW; // Thunderstorm
+  else return RESOURCE_ID_IMAGE_GENERIC_WEATHER; // Unknown
+}
+
 
 // --- Weather Functions ---
 
@@ -80,7 +97,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   // Read temperature
   Tuple *temperature_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_TEMPERATURE);
   if (temperature_tuple) {
-    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "%s", temperature_tuple->value->cstring);
+    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "%s°C", temperature_tuple->value->cstring);
     text_layer_set_text(s_temperature_layer, s_temperature_buffer);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Temperature: %s", s_temperature_buffer);
   }
@@ -91,6 +108,24 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     snprintf(s_location_buffer, sizeof(s_location_buffer), "%s", location_tuple->value->cstring);
     text_layer_set_text(s_location_layer, s_location_buffer);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Location: %s", s_location_buffer);
+  }
+  
+  // Read weather condition and update icon
+  Tuple *condition_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_CONDITION);
+  if (condition_tuple) {
+    int weather_code = (int)condition_tuple->value->int32;
+    uint32_t resource_id = get_weather_image_resource(weather_code);
+    
+    // Destroy the old bitmap if it exists
+    if (s_weather_icon_bitmap) {
+      gbitmap_destroy(s_weather_icon_bitmap);
+    }
+    
+    // Load the new weather icon bitmap
+    s_weather_icon_bitmap = gbitmap_create_with_resource(resource_id);
+    bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_icon_bitmap);
+    
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather condition: %d, Resource ID: %d", weather_code, (int)resource_id);
   }
 }
 
@@ -320,16 +355,16 @@ static void main_window_load(Window *window) {
   
   // Create the Temperature Layer (Top Left)
   s_temperature_layer = text_layer_create(
-      GRect(12, 8, 60, 24)); // Positioned at top left
+      GRect(12, 14, 60, 24)); // Positioned at top left
 
   text_layer_set_background_color(s_temperature_layer, GColorClear);
   text_layer_set_text_color(s_temperature_layer, GColorWhite);
-  text_layer_set_text(s_temperature_layer, "--°");
+  text_layer_set_text(s_temperature_layer, "--°C");
   text_layer_set_font(s_temperature_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_alignment(s_temperature_layer, GTextAlignmentLeft);
   layer_add_child(window_layer, text_layer_get_layer(s_temperature_layer));
   
-  // Create the Location Layer (Top Right)
+  // Create the Location Layer (Top Right) - Hidden but kept for debugging
   s_location_layer = text_layer_create(
       GRect(bounds.size.w - 85, 8, 72, 24)); // Positioned at top right
 
@@ -338,7 +373,17 @@ static void main_window_load(Window *window) {
   text_layer_set_text(s_location_layer, "Loading...");
   text_layer_set_font(s_location_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_alignment(s_location_layer, GTextAlignmentRight);
-  layer_add_child(window_layer, text_layer_get_layer(s_location_layer));
+  // Note: Not adding to window layer - keeping for potential debugging
+  
+  // Create the Weather Icon Layer (Top Right)
+  s_weather_icon_layer = bitmap_layer_create(
+      GRect(bounds.size.w - 52, 2, 50, 50)); // Positioned at top right
+
+  // Load default weather icon
+  s_weather_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SUNNY);
+  bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_icon_bitmap);
+  bitmap_layer_set_compositing_mode(s_weather_icon_layer, GCompOpSet);
+  layer_add_child(window_layer, bitmap_layer_get_layer(s_weather_icon_layer));
 
   // Create the Battery Layer
   const int lower_y = bounds.size.h - INFO_DISTANCE_Y - 6; // Example Y position
@@ -386,9 +431,15 @@ static void main_window_unload(Window *window) {
   text_layer_destroy(s_steps_layer);
   text_layer_destroy(s_temperature_layer);
   text_layer_destroy(s_location_layer);
+  bitmap_layer_destroy(s_weather_icon_layer);
   layer_destroy(s_frame_layer);
   bitmap_layer_destroy(s_step_icon_layer);
   gbitmap_destroy(s_step_icon_bitmap);
+  
+  // Destroy weather icon bitmap if it exists
+  if (s_weather_icon_bitmap) {
+    gbitmap_destroy(s_weather_icon_bitmap);
+  }
 }
 
 

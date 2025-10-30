@@ -32,7 +32,8 @@
       "WEATHER_TEMPERATURE",
       "WEATHER_LOCATION",
       "WEATHER_REQUEST",
-      "WEATHER_LOCATION_CONFIG"
+      "WEATHER_LOCATION_CONFIG",
+      "WEATHER_CONDITION"
     ],
     "resources": {
       "media": [
@@ -40,6 +41,51 @@
           "type": "bitmap",
           "name": "IMAGE_STEP",
           "file": "images/step.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_SUNNY",
+          "file": "images/weather/sunny_day.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_PARTLY_CLOUDY",
+          "file": "images/weather/partly_cloudy.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CLOUDY",
+          "file": "images/weather/cloudy_weather.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_LIGHT_RAIN",
+          "file": "images/weather/light_rain.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_HEAVY_RAIN",
+          "file": "images/weather/heavy_rain.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_LIGHT_SNOW",
+          "file": "images/weather/light_snow.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_HEAVY_SNOW",
+          "file": "images/weather/heavy_snow.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_RAIN_SNOW",
+          "file": "images/weather/raining_and_snowing.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_GENERIC_WEATHER",
+          "file": "images/weather/generic_weather.png"
         }
       ]
     }
