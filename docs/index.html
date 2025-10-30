@@ -6,100 +6,111 @@
     <title>Pebble Mesh Weather Settings</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0;
+            background-color: #1a1a1a;
+            color: #ffffff;
             min-height: 100vh;
-            color: white;
         }
         .container {
-            max-width: 400px;
+            max-width: 320px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 30px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
         }
         h1 {
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 24px;
+            margin: 0;
+            font-size: 20px;
+            font-weight: normal;
+            color: #ffffff;
         }
         .subtitle {
-            text-align: center;
-            margin-bottom: 30px;
-            opacity: 0.8;
+            margin: 8px 0 0 0;
             font-size: 14px;
+            color: #999;
         }
         .form-group {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 500;
+            font-size: 16px;
+            color: #ffffff;
+            font-weight: normal;
         }
         input[type="text"] {
             width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background-color: #2a2a2a;
+            color: #ffffff;
             font-size: 16px;
             box-sizing: border-box;
+            -webkit-appearance: none;
+            appearance: none;
         }
         input[type="text"]:focus {
             outline: none;
-            background: rgba(255, 255, 255, 0.3);
+            border-color: #007acc;
+            background-color: #333;
         }
         input[type="text"]::placeholder {
-            color: rgba(255, 255, 255, 0.7);
+            color: #666;
         }
         .description {
-            font-size: 12px;
-            opacity: 0.8;
-            margin-top: 5px;
+            font-size: 14px;
+            color: #999;
+            margin-top: 4px;
+            line-height: 1.4;
         }
         .save-btn {
             width: 100%;
-            padding: 15px;
-            background: #4CAF50;
-            color: white;
+            padding: 14px;
+            background-color: #007acc;
+            color: #ffffff;
             border: none;
-            border-radius: 10px;
+            border-radius: 4px;
             font-size: 16px;
-            font-weight: bold;
+            font-weight: normal;
             cursor: pointer;
-            transition: background 0.3s;
+            margin-top: 20px;
         }
         .save-btn:hover {
-            background: #45a049;
+            background-color: #005999;
         }
-        .weather-icon {
-            text-align: center;
-            font-size: 48px;
-            margin-bottom: 20px;
+        .save-btn:active {
+            background-color: #004080;
+        }
+        .icon {
+            color: #007acc;
+            margin-right: 8px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="weather-icon">🌤️</div>
-        <h1>Weather Settings</h1>
-        <p class="subtitle">Configure your weather location</p>
+        <div class="header">
+            <h1>Weather Settings</h1>
+            <p class="subtitle">Configure your weather location</p>
+        </div>
         
         <form id="configForm">
             <div class="form-group">
-                <label for="location">📍 Location</label>
+                <label for="location"><span class="icon">📍</span>Location</label>
                 <input type="text" id="location" name="location" 
                        placeholder="e.g., Vienna, New York, Tokyo" required>
                 <div class="description">Enter any city name worldwide</div>
             </div>
             
-            <button type="submit" class="save-btn">💾 Save Settings</button>
+            <button type="submit" class="save-btn">Save Settings</button>
         </form>
     </div>
 
