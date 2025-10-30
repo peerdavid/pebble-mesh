@@ -353,31 +353,31 @@ static void main_window_load(Window *window) {
   text_layer_set_text_alignment(s_date_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(s_date_layer));
   
-  // Create the Temperature Layer (Top Left)
+  // Create the Temperature Layer (Top Right)
   s_temperature_layer = text_layer_create(
-      GRect(12, 14, 60, 24)); // Positioned at top left
+      GRect(bounds.size.w - 72, 10, 60, 24)); // Positioned at top right, moved up
 
   text_layer_set_background_color(s_temperature_layer, GColorClear);
   text_layer_set_text_color(s_temperature_layer, GColorWhite);
   text_layer_set_text(s_temperature_layer, "--°C");
   text_layer_set_font(s_temperature_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(s_temperature_layer, GTextAlignmentLeft);
+  text_layer_set_text_alignment(s_temperature_layer, GTextAlignmentRight);
   layer_add_child(window_layer, text_layer_get_layer(s_temperature_layer));
   
-  // Create the Location Layer (Top Right) - Hidden but kept for debugging
+  // Create the Location Layer (Below temperature)
   s_location_layer = text_layer_create(
-      GRect(bounds.size.w - 85, 8, 72, 24)); // Positioned at top right
+      GRect(bounds.size.w - 85, 28, 72, 24)); // Positioned below temperature
 
   text_layer_set_background_color(s_location_layer, GColorClear);
   text_layer_set_text_color(s_location_layer, GColorWhite);
   text_layer_set_text(s_location_layer, "Loading...");
-  text_layer_set_font(s_location_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_font(s_location_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
   text_layer_set_text_alignment(s_location_layer, GTextAlignmentRight);
-  // Note: Not adding to window layer - keeping for potential debugging
+  layer_add_child(window_layer, text_layer_get_layer(s_location_layer));
   
-  // Create the Weather Icon Layer (Top Right)
+  // Create the Weather Icon Layer (Top Left)
   s_weather_icon_layer = bitmap_layer_create(
-      GRect(bounds.size.w - 52, 2, 50, 50)); // Positioned at top right
+      GRect(4, 2, 50, 50)); // Positioned at top left
 
   // Load default weather icon
   s_weather_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SUNNY);
