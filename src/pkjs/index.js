@@ -181,16 +181,6 @@ function sendWeatherToPebble() {
 }
 
 // Event listeners
-Pebble.addEventListener('ready', function() {
-  console.log('PebbleKit JS ready!');
-  console.log('Starting initial weather fetch for: ' + config.location);
-  
-  // Small delay to ensure everything is ready
-  setTimeout(function() {
-    fetchWeatherForLocation();
-  }, 1000);
-});
-
 Pebble.addEventListener('appmessage', function(e) {
   console.log('AppMessage received: ' + JSON.stringify(e.payload));
   
