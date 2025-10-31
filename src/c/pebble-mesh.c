@@ -10,6 +10,7 @@ static TextLayer *s_temperature_layer;
 static TextLayer *s_location_layer;
 static BitmapLayer *s_weather_icon_layer;
 static Layer *s_frame_layer;
+static Layer *s_animation_layer;
 
 static GBitmap *s_step_icon_bitmap;
 static BitmapLayer *s_step_icon_layer;
@@ -64,6 +65,7 @@ static void animation_timer_callback(void *data);
 static void try_start_animation_timer();
 static void try_stop_animation_timer();
 static void draw_frame(Layer *layer, GContext *ctx);
+static void draw_animation(Layer *layer, GContext *ctx);
 static void inbox_received_callback(DictionaryIterator *iterator, void *context);
 static void request_weather_update();
 static void update_weather_icon();
@@ -176,6 +178,7 @@ static void update_colors() {
 
   // Force redraw
   layer_mark_dirty(s_frame_layer);
+  layer_mark_dirty(s_animation_layer);
 }
 
 // Function to update weather icon based on current weather code and theme
@@ -372,11 +375,12 @@ static void animation_timer_callback(void *data) {
   }
 
   // Mark the frame layer as dirty to trigger a redraw for the animation effect
-  layer_mark_dirty(s_frame_layer);
+  layer_mark_dirty(s_animation_layer);
 
   // Reschedule the timer for the next frame, creating a continuous loop
   s_animation_timer = app_timer_register(ANIMATION_RATE_MS, animation_timer_callback, NULL);
 }
+
 
 // --- Frame Layer Drawing Update Procedure (Modified for Line Fly-In) ---
 static void draw_frame(Layer *layer, GContext *ctx) {
@@ -410,6 +414,12 @@ static void draw_frame(Layer *layer, GContext *ctx) {
           GPoint(x, y + CROSS_SIZE));
     }
   }
+}
+
+
+static void draw_animation(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  GColor color = get_text_color(); // Use theme-appropriate color
 
   // Horizontal lines above and below the time with 80% width
   const int max_line_length = bounds.size.w * 0.8;
@@ -429,11 +439,11 @@ static void draw_frame(Layer *layer, GContext *ctx) {
   if (current_line_length > max_line_length)
     current_line_length = max_line_length;
 
-  if (current_line_length < 5) {
+  if (current_line_length < 1) {
     return;
   }
 
-  graphics_context_set_stroke_color(ctx, frame_color);
+  graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
 
   // ANIMATE: Top line flies in from LEFT
@@ -450,6 +460,7 @@ static void draw_frame(Layer *layer, GContext *ctx) {
       GPoint(line_x_start_full + max_line_length - current_line_length, time_y + line_y_offset),
       GPoint(line_x_start_full + max_line_length, time_y + line_y_offset));
 }
+
 
 // --- Tick Handler ---
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -486,6 +497,11 @@ static void main_window_load(Window *window) {
   s_frame_layer = layer_create(bounds);
   layer_set_update_proc(s_frame_layer, draw_frame);
   layer_add_child(window_layer, s_frame_layer);
+
+  // Create animation layer
+  s_animation_layer = layer_create(bounds);
+  layer_set_update_proc(s_animation_layer, draw_animation);
+  layer_add_child(window_layer, s_animation_layer);
 
   // Create Time Layer
   const int time_y_pos = bounds.size.h / 2 - 21 - 14;
