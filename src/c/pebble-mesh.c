@@ -31,25 +31,30 @@ static GBitmap *s_weather_icon_bitmap;
 // Animation
 static AppTimer *s_animation_timer = NULL;
 static int current_animation_frame = 0; // Ranges from NUM_ANIMATION_FRAMES down to 0
-static int current_decrease_rate =  1;
+static int current_decrease_rate = 1;
 
 // Buffer to hold the time string (e.g., "12:34" or "23:59")
 static char s_time_buffer[9];
 static char s_date_buffer[8];
-static char s_battery_buffer[5]; 
+static char s_battery_buffer[5];
 static char s_step_buffer[20];
 static char s_temperature_buffer[8];
 static char s_location_buffer[20];
 
 // Flag to track the state of the animation
-static bool s_is_animation_running = false; 
+static bool s_is_animation_running = false;
 
 // Color theme (0 = dark, 1 = light)
-static int s_color_theme = 0;
+static int s_color_theme = 1; // Default to light theme
 
 // Current weather code (stored for theme changes)
-static int s_current_weather_code = 0; 
+static int s_current_weather_code = 0;
 
+// Persistent storage keys
+#define PERSIST_KEY_COLOR_THEME 1
+#define PERSIST_KEY_WEATHER_CODE 2
+#define PERSIST_KEY_TEMPERATURE 3
+#define PERSIST_KEY_LOCATION 4
 
 // Forward declarations
 static void update_time();
@@ -65,9 +70,57 @@ static void update_weather_icon();
 static void update_step_icon();
 static void delayed_weather_request(void *data);
 
+// Persistent storage functions
+static void save_theme_to_storage() {
+  persist_write_int(PERSIST_KEY_COLOR_THEME, s_color_theme);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved theme to storage: %d", s_color_theme);
+}
+
+static void load_theme_from_storage() {
+  if (persist_exists(PERSIST_KEY_COLOR_THEME)) {
+    s_color_theme = persist_read_int(PERSIST_KEY_COLOR_THEME);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded theme from storage: %d", s_color_theme);
+  } else {
+    // Default to light theme if no preference exists
+    s_color_theme = 1;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No theme preference found, using default light theme");
+  }
+}
+
+static void save_weather_to_storage() {
+  persist_write_int(PERSIST_KEY_WEATHER_CODE, s_current_weather_code);
+  persist_write_string(PERSIST_KEY_TEMPERATURE, s_temperature_buffer);
+  persist_write_string(PERSIST_KEY_LOCATION, s_location_buffer);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved weather to storage: code=%d, temp=%s, location=%s", 
+          s_current_weather_code, s_temperature_buffer, s_location_buffer);
+}
+
+static void load_weather_from_storage() {
+  // Load weather code
+  if (persist_exists(PERSIST_KEY_WEATHER_CODE)) {
+    s_current_weather_code = persist_read_int(PERSIST_KEY_WEATHER_CODE);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded weather code from storage: %d", s_current_weather_code);
+  }
+  
+  // Load temperature
+  if (persist_exists(PERSIST_KEY_TEMPERATURE)) {
+    persist_read_string(PERSIST_KEY_TEMPERATURE, s_temperature_buffer, sizeof(s_temperature_buffer));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded temperature from storage: %s", s_temperature_buffer);
+  } else {
+    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "--°C");
+  }
+  
+  // Load location
+  if (persist_exists(PERSIST_KEY_LOCATION)) {
+    persist_read_string(PERSIST_KEY_LOCATION, s_location_buffer, sizeof(s_location_buffer));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded location from storage: %s", s_location_buffer);
+  } else {
+    snprintf(s_location_buffer, sizeof(s_location_buffer), "---");
+  }
+}
+
 // Function to map weather codes to image resource IDs based on theme
 static uint32_t get_weather_image_resource(int weather_code) {
-  
   // Based on WMO Weather interpretation codes
   if (weather_code == 0) {
     return s_color_theme == 1 ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK; // Clear sky
@@ -87,7 +140,8 @@ static uint32_t get_weather_image_resource(int weather_code) {
     return s_color_theme == 1 ? RESOURCE_ID_IMAGE_HEAVY_SNOW_LIGHT : RESOURCE_ID_IMAGE_HEAVY_SNOW_DARK; // Snow showers
   } else if (weather_code <= 99) {
     return s_color_theme == 1 ? RESOURCE_ID_IMAGE_THUNDERSTORM_LIGHT : RESOURCE_ID_IMAGE_THUNDERSTORM_DARK; // Thunderstorm
-  } else {
+  } else
+  {
     return s_color_theme == 1 ? RESOURCE_ID_IMAGE_GENERIC_WEATHER_LIGHT : RESOURCE_ID_IMAGE_GENERIC_WEATHER_DARK; // Unknown
   }
 }
@@ -104,22 +158,22 @@ static GColor get_text_color() {
 // Function to update all colors based on current theme
 static void update_colors() {
   window_set_background_color(s_main_window, get_background_color());
-  
+
   text_layer_set_text_color(s_time_layer, get_text_color());
   text_layer_set_text_color(s_date_layer, get_text_color());
   text_layer_set_text_color(s_temperature_layer, get_text_color());
   text_layer_set_text_color(s_location_layer, get_text_color());
   text_layer_set_text_color(s_battery_layer, get_text_color());
   text_layer_set_text_color(s_steps_layer, get_text_color());
-  
+
   // Always use GCompOpSet for all bitmap layers
   bitmap_layer_set_compositing_mode(s_weather_icon_layer, GCompOpSet);
   bitmap_layer_set_compositing_mode(s_step_icon_layer, GCompOpSet);
-  
+
   // Update weather icon for new theme
   update_weather_icon();
   update_step_icon();
-  
+
   // Force redraw
   layer_mark_dirty(s_frame_layer);
 }
@@ -127,7 +181,7 @@ static void update_colors() {
 // Function to update weather icon based on current weather code and theme
 static void update_weather_icon() {
   uint32_t resource_id;
-  
+
   if (s_current_weather_code > 0) {
     // Use actual weather condition
     resource_id = get_weather_image_resource(s_current_weather_code);
@@ -135,12 +189,12 @@ static void update_weather_icon() {
     // Use default sunny icon based on theme
     resource_id = s_color_theme == 1 ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK;
   }
-  
+
   // Destroy the old bitmap if it exists
   if (s_weather_icon_bitmap) {
     gbitmap_destroy(s_weather_icon_bitmap);
   }
-  
+
   // Load the new weather icon bitmap
   s_weather_icon_bitmap = gbitmap_create_with_resource(resource_id);
   bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_icon_bitmap);
@@ -154,25 +208,23 @@ static void update_step_icon() {
 
   // Load the new step icon bitmap based on theme
   s_step_icon_bitmap = gbitmap_create_with_resource(
-    s_color_theme == 1 ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK
-  );
+      s_color_theme == 1 ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK);
   bitmap_layer_set_bitmap(s_step_icon_layer, s_step_icon_bitmap);
 }
-
 
 // --- Weather Functions ---
 
 static void request_weather_update() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting weather update");
-  
+
   DictionaryIterator *iter;
   app_message_outbox_begin(&iter);
-  
+
   if (iter == NULL) {
     APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to create message iterator");
     return;
   }
-  
+
   dict_write_uint8(iter, MESSAGE_KEY_WEATHER_REQUEST, 1);
   app_message_outbox_send();
 }
@@ -180,39 +232,52 @@ static void request_weather_update() {
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Message received");
   
+  bool weather_data_updated = false;
+
   // Read temperature
   Tuple *temperature_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_TEMPERATURE);
   if (temperature_tuple) {
     snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "%s°C", temperature_tuple->value->cstring);
     text_layer_set_text(s_temperature_layer, s_temperature_buffer);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Temperature: %s", s_temperature_buffer);
+    weather_data_updated = true;
   }
-  
+
   // Read location
   Tuple *location_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_LOCATION);
   if (location_tuple) {
     snprintf(s_location_buffer, sizeof(s_location_buffer), "%s", location_tuple->value->cstring);
     text_layer_set_text(s_location_layer, s_location_buffer);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Location: %s", s_location_buffer);
+    weather_data_updated = true;
   }
-  
+
   // Read weather condition and update icon
   Tuple *condition_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_CONDITION);
   if (condition_tuple) {
     s_current_weather_code = (int)condition_tuple->value->int32;
     update_weather_icon();
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather condition: %d", s_current_weather_code);
+    weather_data_updated = true;
   }
-  
+
   // Read color theme
   Tuple *theme_tuple = dict_find(iterator, MESSAGE_KEY_COLOR_THEME);
   if (theme_tuple) {
-    s_color_theme = (int)theme_tuple->value->int32;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Color theme: %d", s_color_theme);
-    update_colors();
+    int new_theme = (int)theme_tuple->value->int32;
+    if (new_theme != s_color_theme) {
+      s_color_theme = new_theme;
+      save_theme_to_storage(); // Save the new theme preference
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Color theme changed to: %d", s_color_theme);
+      update_colors();
+    }
+  }
+  
+  // Save weather data to persistent storage if any was updated
+  if (weather_data_updated) {
+    save_weather_to_storage();
   }
 }
-
 
 // --- Update Time Function ---
 
@@ -221,16 +286,16 @@ static void update_time() {
 
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
-  
+
   // Use strftime to get the time in the user's 12h or 24h format
   if (clock_is_24h_style()) {
-      strftime(s_time_buffer, sizeof(s_time_buffer), "%H:%M", tick_time);
+    strftime(s_time_buffer, sizeof(s_time_buffer), "%H:%M", tick_time);
   } else {
-      strftime(s_time_buffer, sizeof(s_time_buffer), "%I:%M", tick_time);
-      // Remove leading zero on 12-hour clock
-      if (s_time_buffer[0] == '0') {
-          memmove(s_time_buffer, &s_time_buffer[1], sizeof(s_time_buffer) - 1);
-      }
+    strftime(s_time_buffer, sizeof(s_time_buffer), "%I:%M", tick_time);
+    // Remove leading zero on 12-hour clock
+    if (s_time_buffer[0] == '0') {
+      memmove(s_time_buffer, &s_time_buffer[1], sizeof(s_time_buffer) - 1);
+    }
   }
 
   text_layer_set_text(s_time_layer, s_time_buffer);
@@ -238,7 +303,7 @@ static void update_time() {
   strftime(s_date_buffer, sizeof(s_date_buffer), " %a %d", tick_time);
   text_layer_set_text(s_date_layer, s_date_buffer);
 
-  int steps = (int) health_service_sum_today(HealthMetricStepCount);
+  int steps = (int)health_service_sum_today(HealthMetricStepCount);
   snprintf(s_step_buffer, sizeof(s_step_buffer), "%d", steps);
   text_layer_set_text(s_steps_layer, s_step_buffer);
 }
@@ -254,21 +319,21 @@ static void battery_handler(BatteryChargeState state) {
  * @brief Stops the animation timer and resets the running flag.
  */
 static void try_stop_animation_timer() {
-    if(!s_is_animation_running) {
-        return; 
-    }
+  if (!s_is_animation_running) {
+    return;
+  }
 
-    if (s_animation_timer) {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Stop animation timer");
-        app_timer_cancel(s_animation_timer);
-        s_animation_timer = NULL;
-    }
+  if (s_animation_timer) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Stop animation timer");
+    app_timer_cancel(s_animation_timer);
+    s_animation_timer = NULL;
+  }
 
-    s_is_animation_running = false; 
-    current_animation_frame = 0;
-    
-    // Ensure the final state is drawn (full length)
-    layer_mark_dirty(s_frame_layer);
+  s_is_animation_running = false;
+  current_animation_frame = 0;
+
+  // Ensure the final state is drawn (full length)
+  layer_mark_dirty(s_frame_layer);
 }
 
 /**
@@ -276,7 +341,7 @@ static void try_stop_animation_timer() {
  */
 static void try_start_animation_timer() {
   if (s_is_animation_running) {
-      return; 
+    return;
   }
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Start animation timer");
@@ -293,9 +358,9 @@ static void try_start_animation_timer() {
 static void animation_timer_callback(void *data) {
   // If the animation was stopped between the last timer call and now, don't restart it
   if (!s_is_animation_running) {
-      return;
+    return;
   }
-  
+
   current_animation_frame -= current_decrease_rate;
   if(current_animation_frame < 0) {
     try_stop_animation_timer();
@@ -305,20 +370,19 @@ static void animation_timer_callback(void *data) {
   if(current_animation_frame <= SLOW_DOWN_ANIMATION_FRAME && current_decrease_rate > 2) {
     current_decrease_rate -= 1;
   }
-  
+
   // Mark the frame layer as dirty to trigger a redraw for the animation effect
   layer_mark_dirty(s_frame_layer);
-  
+
   // Reschedule the timer for the next frame, creating a continuous loop
   s_animation_timer = app_timer_register(ANIMATION_RATE_MS, animation_timer_callback, NULL);
 }
-
 
 // --- Frame Layer Drawing Update Procedure (Modified for Line Fly-In) ---
 static void draw_frame(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GColor frame_color = get_text_color(); // Use theme-appropriate color
-  
+
   // In case we have light theme, we don't draw a frame
   if(BORDER_THICKNESS > 0 && s_color_theme == 0) {
     graphics_context_set_stroke_color(ctx, frame_color);
@@ -334,18 +398,16 @@ static void draw_frame(Layer *layer, GContext *ctx) {
       // 1. Draw the horizontal part of the cross
       // Starts at x - CROSS_SIZE and ends at x + CROSS_SIZE, centered on y
       graphics_draw_line(
-        ctx, 
-        GPoint(x - CROSS_SIZE, y), 
-        GPoint(x + CROSS_SIZE, y)
-      );
-      
+          ctx,
+          GPoint(x - CROSS_SIZE, y),
+          GPoint(x + CROSS_SIZE, y));
+
       // 2. Draw the vertical part of the cross
       // Starts at y - CROSS_SIZE and ends at y + CROSS_SIZE, centered on x
       graphics_draw_line(
-        ctx, 
-        GPoint(x, y - CROSS_SIZE), 
-        GPoint(x, y + CROSS_SIZE)
-      );
+          ctx,
+          GPoint(x, y - CROSS_SIZE),
+          GPoint(x, y + CROSS_SIZE));
     }
   }
 
@@ -354,16 +416,18 @@ static void draw_frame(Layer *layer, GContext *ctx) {
   const int line_x_start_full = (bounds.size.w - max_line_length) / 2;
   const int time_y = bounds.size.h / 2;
   const int line_y_offset = 29; // Distance from the center of the time text
-  
+
   // Calculate the current animated line length. It goes from 0 up to max_line_length.
   // current_animation_frame ranges from NUM_ANIMATION_FRAMES (max) down to 0.
   // The factor should go from 0 (when frame is max) up to 1 (when frame is 0).
   float animation_factor = 1.0f - ((float)current_animation_frame / NUM_ANIMATION_FRAMES);
   int current_line_length = (int)(max_line_length * animation_factor);
-  
+
   // Safety check
-  if (current_line_length < 0) current_line_length = 0;
-  if (current_line_length > max_line_length) current_line_length = max_line_length;
+  if (current_line_length < 0)
+    current_line_length = 0;
+  if (current_line_length > max_line_length)
+    current_line_length = max_line_length;
 
   if (current_line_length < 5) {
     return;
@@ -375,20 +439,17 @@ static void draw_frame(Layer *layer, GContext *ctx) {
   // ANIMATE: Top line flies in from LEFT
   // Start X is fixed (line_x_start_full), End X is animated.
   graphics_draw_line(
-    ctx, 
-    GPoint(line_x_start_full, time_y - line_y_offset - 3), 
-    GPoint(line_x_start_full + current_line_length, time_y - line_y_offset - 3)
-  );
+      ctx,
+      GPoint(line_x_start_full, time_y - line_y_offset - 3),
+      GPoint(line_x_start_full + current_line_length, time_y - line_y_offset - 3));
 
   // ANIMATE: Bottom line flies in from RIGHT
   // End X is fixed (line_x_start_full + max_line_length), Start X is animated.
   graphics_draw_line(
-    ctx, 
-    GPoint(line_x_start_full + max_line_length - current_line_length, time_y + line_y_offset), 
-    GPoint(line_x_start_full + max_line_length, time_y + line_y_offset)
-  );
+      ctx,
+      GPoint(line_x_start_full + max_line_length - current_line_length, time_y + line_y_offset),
+      GPoint(line_x_start_full + max_line_length, time_y + line_y_offset));
 }
-
 
 // --- Tick Handler ---
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -396,24 +457,23 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_time();
 }
 
-
 // Timer callback to request weather after UI is loaded
 static void delayed_weather_request(void *data) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting weather update (delayed)");
-    request_weather_update();
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting weather update (delayed)");
+  request_weather_update();
 }
 
 // --- Window Load/Unload Handlers ---
 static void main_window_appear(Window *window) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Window appear");
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Window appear");
 
-    // Start animation and update UI immediately
-    try_start_animation_timer();
-    battery_handler(battery_state_service_peek());
-    update_time(); // Ensure time is displayed immediately
-    
-    // Request weather update after a short delay to prevent blocking UI
-    app_timer_register(100, delayed_weather_request, NULL);
+  // Start animation and update UI immediately
+  try_start_animation_timer();
+  battery_handler(battery_state_service_peek());
+  update_time(); // Ensure time is displayed immediately
+
+  // Request weather update after a short delay to prevent blocking UI
+  app_timer_register(100, delayed_weather_request, NULL);
 }
 
 static void main_window_load(Window *window) {
@@ -433,8 +493,8 @@ static void main_window_load(Window *window) {
       GRect(0, time_y_pos, bounds.size.w, bounds.size.h));
 
   text_layer_set_background_color(s_time_layer, GColorClear);
-  text_layer_set_text_color(s_time_layer, GColorWhite);
-  text_layer_set_text(s_time_layer, "00:00"); 
+  text_layer_set_text_color(s_time_layer, get_text_color());
+  text_layer_set_text(s_time_layer, "00:00");
   text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS));
   text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
@@ -444,40 +504,40 @@ static void main_window_load(Window *window) {
       GRect(0, time_y_pos + 40, bounds.size.w, 24)); // Positioned at upper left
 
   text_layer_set_background_color(s_date_layer, GColorClear);
-  text_layer_set_text_color(s_date_layer, GColorWhite);
+  text_layer_set_text_color(s_date_layer, get_text_color());
   text_layer_set_text(s_date_layer, "Mon 01");
   text_layer_set_font(s_date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_alignment(s_date_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(s_date_layer));
-  
+
   // Create the Temperature Layer (Top Right)
   s_temperature_layer = text_layer_create(
       GRect(bounds.size.w - 68, 6, 60, 24)); // Positioned at top right, moved up
 
   text_layer_set_background_color(s_temperature_layer, GColorClear);
-  text_layer_set_text_color(s_temperature_layer, GColorWhite);
-  text_layer_set_text(s_temperature_layer, "--°C");
+  text_layer_set_text_color(s_temperature_layer, get_text_color());
+  text_layer_set_text(s_temperature_layer, s_temperature_buffer);
   text_layer_set_font(s_temperature_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_alignment(s_temperature_layer, GTextAlignmentRight);
   layer_add_child(window_layer, text_layer_get_layer(s_temperature_layer));
-  
+
   // Create the Location Layer (Below temperature)
   s_location_layer = text_layer_create(
       GRect(bounds.size.w - 80, 24, 72, 24)); // Positioned below temperature
 
   text_layer_set_background_color(s_location_layer, GColorClear);
-  text_layer_set_text_color(s_location_layer, GColorWhite);
-  text_layer_set_text(s_location_layer, "---");
+  text_layer_set_text_color(s_location_layer, get_text_color());
+  text_layer_set_text(s_location_layer, s_location_buffer);
   text_layer_set_font(s_location_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
   text_layer_set_text_alignment(s_location_layer, GTextAlignmentRight);
   layer_add_child(window_layer, text_layer_get_layer(s_location_layer));
-  
+
   // Create the Weather Icon Layer (Top Left)
   s_weather_icon_layer = bitmap_layer_create(
       GRect(0, 0, 50, 50)); // Positioned at top left
 
   // Load default weather icon based on current theme
-  uint32_t default_icon = s_color_theme == 1 ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK;
+  uint32_t default_icon = get_weather_image_resource(s_current_weather_code);
   s_weather_icon_bitmap = gbitmap_create_with_resource(default_icon);
   bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_icon_bitmap);
   bitmap_layer_set_compositing_mode(s_weather_icon_layer, GCompOpSet);
@@ -488,19 +548,19 @@ static void main_window_load(Window *window) {
   const int battery_width = 38;
   s_battery_layer = text_layer_create(
       GRect(bounds.size.w - battery_width - 20, lower_y, 50, 24)); // Positioned at upper right
-      
+
   text_layer_set_background_color(s_battery_layer, GColorClear);
-  text_layer_set_text_color(s_battery_layer, GColorWhite);
+  text_layer_set_text_color(s_battery_layer, get_text_color());
   text_layer_set_text(s_battery_layer, "100%"); // Default text
   text_layer_set_font(s_battery_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_alignment(s_battery_layer, GTextAlignmentRight);
   layer_add_child(window_layer, text_layer_get_layer(s_battery_layer));
-  
-  // Load icon
-  s_step_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STEP_LIGHT);
+
+  // Load icon based on theme
+  uint32_t step_icon = s_color_theme == 1 ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK;
+  s_step_icon_bitmap = gbitmap_create_with_resource(step_icon);
   s_step_icon_layer = bitmap_layer_create(
-      GRect(4, lower_y, 24, 24)
-  );
+      GRect(4, lower_y, 24, 24));
   bitmap_layer_set_bitmap(s_step_icon_layer, s_step_icon_bitmap);
   bitmap_layer_set_compositing_mode(s_step_icon_layer, GCompOpSet); // Renders the icon cleanly
   layer_add_child(window_layer, bitmap_layer_get_layer(s_step_icon_layer));
@@ -509,7 +569,7 @@ static void main_window_load(Window *window) {
   s_steps_layer = text_layer_create(
       GRect(4 + 24, lower_y, 50, 24)); // Positioned at lower left
   text_layer_set_background_color(s_steps_layer, GColorClear);
-  text_layer_set_text_color(s_steps_layer, GColorWhite);
+  text_layer_set_text_color(s_steps_layer, get_text_color());
   text_layer_set_text(s_steps_layer, "???"); // Placeholder text
   text_layer_set_font(s_steps_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_alignment(s_steps_layer, GTextAlignmentLeft);
@@ -517,9 +577,6 @@ static void main_window_load(Window *window) {
 
   // Make sure the initial time is displayed
   update_time();
-  
-  // Apply initial theme colors
-  update_colors();
 }
 
 static void main_window_unload(Window *window) {
@@ -534,47 +591,46 @@ static void main_window_unload(Window *window) {
   layer_destroy(s_frame_layer);
   bitmap_layer_destroy(s_step_icon_layer);
   gbitmap_destroy(s_step_icon_bitmap);
-  
+
   // Destroy weather icon bitmap if it exists
   if (s_weather_icon_bitmap) {
     gbitmap_destroy(s_weather_icon_bitmap);
   }
 }
 
-
 // --- Initialization and Deinitialization ---
 
 static void init() {
-    srand(time(NULL)); 
-    
-    // Initialize weather data buffers with clean placeholders
-    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "--°C");
-    snprintf(s_location_buffer, sizeof(s_location_buffer), "---");
-    
-    s_main_window = window_create();
-    window_set_background_color(s_main_window, GColorBlack); 
-    
-    window_set_window_handlers(s_main_window, (WindowHandlers) {
-        .load = main_window_load,
-        .unload = main_window_unload,
-        .appear = main_window_appear
-    });
-    
-    // Initialize App Message
-    app_message_register_inbox_received(inbox_received_callback);
-    app_message_open(64, 64); // Increase buffer size for weather data
-    
-    // Subscribe to MINUTE_UNIT (for time update/minute-start trigger) and SECOND_UNIT (for stop trigger)
-    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
-    
-    // Subscribe to battery state updates
-    battery_state_service_subscribe(battery_handler);
-    
-    window_stack_push(s_main_window, true);
+  srand(time(NULL));
 
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Finished init");
+  // Load saved theme preference before creating UI
+  load_theme_from_storage();
+  
+  // Load saved weather data from storage
+  load_weather_from_storage();
+
+  s_main_window = window_create();
+  window_set_background_color(s_main_window, get_background_color());
+
+  window_set_window_handlers(s_main_window, (WindowHandlers){
+                                                .load = main_window_load,
+                                                .unload = main_window_unload,
+                                                .appear = main_window_appear});
+
+  // Initialize App Message
+  app_message_register_inbox_received(inbox_received_callback);
+  app_message_open(64, 64); // Increase buffer size for weather data
+
+  // Subscribe to MINUTE_UNIT (for time update/minute-start trigger) and SECOND_UNIT (for stop trigger)
+  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+
+  // Subscribe to battery state updates
+  battery_state_service_subscribe(battery_handler);
+
+  window_stack_push(s_main_window, true);
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Finished init");
 }
-
 
 static void deinit() {
   try_stop_animation_timer();
@@ -585,7 +641,8 @@ static void deinit() {
 
 // --- Main Program Loop ---
 
-int main(void) {
+int main(void)
+{
   init();
   app_event_loop();
   deinit();
