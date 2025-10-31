@@ -232,7 +232,6 @@ static void update_time() {
   text_layer_set_text(s_date_layer, s_date_buffer);
 
   int steps = (int) health_service_sum_today(HealthMetricStepCount);
-  steps = 1717;
   snprintf(s_step_buffer, sizeof(s_step_buffer), "%d", steps);
   text_layer_set_text(s_steps_layer, s_step_buffer);
 }
