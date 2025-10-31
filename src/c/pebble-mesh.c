@@ -334,9 +334,6 @@ static void try_stop_animation_timer() {
 
   s_is_animation_running = false;
   current_animation_frame = 0;
-
-  // Ensure the final state is drawn (full length)
-  layer_mark_dirty(s_frame_layer);
 }
 
 /**
@@ -605,6 +602,7 @@ static void main_window_unload(Window *window) {
   text_layer_destroy(s_location_layer);
   bitmap_layer_destroy(s_weather_icon_layer);
   layer_destroy(s_frame_layer);
+  layer_destroy(s_animation_layer);
   bitmap_layer_destroy(s_step_icon_layer);
   gbitmap_destroy(s_step_icon_bitmap);
 
