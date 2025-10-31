@@ -391,6 +391,18 @@ static void draw_frame(Layer *layer, GContext *ctx) {
     graphics_draw_rect(ctx, GRect(1, 1, bounds.size.w - 2, bounds.size.h - 2));
   }
 
+  // IN case we have light theme, we draw a gray rectangle in the middle
+  if(s_color_theme == 1) {
+    graphics_context_set_fill_color(ctx, GColorLightGray);
+    // We draw the rectange exactly from the upper to the lower animated line in  the same length
+    const int max_line_length = bounds.size.w * 0.8;
+    const int line_x_start_full = (bounds.size.w - max_line_length) / 2;
+    const int time_y = bounds.size.h / 2;
+    const int line_y_offset = 29;
+    const int height = (line_y_offset + 2) * 2;
+    graphics_fill_rect(ctx, GRect(line_x_start_full, time_y - line_y_offset + 2, max_line_length, height-10), 0, GCornerNone);
+  }
+
   // Dots
   graphics_context_set_stroke_color(ctx, frame_color);
   graphics_context_set_stroke_width(ctx, 1);
