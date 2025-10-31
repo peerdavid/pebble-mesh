@@ -45,7 +45,7 @@ static char s_location_buffer[20];
 static bool s_is_animation_running = false; 
 
 // Color theme (0 = dark, 1 = light)
-static int s_color_theme = 1;
+static int s_color_theme = 0;
 
 // Current weather code (stored for theme changes)
 static int s_current_weather_code = 0; 
@@ -63,6 +63,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 static void request_weather_update();
 static void update_weather_icon();
 static void update_step_icon();
+static void delayed_weather_request(void *data);
 
 // Function to map weather codes to image resource IDs based on theme
 static uint32_t get_weather_image_resource(int weather_code) {
@@ -125,18 +126,24 @@ static void update_colors() {
 
 // Function to update weather icon based on current weather code and theme
 static void update_weather_icon() {
+  uint32_t resource_id;
+  
   if (s_current_weather_code > 0) {
-    uint32_t resource_id = get_weather_image_resource(s_current_weather_code);
-    
-    // Destroy the old bitmap if it exists
-    if (s_weather_icon_bitmap) {
-      gbitmap_destroy(s_weather_icon_bitmap);
-    }
-    
-    // Load the new weather icon bitmap
-    s_weather_icon_bitmap = gbitmap_create_with_resource(resource_id);
-    bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_icon_bitmap);
+    // Use actual weather condition
+    resource_id = get_weather_image_resource(s_current_weather_code);
+  } else {
+    // Use default sunny icon based on theme
+    resource_id = s_color_theme == 1 ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK;
   }
+  
+  // Destroy the old bitmap if it exists
+  if (s_weather_icon_bitmap) {
+    gbitmap_destroy(s_weather_icon_bitmap);
+  }
+  
+  // Load the new weather icon bitmap
+  s_weather_icon_bitmap = gbitmap_create_with_resource(resource_id);
+  bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_icon_bitmap);
 }
 
 static void update_step_icon() {
@@ -358,6 +365,9 @@ static void draw_frame(Layer *layer, GContext *ctx) {
   if (current_line_length < 0) current_line_length = 0;
   if (current_line_length > max_line_length) current_line_length = max_line_length;
 
+  if (current_line_length < 5) {
+    return;
+  }
 
   graphics_context_set_stroke_color(ctx, frame_color);
   graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
@@ -387,15 +397,23 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 }
 
 
+// Timer callback to request weather after UI is loaded
+static void delayed_weather_request(void *data) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting weather update (delayed)");
+    request_weather_update();
+}
+
 // --- Window Load/Unload Handlers ---
 static void main_window_appear(Window *window) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Window appear");
 
+    // Start animation and update UI immediately
     try_start_animation_timer();
     battery_handler(battery_state_service_peek());
+    update_time(); // Ensure time is displayed immediately
     
-    // Request weather update when window appears
-    request_weather_update();
+    // Request weather update after a short delay to prevent blocking UI
+    app_timer_register(100, delayed_weather_request, NULL);
 }
 
 static void main_window_load(Window *window) {
@@ -449,7 +467,7 @@ static void main_window_load(Window *window) {
 
   text_layer_set_background_color(s_location_layer, GColorClear);
   text_layer_set_text_color(s_location_layer, GColorWhite);
-  text_layer_set_text(s_location_layer, "Loading...");
+  text_layer_set_text(s_location_layer, "---");
   text_layer_set_font(s_location_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
   text_layer_set_text_alignment(s_location_layer, GTextAlignmentRight);
   layer_add_child(window_layer, text_layer_get_layer(s_location_layer));
@@ -458,8 +476,9 @@ static void main_window_load(Window *window) {
   s_weather_icon_layer = bitmap_layer_create(
       GRect(0, 0, 50, 50)); // Positioned at top left
 
-  // Load default weather icon
-  s_weather_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SUNNY_DARK);
+  // Load default weather icon based on current theme
+  uint32_t default_icon = s_color_theme == 1 ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK;
+  s_weather_icon_bitmap = gbitmap_create_with_resource(default_icon);
   bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_icon_bitmap);
   bitmap_layer_set_compositing_mode(s_weather_icon_layer, GCompOpSet);
   layer_add_child(window_layer, bitmap_layer_get_layer(s_weather_icon_layer));
@@ -498,6 +517,9 @@ static void main_window_load(Window *window) {
 
   // Make sure the initial time is displayed
   update_time();
+  
+  // Apply initial theme colors
+  update_colors();
 }
 
 static void main_window_unload(Window *window) {
@@ -525,9 +547,9 @@ static void main_window_unload(Window *window) {
 static void init() {
     srand(time(NULL)); 
     
-    // Initialize weather data buffers
-    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "--°");
-    snprintf(s_location_buffer, sizeof(s_location_buffer), "Loading...");
+    // Initialize weather data buffers with clean placeholders
+    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "--°C");
+    snprintf(s_location_buffer, sizeof(s_location_buffer), "---");
     
     s_main_window = window_create();
     window_set_background_color(s_main_window, GColorBlack); 
