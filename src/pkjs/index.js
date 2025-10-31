@@ -1,11 +1,15 @@
 // Default configuration
 var config = {
-  location: 'Vienna' // Default location
+  location: 'Vienna', // Default location
+  colorTheme: 'dark'  // Default to dark theme (dark/light)
 };
 
 // Load saved configuration
 if (localStorage.getItem('WEATHER_LOCATION_CONFIG')) {
   config.location = localStorage.getItem('WEATHER_LOCATION_CONFIG');
+}
+if (localStorage.getItem('COLOR_THEME')) {
+  config.colorTheme = localStorage.getItem('COLOR_THEME');
 }
 
 // Variables to store weather data
@@ -157,12 +161,13 @@ function getWeatherData(latitude, longitude) {
 
 // Function to send weather data to Pebble
 function sendWeatherToPebble() {
-  console.log('Sending to Pebble - Temperature: ' + weatherData.temperature + ', Location: ' + weatherData.location + ', Condition: ' + weatherData.condition);
+  console.log('Sending to Pebble - Temperature: ' + weatherData.temperature + ', Location: ' + weatherData.location + ', Condition: ' + weatherData.condition + ', Theme: ' + config.colorTheme);
   
   var message = {
     'WEATHER_TEMPERATURE': weatherData.temperature,
     'WEATHER_LOCATION': weatherData.location,
-    'WEATHER_CONDITION': weatherData.condition
+    'WEATHER_CONDITION': weatherData.condition,
+    'COLOR_THEME': config.colorTheme === 'light' ? 1 : 0  // 0 = dark, 1 = light
   };
   
   Pebble.sendAppMessage(message,
@@ -217,6 +222,13 @@ Pebble.addEventListener('webviewclosed', function(e) {
         console.log('Location saved to: ' + config.location);
         fetchWeatherForLocation();
       }
+      
+      if (configData.COLOR_THEME) {
+        config.colorTheme = configData.COLOR_THEME;
+        localStorage.setItem('COLOR_THEME', config.colorTheme);
+        console.log('Color theme saved to: ' + config.colorTheme);
+        sendWeatherToPebble(); // Send immediately to update colors
+      }
     } catch (ex) {
       console.log('Configuration parse error: ' + ex.message);
     }
@@ -236,7 +248,8 @@ Pebble.addEventListener('showConfiguration', function() {
   
   // Create the configuration URL with current settings
   var currentSettings = encodeURIComponent(JSON.stringify({
-    'WEATHER_LOCATION_CONFIG': config.location
+    'WEATHER_LOCATION_CONFIG': config.location,
+    'COLOR_THEME': config.colorTheme
   }));
   
   // Use the correct path for Pebble configuration pages

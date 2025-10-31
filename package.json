@@ -33,64 +33,120 @@
       "WEATHER_LOCATION",
       "WEATHER_REQUEST",
       "WEATHER_LOCATION_CONFIG",
-      "WEATHER_CONDITION"
+      "WEATHER_CONDITION",
+      "COLOR_THEME"
     ],
     "resources": {
       "media": [
         {
           "type": "bitmap",
-          "name": "IMAGE_STEP",
-          "file": "images/step.png"
+          "name": "IMAGE_STEP_LIGHT",
+          "file": "images/step_light.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_SUNNY",
-          "file": "images/weather/sunny_day.png"
+          "name": "IMAGE_STEP_DARK",
+          "file": "images/step_dark.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_PARTLY_CLOUDY",
-          "file": "images/weather/partly_cloudy.png"
+          "name": "IMAGE_SUNNY_DARK",
+          "file": "images/weather/sunny_day_dark.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_CLOUDY",
+          "name": "IMAGE_SUNNY_LIGHT",
+          "file": "images/weather/sunny_day_light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_PARTLY_CLOUDY_DARK",
+          "file": "images/weather/partly_cloudy_dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_PARTLY_CLOUDY_LIGHT",
+          "file": "images/weather/partly_cloudy_light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CLOUDY_DARK",
           "file": "images/weather/cloudy_weather.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_LIGHT_RAIN",
-          "file": "images/weather/light_rain.png"
+          "name": "IMAGE_CLOUDY_LIGHT",
+          "file": "images/weather/cloudy_weather_light.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_HEAVY_RAIN",
-          "file": "images/weather/heavy_rain.png"
+          "name": "IMAGE_LIGHT_RAIN_DARK",
+          "file": "images/weather/light_rain_dark.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_LIGHT_SNOW",
-          "file": "images/weather/light_snow.png"
+          "name": "IMAGE_LIGHT_RAIN_LIGHT",
+          "file": "images/weather/light_rain_light.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_HEAVY_SNOW",
-          "file": "images/weather/heavy_snow.png"
+          "name": "IMAGE_HEAVY_RAIN_DARK",
+          "file": "images/weather/heavy_rain_dark.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_RAIN_SNOW",
-          "file": "images/weather/raining_and_snowing.png"
+          "name": "IMAGE_HEAVY_RAIN_LIGHT",
+          "file": "images/weather/heavy_rain_light.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_GENERIC_WEATHER",
-          "file": "images/weather/generic_weather.png"
+          "name": "IMAGE_LIGHT_SNOW_DARK",
+          "file": "images/weather/light_snow_dark.png"
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_THUNDERSTORM",
-          "file": "images/weather/thunderstorm.png"
+          "name": "IMAGE_LIGHT_SNOW_LIGHT",
+          "file": "images/weather/light_snow_light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_HEAVY_SNOW_DARK",
+          "file": "images/weather/heavy_snow_dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_HEAVY_SNOW_LIGHT",
+          "file": "images/weather/heavy_snow_light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_RAIN_SNOW_DARK",
+          "file": "images/weather/raining_and_snowing_dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_RAIN_SNOW_LIGHT",
+          "file": "images/weather/raining_and_snowing_light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_THUNDERSTORM_DARK",
+          "file": "images/weather/thunderstorm_dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_THUNDERSTORM_LIGHT",
+          "file": "images/weather/thunderstorm_light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_GENERIC_WEATHER_DARK",
+          "file": "images/weather/generic_weather_dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_GENERIC_WEATHER_LIGHT",
+          "file": "images/weather/generic_weather_light.png"
         }
       ]
     }

@@ -18,8 +18,6 @@ static GBitmap *s_weather_icon_bitmap;
 // Pointer for the animation AppTimer
 #define GRID_SIZE 8
 #define CROSS_SIZE 0
-#define INFO_DISTANCE_X 22
-#define INFO_DISTANCE_Y 26
 
 #define VERY_FIRST_ANIMATION_FRAME 500
 #define ANIMATION_RATE_MS 20
@@ -28,7 +26,7 @@ static GBitmap *s_weather_icon_bitmap;
 #define ANIMATION_DECREASE_STEP 15
 #define SLOW_DOWN_ANIMATION_FRAME 130
 
-#define BORDER_THICKNESS 7
+#define BORDER_THICKNESS 3
 
 // Animation
 static AppTimer *s_animation_timer = NULL;
@@ -46,6 +44,12 @@ static char s_location_buffer[20];
 // Flag to track the state of the animation
 static bool s_is_animation_running = false; 
 
+// Color theme (0 = dark, 1 = light)
+static int s_color_theme = 1;
+
+// Current weather code (stored for theme changes)
+static int s_current_weather_code = 0; 
+
 
 // Forward declarations
 static void update_time();
@@ -57,20 +61,95 @@ static void try_stop_animation_timer();
 static void draw_frame(Layer *layer, GContext *ctx);
 static void inbox_received_callback(DictionaryIterator *iterator, void *context);
 static void request_weather_update();
+static void update_weather_icon();
+static void update_step_icon();
 
-// Function to map weather codes to image resource IDs
+// Function to map weather codes to image resource IDs based on theme
 static uint32_t get_weather_image_resource(int weather_code) {
+  
   // Based on WMO Weather interpretation codes
-  if (weather_code == 0) return RESOURCE_ID_IMAGE_SUNNY; // Clear sky
-  else if (weather_code <= 3) return RESOURCE_ID_IMAGE_PARTLY_CLOUDY; // Partly cloudy
-  else if (weather_code <= 48) return RESOURCE_ID_IMAGE_CLOUDY; // Overcast
-  else if (weather_code <= 57) return RESOURCE_ID_IMAGE_LIGHT_RAIN; // Drizzle
-  else if (weather_code <= 67) return RESOURCE_ID_IMAGE_RAIN_SNOW; // Rain and snow
-  else if (weather_code <= 77) return RESOURCE_ID_IMAGE_LIGHT_SNOW; // Snow
-  else if (weather_code <= 82) return RESOURCE_ID_IMAGE_LIGHT_RAIN; // Rain showers
-  else if (weather_code <= 86) return RESOURCE_ID_IMAGE_HEAVY_SNOW; // Snow showers
-  else if (weather_code <= 99) return RESOURCE_ID_IMAGE_THUNDERSTORM; // Thunderstorm
-  else return RESOURCE_ID_IMAGE_GENERIC_WEATHER; // Unknown
+  if (weather_code == 0) {
+    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK; // Clear sky
+  } else if (weather_code <= 3) {
+    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_DARK; // Partly cloudy
+  } else if (weather_code <= 48) {
+    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_CLOUDY_DARK; // Overcast
+  } else if (weather_code <= 57) {
+    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_LIGHT_RAIN_LIGHT : RESOURCE_ID_IMAGE_LIGHT_RAIN_DARK; // Drizzle
+  } else if (weather_code <= 67) {
+    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_HEAVY_RAIN_LIGHT : RESOURCE_ID_IMAGE_HEAVY_RAIN_DARK; // Rain
+  } else if (weather_code <= 77) {
+    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_LIGHT_SNOW_LIGHT : RESOURCE_ID_IMAGE_LIGHT_SNOW_DARK; // Snow
+  } else if (weather_code <= 82) {
+    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_LIGHT_RAIN_LIGHT : RESOURCE_ID_IMAGE_LIGHT_RAIN_DARK; // Rain showers
+  } else if (weather_code <= 86) {
+    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_HEAVY_SNOW_LIGHT : RESOURCE_ID_IMAGE_HEAVY_SNOW_DARK; // Snow showers
+  } else if (weather_code <= 99) {
+    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_THUNDERSTORM_LIGHT : RESOURCE_ID_IMAGE_THUNDERSTORM_DARK; // Thunderstorm
+  } else {
+    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_GENERIC_WEATHER_LIGHT : RESOURCE_ID_IMAGE_GENERIC_WEATHER_DARK; // Unknown
+  }
+}
+
+// Function to get colors based on theme
+static GColor get_background_color() {
+  return s_color_theme == 1 ? GColorWhite : GColorBlack;
+}
+
+static GColor get_text_color() {
+  return s_color_theme == 1 ? GColorBlack : GColorWhite;
+}
+
+// Function to update all colors based on current theme
+static void update_colors() {
+  window_set_background_color(s_main_window, get_background_color());
+  
+  text_layer_set_text_color(s_time_layer, get_text_color());
+  text_layer_set_text_color(s_date_layer, get_text_color());
+  text_layer_set_text_color(s_temperature_layer, get_text_color());
+  text_layer_set_text_color(s_location_layer, get_text_color());
+  text_layer_set_text_color(s_battery_layer, get_text_color());
+  text_layer_set_text_color(s_steps_layer, get_text_color());
+  
+  // Always use GCompOpSet for all bitmap layers
+  bitmap_layer_set_compositing_mode(s_weather_icon_layer, GCompOpSet);
+  bitmap_layer_set_compositing_mode(s_step_icon_layer, GCompOpSet);
+  
+  // Update weather icon for new theme
+  update_weather_icon();
+  update_step_icon();
+  
+  // Force redraw
+  layer_mark_dirty(s_frame_layer);
+}
+
+// Function to update weather icon based on current weather code and theme
+static void update_weather_icon() {
+  if (s_current_weather_code > 0) {
+    uint32_t resource_id = get_weather_image_resource(s_current_weather_code);
+    
+    // Destroy the old bitmap if it exists
+    if (s_weather_icon_bitmap) {
+      gbitmap_destroy(s_weather_icon_bitmap);
+    }
+    
+    // Load the new weather icon bitmap
+    s_weather_icon_bitmap = gbitmap_create_with_resource(resource_id);
+    bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_icon_bitmap);
+  }
+}
+
+static void update_step_icon() {
+  // Destroy the old bitmap if it exists
+  if (s_step_icon_bitmap) {
+    gbitmap_destroy(s_step_icon_bitmap);
+  }
+
+  // Load the new step icon bitmap based on theme
+  s_step_icon_bitmap = gbitmap_create_with_resource(
+    s_color_theme == 1 ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK
+  );
+  bitmap_layer_set_bitmap(s_step_icon_layer, s_step_icon_bitmap);
 }
 
 
@@ -113,19 +192,17 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   // Read weather condition and update icon
   Tuple *condition_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_CONDITION);
   if (condition_tuple) {
-    int weather_code = (int)condition_tuple->value->int32;
-    uint32_t resource_id = get_weather_image_resource(weather_code);
-    
-    // Destroy the old bitmap if it exists
-    if (s_weather_icon_bitmap) {
-      gbitmap_destroy(s_weather_icon_bitmap);
-    }
-    
-    // Load the new weather icon bitmap
-    s_weather_icon_bitmap = gbitmap_create_with_resource(resource_id);
-    bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_icon_bitmap);
-    
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather condition: %d, Resource ID: %d", weather_code, (int)resource_id);
+    s_current_weather_code = (int)condition_tuple->value->int32;
+    update_weather_icon();
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather condition: %d", s_current_weather_code);
+  }
+  
+  // Read color theme
+  Tuple *theme_tuple = dict_find(iterator, MESSAGE_KEY_COLOR_THEME);
+  if (theme_tuple) {
+    s_color_theme = (int)theme_tuple->value->int32;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Color theme: %d", s_color_theme);
+    update_colors();
   }
 }
 
@@ -155,6 +232,7 @@ static void update_time() {
   text_layer_set_text(s_date_layer, s_date_buffer);
 
   int steps = (int) health_service_sum_today(HealthMetricStepCount);
+  steps = 1717;
   snprintf(s_step_buffer, sizeof(s_step_buffer), "%d", steps);
   text_layer_set_text(s_steps_layer, s_step_buffer);
 }
@@ -182,6 +260,7 @@ static void try_stop_animation_timer() {
 
     s_is_animation_running = false; 
     current_animation_frame = 0;
+    
     // Ensure the final state is drawn (full length)
     layer_mark_dirty(s_frame_layer);
 }
@@ -232,16 +311,17 @@ static void animation_timer_callback(void *data) {
 // --- Frame Layer Drawing Update Procedure (Modified for Line Fly-In) ---
 static void draw_frame(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
+  GColor frame_color = get_text_color(); // Use theme-appropriate color
   
-  // Frame
-  if(BORDER_THICKNESS > 0) {
-    graphics_context_set_stroke_color(ctx, GColorWhite);
+  // In case we have light theme, we don't draw a frame
+  if(BORDER_THICKNESS > 0 && s_color_theme == 0) {
+    graphics_context_set_stroke_color(ctx, frame_color);
     graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
     graphics_draw_rect(ctx, GRect(1, 1, bounds.size.w - 2, bounds.size.h - 2));
   }
 
   // Dots
-  graphics_context_set_stroke_color(ctx, GColorWhite);
+  graphics_context_set_stroke_color(ctx, frame_color);
   graphics_context_set_stroke_width(ctx, 1);
   for (int y = 0; y < bounds.size.h; y += GRID_SIZE) {
     for (int x = 0; x < bounds.size.w; x += GRID_SIZE) {
@@ -280,8 +360,8 @@ static void draw_frame(Layer *layer, GContext *ctx) {
   if (current_line_length > max_line_length) current_line_length = max_line_length;
 
 
-  graphics_context_set_stroke_color(ctx, GColorWhite);
-  graphics_context_set_stroke_width(ctx, 3);
+  graphics_context_set_stroke_color(ctx, frame_color);
+  graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
 
   // ANIMATE: Top line flies in from LEFT
   // Start X is fixed (line_x_start_full), End X is animated.
@@ -355,7 +435,7 @@ static void main_window_load(Window *window) {
   
   // Create the Temperature Layer (Top Right)
   s_temperature_layer = text_layer_create(
-      GRect(bounds.size.w - 72, 8, 60, 24)); // Positioned at top right, moved up
+      GRect(bounds.size.w - 68, 6, 60, 24)); // Positioned at top right, moved up
 
   text_layer_set_background_color(s_temperature_layer, GColorClear);
   text_layer_set_text_color(s_temperature_layer, GColorWhite);
@@ -366,7 +446,7 @@ static void main_window_load(Window *window) {
   
   // Create the Location Layer (Below temperature)
   s_location_layer = text_layer_create(
-      GRect(bounds.size.w - 85, 26, 72, 24)); // Positioned below temperature
+      GRect(bounds.size.w - 80, 24, 72, 24)); // Positioned below temperature
 
   text_layer_set_background_color(s_location_layer, GColorClear);
   text_layer_set_text_color(s_location_layer, GColorWhite);
@@ -377,20 +457,19 @@ static void main_window_load(Window *window) {
   
   // Create the Weather Icon Layer (Top Left)
   s_weather_icon_layer = bitmap_layer_create(
-      GRect(4, 2, 50, 50)); // Positioned at top left
+      GRect(0, 0, 50, 50)); // Positioned at top left
 
   // Load default weather icon
-  s_weather_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SUNNY);
+  s_weather_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SUNNY_DARK);
   bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_icon_bitmap);
   bitmap_layer_set_compositing_mode(s_weather_icon_layer, GCompOpSet);
   layer_add_child(window_layer, bitmap_layer_get_layer(s_weather_icon_layer));
 
   // Create the Battery Layer
-  const int lower_y = bounds.size.h - INFO_DISTANCE_Y - 6; // Example Y position
-
+  const int lower_y = bounds.size.h - 32; // Example Y position
   const int battery_width = 38;
   s_battery_layer = text_layer_create(
-      GRect(bounds.size.w - battery_width - INFO_DISTANCE_X, lower_y, 50, 24)); // Positioned at upper right
+      GRect(bounds.size.w - battery_width - 20, lower_y, 50, 24)); // Positioned at upper right
       
   text_layer_set_background_color(s_battery_layer, GColorClear);
   text_layer_set_text_color(s_battery_layer, GColorWhite);
@@ -400,10 +479,9 @@ static void main_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(s_battery_layer));
   
   // Load icon
-  const int icon_x = INFO_DISTANCE_X/2-4; // Example X position
-  s_step_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STEP);
+  s_step_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STEP_LIGHT);
   s_step_icon_layer = bitmap_layer_create(
-      GRect(icon_x, lower_y, 24, 24)
+      GRect(4, lower_y, 24, 24)
   );
   bitmap_layer_set_bitmap(s_step_icon_layer, s_step_icon_bitmap);
   bitmap_layer_set_compositing_mode(s_step_icon_layer, GCompOpSet); // Renders the icon cleanly
@@ -411,7 +489,7 @@ static void main_window_load(Window *window) {
 
   // Create Steps Layer (Lower Left) - Placeholder for future use
   s_steps_layer = text_layer_create(
-      GRect(icon_x + 24, lower_y, 50, 24)); // Positioned at lower left
+      GRect(4 + 24, lower_y, 50, 24)); // Positioned at lower left
   text_layer_set_background_color(s_steps_layer, GColorClear);
   text_layer_set_text_color(s_steps_layer, GColorWhite);
   text_layer_set_text(s_steps_layer, "???"); // Placeholder text
