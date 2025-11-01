@@ -579,13 +579,13 @@ static void draw_steps_info(InfoLayer* info_layer) {
   GRect icon_frame;
   GRect text_frame;
 
-  int y_pos = bounds.size.h / 2 - 18;
+  int y_pos = bounds.size.h / 2 - 30;
   
   if (is_left_layer(info_layer)) {
-    icon_frame = GRect(-4, y_pos+4, 24, 24);
-    text_frame = GRect(18, y_pos, bounds.size.w - 20, 24);
+    icon_frame = GRect(2, y_pos+4, 50, 50);
+    text_frame = GRect(6, y_pos+19, bounds.size.w - 20, 24);
   } else {
-    icon_frame = GRect(bounds.size.w - 20, y_pos+4, 24, 24);
+    icon_frame = GRect(bounds.size.w - 20, y_pos+4, 50, 50);
     text_frame = GRect(0, y_pos, bounds.size.w - 20, 24);
   }
   
@@ -598,7 +598,7 @@ static void draw_steps_info(InfoLayer* info_layer) {
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_step_buffer);
-  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_14));
   
   if (is_left_layer(info_layer)) {
     text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentLeft);
