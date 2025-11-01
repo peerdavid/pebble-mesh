@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.11",
+  "version": "1.13",
   "keywords": [
     "clock",
     "minimal",
@@ -47,6 +47,16 @@
           "type": "bitmap",
           "name": "IMAGE_STEP_DARK",
           "file": "images/step_dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BATTERY_LIGHT",
+          "file": "images/battery_light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_BATTERY_DARK",
+          "file": "images/battery_dark.png"
         },
         {
           "type": "bitmap",

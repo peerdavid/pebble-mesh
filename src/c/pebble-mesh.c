@@ -54,6 +54,7 @@ static InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
 
 static GBitmap *s_step_icon_bitmap;
 static GBitmap *s_weather_icon_bitmap;
+static GBitmap *s_battery_icon_bitmap;
 
 // Pointer for the animation AppTimer
 #define GRID_SIZE 8
@@ -89,6 +90,8 @@ static int s_color_theme = 1; // Default to light theme
 
 // Current weather code (stored for theme changes)
 static int s_current_weather_code = 0;
+
+static int battery_level = 100;
 
 // Persistent storage keys
 #define PERSIST_KEY_COLOR_THEME 1
@@ -226,6 +229,12 @@ static void update_colors() {
   uint32_t step_resource_id = s_color_theme == 1 ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK;
   s_step_icon_bitmap = gbitmap_create_with_resource(step_resource_id);
 
+  if (s_battery_icon_bitmap) {
+    gbitmap_destroy(s_battery_icon_bitmap);
+  }
+  uint32_t battery_resource_id = s_color_theme == 1 ? RESOURCE_ID_IMAGE_BATTERY_LIGHT : RESOURCE_ID_IMAGE_BATTERY_DARK;
+  s_battery_icon_bitmap = gbitmap_create_with_resource(battery_resource_id);
+
   // Update all info layers to refresh the display
   update_all_info_layers();
 
@@ -340,7 +349,8 @@ static void update_time() {
 // --- Battery Handler ---
 static void battery_handler(BatteryChargeState state) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Battery handler");
-  snprintf(s_battery_buffer, sizeof(s_battery_buffer), "%d%%", state.charge_percent);
+  battery_level = state.charge_percent;
+  snprintf(s_battery_buffer, sizeof(s_battery_buffer), "%d", battery_level);
   
   // Update info layers to reflect new battery level
   update_all_info_layers();
@@ -573,7 +583,7 @@ static void draw_steps_info(InfoLayer* info_layer) {
   
   if (is_left_layer(info_layer)) {
     icon_frame = GRect(-4, y_pos+4, 24, 24);
-    text_frame = GRect(16, y_pos, bounds.size.w - 20, 24);
+    text_frame = GRect(18, y_pos, bounds.size.w - 20, 24);
   } else {
     icon_frame = GRect(bounds.size.w - 20, y_pos+4, 24, 24);
     text_frame = GRect(0, y_pos, bounds.size.w - 20, 24);
@@ -605,23 +615,43 @@ static void draw_steps_info(InfoLayer* info_layer) {
 static void draw_battery_info(InfoLayer* info_layer) {
   GRect bounds = info_layer->bounds;
   Layer* layer = info_layer->layer;
-  int y_pos = bounds.size.h / 2 - 18;
   
-  // Create battery text layer
-  GRect battery_frame = GRect(0, y_pos, bounds.size.w, 24);
-  info_layer->text_layer1 = text_layer_create(battery_frame);
+  GRect icon_frame;
+  GRect text_frame;
+
+  int y_pos = bounds.size.h / 2 - 27;
+
+  int bat_offset = 0;
+  if(battery_level < 100){
+    bat_offset = 3;
+  } 
+  if (battery_level < 10){
+    bat_offset = 6;
+  }
+  
+  if (is_left_layer(info_layer)) {
+    icon_frame = GRect(-8, y_pos, 50, 50);
+    text_frame = GRect(6+bat_offset, y_pos+15, bounds.size.w - 20, 24);
+  } else {
+    icon_frame = GRect(bounds.size.w - 40, y_pos, 50, 50);
+    text_frame = GRect(bounds.size.w - 26+bat_offset, y_pos+15, bounds.size.w - 8, 24);
+  }
+  
+  // Create step icon layer
+  info_layer->bitmap_layer = bitmap_layer_create(icon_frame);
+  bitmap_layer_set_bitmap(info_layer->bitmap_layer, s_battery_icon_bitmap);
+  bitmap_layer_set_compositing_mode(info_layer->bitmap_layer, GCompOpSet);
+  
+  info_layer->text_layer1 = text_layer_create(text_frame);
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_battery_buffer);
-  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-  
-  if (is_left_layer(info_layer)) {
-    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentLeft);
-  } else {
-    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentRight);
-  }
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
+  text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentLeft);
+
   
   // Add to the info layer
+  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer));
   layer_add_child(layer, text_layer_get_layer(info_layer->text_layer1));
 }
 
@@ -818,6 +848,9 @@ static void main_window_load(Window *window) {
   uint32_t step_icon = s_color_theme == 1 ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK;
   s_step_icon_bitmap = gbitmap_create_with_resource(step_icon);
 
+  uint32_t battery_icon = s_color_theme == 1 ? RESOURCE_ID_IMAGE_BATTERY_LIGHT : RESOURCE_ID_IMAGE_BATTERY_DARK;
+  s_battery_icon_bitmap = gbitmap_create_with_resource(battery_icon);
+
   // Initialize the display with current layer assignments
   update_all_info_layers();
 
@@ -846,6 +879,9 @@ static void main_window_unload(Window *window) {
   }
   if (s_weather_icon_bitmap) {
     gbitmap_destroy(s_weather_icon_bitmap);
+  }
+  if (s_battery_icon_bitmap) {
+    gbitmap_destroy(s_battery_icon_bitmap);
   }
 }
 
