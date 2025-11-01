@@ -619,7 +619,7 @@ static void draw_battery_info(InfoLayer* info_layer) {
   GRect icon_frame;
   GRect text_frame;
 
-  int y_pos = bounds.size.h / 2 - 27;
+  int y_pos = bounds.size.h / 2 - 24;
 
   int bat_offset = 0;
   if(battery_level < 100){
@@ -630,13 +630,13 @@ static void draw_battery_info(InfoLayer* info_layer) {
   }
   
   if (is_left_layer(info_layer)) {
-    icon_frame = GRect(-8, y_pos, 50, 50);
-    text_frame = GRect(6+bat_offset, y_pos+15, bounds.size.w - 20, 24);
+    icon_frame = GRect(-8, y_pos, 40, 40);
+    text_frame = GRect(bat_offset+3, y_pos+9, bounds.size.w - 20, 24);
   } else {
-    icon_frame = GRect(bounds.size.w - 40, y_pos, 50, 50);
-    text_frame = GRect(bounds.size.w - 26+bat_offset, y_pos+15, bounds.size.w - 8, 24);
+    icon_frame = GRect(bounds.size.w - 34, y_pos, 40, 40);
+    text_frame = GRect(bounds.size.w - 23 + bat_offset, y_pos+9, bounds.size.w - 8, 24);
   }
-  
+
   // Create step icon layer
   info_layer->bitmap_layer = bitmap_layer_create(icon_frame);
   bitmap_layer_set_bitmap(info_layer->bitmap_layer, s_battery_icon_bitmap);
@@ -646,7 +646,7 @@ static void draw_battery_info(InfoLayer* info_layer) {
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_battery_buffer);
-  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_14));
   text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentLeft);
 
   
