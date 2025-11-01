@@ -512,7 +512,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 // Draw weather icon in the specified info layer
 static void draw_weather_info(InfoLayer* info_layer) {
   Layer* layer = info_layer->layer;
-  int y_pos = is_upper_layer(info_layer) ? 4 : 8;
+  int y_pos = 4;
   int x_pos = is_left_layer(info_layer) ? 0 : (info_layer->bounds.size.w - 32);
   
   // Create a bitmap layer for the weather icon
@@ -532,15 +532,15 @@ static void draw_temperature_info(InfoLayer* info_layer) {
   int y_center = bounds.size.h / 2 - 10;
   
   // Create temperature text layer
-  GRect temp_frame = GRect(0, y_center-8, bounds.size.w, 20);
+  GRect temp_frame = GRect(0, y_center-14, bounds.size.w, 24);
   info_layer->text_layer1 = text_layer_create(temp_frame);
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_temperature_buffer);
-  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
   
   // Create location text layer
-  GRect location_frame = GRect(0, y_center+8, bounds.size.w, 16);
+  GRect location_frame = GRect(0, y_center+8, bounds.size.w, 18);
   info_layer->text_layer2 = text_layer_create(location_frame);
   text_layer_set_background_color(info_layer->text_layer2, GColorClear);
   text_layer_set_text_color(info_layer->text_layer2, get_text_color());
@@ -569,13 +569,13 @@ static void draw_steps_info(InfoLayer* info_layer) {
   GRect icon_frame;
   GRect text_frame;
 
-  int y_pos = info_layer->bounds.size.h / 2 - 12; // Center vertically
+  int y_pos = bounds.size.h / 2 - 18;
   
   if (is_left_layer(info_layer)) {
-    icon_frame = GRect(0, y_pos, 24, 24);
-    text_frame = GRect(22, y_pos, bounds.size.w - 24, 24);
+    icon_frame = GRect(-4, y_pos+4, 24, 24);
+    text_frame = GRect(16, y_pos, bounds.size.w - 20, 24);
   } else {
-    icon_frame = GRect(bounds.size.w - 20, y_pos, 24, 24);
+    icon_frame = GRect(bounds.size.w - 20, y_pos+4, 24, 24);
     text_frame = GRect(0, y_pos, bounds.size.w - 20, 24);
   }
   
@@ -588,7 +588,7 @@ static void draw_steps_info(InfoLayer* info_layer) {
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_step_buffer);
-  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
   
   if (is_left_layer(info_layer)) {
     text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentLeft);
@@ -605,15 +605,15 @@ static void draw_steps_info(InfoLayer* info_layer) {
 static void draw_battery_info(InfoLayer* info_layer) {
   GRect bounds = info_layer->bounds;
   Layer* layer = info_layer->layer;
-  int y_center = bounds.size.h / 2 - 12;
+  int y_pos = bounds.size.h / 2 - 18;
   
   // Create battery text layer
-  GRect battery_frame = GRect(0, y_center, bounds.size.w, 24);
+  GRect battery_frame = GRect(0, y_pos, bounds.size.w, 24);
   info_layer->text_layer1 = text_layer_create(battery_frame);
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_battery_buffer);
-  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
   
   if (is_left_layer(info_layer)) {
     text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentLeft);
@@ -693,11 +693,13 @@ static void delayed_weather_request(void *data) {
 
 // Initialize the 4 info layers with proper positioning
 static void init_info_layers(GRect bounds) {
-  const int info_layer_width = bounds.size.w / 2 - BORDER_THICKNESS - 2;
+
+  int theme_offset = s_color_theme == 0 ? 2 : 0;
+  const int info_layer_width = bounds.size.w / 2 - BORDER_THICKNESS - 2 - theme_offset;
   const int info_layer_height = 44;
 
-  int margin_w = 6;
-  int margin_h = 4;
+  int margin_w = 6 + theme_offset;
+  const int margin_h = 4;
 
   
   // Upper left
@@ -779,7 +781,7 @@ static void main_window_load(Window *window) {
   layer_add_child(window_layer, s_animation_layer);
 
   // Create Time Layer
-  const int time_y_pos = bounds.size.h / 2 - 21 - 14;
+  const int time_y_pos = bounds.size.h / 2 - 20 - 14;
   s_time_layer = text_layer_create(
       GRect(0, time_y_pos, bounds.size.w, bounds.size.h));
 
@@ -792,7 +794,7 @@ static void main_window_load(Window *window) {
 
   // Create the Date Layer (Center below time)
   s_date_layer = text_layer_create(
-      GRect(0, time_y_pos + 40, bounds.size.w, 24)); // Positioned at upper left
+      GRect(0, time_y_pos + 38, bounds.size.w, 24)); // Positioned at upper left
 
   text_layer_set_background_color(s_date_layer, GColorClear);
   text_layer_set_text_color(s_date_layer, get_text_color());
