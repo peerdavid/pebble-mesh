@@ -513,7 +513,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 static void draw_weather_info(InfoLayer* info_layer) {
   Layer* layer = info_layer->layer;
   int y_pos = 4;
-  int x_pos = is_left_layer(info_layer) ? 0 : (info_layer->bounds.size.w - 32);
+  int x_pos = is_left_layer(info_layer) ? 2 : (info_layer->bounds.size.w - 34);
   
   // Create a bitmap layer for the weather icon
   info_layer->bitmap_layer = bitmap_layer_create(GRect(x_pos, y_pos, 32, 32));
