@@ -295,10 +295,6 @@ static void update_time() {
     strftime(s_time_buffer, sizeof(s_time_buffer), "%H:%M", tick_time);
   } else {
     strftime(s_time_buffer, sizeof(s_time_buffer), "%I:%M", tick_time);
-    // Remove leading zero on 12-hour clock
-    if (s_time_buffer[0] == '0') {
-      memmove(s_time_buffer, &s_time_buffer[1], sizeof(s_time_buffer) - 1);
-    }
   }
 
   text_layer_set_text(s_time_layer, s_time_buffer);
