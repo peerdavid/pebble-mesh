@@ -1,6 +1,6 @@
 // Default configuration
 var config = {
-  location: 'Vienna', // Default location
+  location: 'Matrei am Brenner', // Default location
   colorTheme: 'dark'  // Default to dark theme (dark/light)
 };
 

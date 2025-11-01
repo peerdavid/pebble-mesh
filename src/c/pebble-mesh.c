@@ -1,19 +1,58 @@
 #include <pebble.h>
 
+// Layer position and alignment enums
+typedef enum {
+  LAYER_UPPER_LEFT = 0,
+  LAYER_UPPER_RIGHT = 1,
+  LAYER_LOWER_LEFT = 2,
+  LAYER_LOWER_RIGHT = 3,
+  NUM_INFO_LAYERS = 4
+} InfoLayerPosition;
+
+typedef enum {
+  ALIGN_LEFT = 0,
+  ALIGN_RIGHT = 1
+} InfoLayerAlignment;
+
+// Info layer structure with layer tracking
+typedef struct {
+  Layer* layer;
+  GRect bounds;
+  int position;               // 0 = upper left, 1 = upper right, 2 = lower left, 3 = lower right
+  TextLayer* text_layer1;    // For primary text (e.g., temperature, battery, steps)
+  TextLayer* text_layer2;    // For secondary text (e.g., location)
+  BitmapLayer* bitmap_layer; // For icons
+} InfoLayer;
+
 // A pointer to the main window and layers
 static Window *s_main_window;
 static TextLayer *s_time_layer;
 static TextLayer *s_date_layer;
-static TextLayer *s_battery_layer;
-static TextLayer *s_steps_layer;
-static TextLayer *s_temperature_layer;
-static TextLayer *s_location_layer;
-static BitmapLayer *s_weather_icon_layer;
 static Layer *s_frame_layer;
 static Layer *s_animation_layer;
 
+// Info layers system
+static InfoLayer s_info_layers[NUM_INFO_LAYERS];
+
+// Layer assignment configuration - maps each layer position to an info type
+typedef enum {
+  INFO_TYPE_WEATHER = 0,
+  INFO_TYPE_TEMPERATURE = 1,
+  INFO_TYPE_STEPS = 2,
+  INFO_TYPE_BATTERY = 3,
+  INFO_TYPE_COLORED_BOX = 4,
+  INFO_TYPE_NONE = 5
+} InfoType;
+
+// Current layer assignments (can be changed dynamically)
+static InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
+  INFO_TYPE_WEATHER,      // LAYER_UPPER_LEFT
+  INFO_TYPE_TEMPERATURE,  // LAYER_UPPER_RIGHT  
+  INFO_TYPE_STEPS,        // LAYER_LOWER_LEFT
+  INFO_TYPE_BATTERY       // LAYER_LOWER_RIGHT
+};
+
 static GBitmap *s_step_icon_bitmap;
-static BitmapLayer *s_step_icon_layer;
 static GBitmap *s_weather_icon_bitmap;
 
 // Pointer for the animation AppTimer
@@ -68,9 +107,19 @@ static void draw_frame(Layer *layer, GContext *ctx);
 static void draw_animation(Layer *layer, GContext *ctx);
 static void inbox_received_callback(DictionaryIterator *iterator, void *context);
 static void request_weather_update();
-static void update_weather_icon();
-static void update_step_icon();
 static void delayed_weather_request(void *data);
+static void init_info_layers(GRect bounds);
+static void draw_weather_info(InfoLayer* info_layer);
+static void draw_temperature_info(InfoLayer* info_layer);
+static void draw_steps_info(InfoLayer* info_layer);
+static void draw_battery_info(InfoLayer* info_layer);
+static void update_all_info_layers();
+static void draw_info_for_type(InfoType info_type, InfoLayer* info_layer);
+static void clear_info_layer(InfoLayer* info_layer);
+static bool is_upper_layer(InfoLayer* info_layer);
+static bool is_lower_layer(InfoLayer* info_layer);
+static bool is_left_layer(InfoLayer* info_layer);
+static bool is_right_layer(InfoLayer* info_layer);
 
 // Persistent storage functions
 static void save_theme_to_storage() {
@@ -163,56 +212,26 @@ static void update_colors() {
 
   text_layer_set_text_color(s_time_layer, get_text_color());
   text_layer_set_text_color(s_date_layer, get_text_color());
-  text_layer_set_text_color(s_temperature_layer, get_text_color());
-  text_layer_set_text_color(s_location_layer, get_text_color());
-  text_layer_set_text_color(s_battery_layer, get_text_color());
-  text_layer_set_text_color(s_steps_layer, get_text_color());
 
-  // Always use GCompOpSet for all bitmap layers
-  bitmap_layer_set_compositing_mode(s_weather_icon_layer, GCompOpSet);
-  bitmap_layer_set_compositing_mode(s_step_icon_layer, GCompOpSet);
+  // Recreate bitmaps for new theme
+  if (s_weather_icon_bitmap) {
+    gbitmap_destroy(s_weather_icon_bitmap);
+  }
+  uint32_t weather_resource_id = get_weather_image_resource(s_current_weather_code);
+  s_weather_icon_bitmap = gbitmap_create_with_resource(weather_resource_id);
+  
+  if (s_step_icon_bitmap) {
+    gbitmap_destroy(s_step_icon_bitmap);
+  }
+  uint32_t step_resource_id = s_color_theme == 1 ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK;
+  s_step_icon_bitmap = gbitmap_create_with_resource(step_resource_id);
 
-  // Update weather icon for new theme
-  update_weather_icon();
-  update_step_icon();
+  // Update all info layers to refresh the display
+  update_all_info_layers();
 
   // Force redraw
   layer_mark_dirty(s_frame_layer);
   layer_mark_dirty(s_animation_layer);
-}
-
-// Function to update weather icon based on current weather code and theme
-static void update_weather_icon() {
-  uint32_t resource_id;
-
-  if (s_current_weather_code > 0) {
-    // Use actual weather condition
-    resource_id = get_weather_image_resource(s_current_weather_code);
-  } else {
-    // Use default sunny icon based on theme
-    resource_id = s_color_theme == 1 ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK;
-  }
-
-  // Destroy the old bitmap if it exists
-  if (s_weather_icon_bitmap) {
-    gbitmap_destroy(s_weather_icon_bitmap);
-  }
-
-  // Load the new weather icon bitmap
-  s_weather_icon_bitmap = gbitmap_create_with_resource(resource_id);
-  bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_icon_bitmap);
-}
-
-static void update_step_icon() {
-  // Destroy the old bitmap if it exists
-  if (s_step_icon_bitmap) {
-    gbitmap_destroy(s_step_icon_bitmap);
-  }
-
-  // Load the new step icon bitmap based on theme
-  s_step_icon_bitmap = gbitmap_create_with_resource(
-      s_color_theme == 1 ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK);
-  bitmap_layer_set_bitmap(s_step_icon_layer, s_step_icon_bitmap);
 }
 
 // --- Weather Functions ---
@@ -241,7 +260,6 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Tuple *temperature_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_TEMPERATURE);
   if (temperature_tuple) {
     snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "%s°C", temperature_tuple->value->cstring);
-    text_layer_set_text(s_temperature_layer, s_temperature_buffer);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Temperature: %s", s_temperature_buffer);
     weather_data_updated = true;
   }
@@ -250,7 +268,6 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Tuple *location_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_LOCATION);
   if (location_tuple) {
     snprintf(s_location_buffer, sizeof(s_location_buffer), "%s", location_tuple->value->cstring);
-    text_layer_set_text(s_location_layer, s_location_buffer);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Location: %s", s_location_buffer);
     weather_data_updated = true;
   }
@@ -259,7 +276,12 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Tuple *condition_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_CONDITION);
   if (condition_tuple) {
     s_current_weather_code = (int)condition_tuple->value->int32;
-    update_weather_icon();
+    // Recreate weather bitmap with new weather code
+    if (s_weather_icon_bitmap) {
+      gbitmap_destroy(s_weather_icon_bitmap);
+    }
+    uint32_t resource_id = get_weather_image_resource(s_current_weather_code);
+    s_weather_icon_bitmap = gbitmap_create_with_resource(resource_id);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather condition: %d", s_current_weather_code);
     weather_data_updated = true;
   }
@@ -279,6 +301,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   // Save weather data to persistent storage if any was updated
   if (weather_data_updated) {
     save_weather_to_storage();
+    // Redraw all info layers to show updated weather data
+    update_all_info_layers();
   }
 }
 
@@ -303,15 +327,23 @@ static void update_time() {
   text_layer_set_text(s_date_layer, s_date_buffer);
 
   int steps = (int)health_service_sum_today(HealthMetricStepCount);
-  snprintf(s_step_buffer, sizeof(s_step_buffer), "%d", steps);
-  text_layer_set_text(s_steps_layer, s_step_buffer);
+  if (steps < 1000) {
+    snprintf(s_step_buffer, sizeof(s_step_buffer), "%d", steps);
+  } else {
+    snprintf(s_step_buffer, sizeof(s_step_buffer), "%d.%01dk", steps / 1000, (steps % 1000) / 100);
+  }
+  
+  // Update info layers to reflect new step count
+  update_all_info_layers();
 }
 
 // --- Battery Handler ---
 static void battery_handler(BatteryChargeState state) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Battery handler");
   snprintf(s_battery_buffer, sizeof(s_battery_buffer), "%d%%", state.charge_percent);
-  text_layer_set_text(s_battery_layer, s_battery_buffer);
+  
+  // Update info layers to reflect new battery level
+  update_all_info_layers();
 }
 
 /**
@@ -390,13 +422,15 @@ static void draw_frame(Layer *layer, GContext *ctx) {
   // IN case we have light theme, we draw a gray rectangle in the middle
   if(s_color_theme == 1) {
     graphics_context_set_fill_color(ctx, GColorLightGray);
+    
     // We draw the rectange exactly from the upper to the lower animated line in  the same length
     const int max_line_length = bounds.size.w * 0.8;
     const int line_x_start_full = (bounds.size.w - max_line_length) / 2;
     const int time_y = bounds.size.h / 2;
-    const int line_y_offset = 29;
+    const int line_y_offset = 30;
     const int height = (line_y_offset + 2) * 2;
-    graphics_fill_rect(ctx, GRect(line_x_start_full, time_y - line_y_offset + 2, max_line_length, height-10), 0, GCornerNone);
+    
+    graphics_fill_rect(ctx, GRect(line_x_start_full, time_y - line_y_offset + 4, max_line_length, height-11), 0, GCornerNone);
   }
 
   // Dots
@@ -430,7 +464,7 @@ static void draw_animation(Layer *layer, GContext *ctx) {
   const int max_line_length = bounds.size.w * 0.8;
   const int line_x_start_full = (bounds.size.w - max_line_length) / 2;
   const int time_y = bounds.size.h / 2;
-  const int line_y_offset = 29; // Distance from the center of the time text
+  const int line_y_offset = 30; // Distance from the center of the time text
 
   // Calculate the current animated line length. It goes from 0 up to max_line_length.
   // current_animation_frame ranges from NUM_ANIMATION_FRAMES (max) down to 0.
@@ -455,8 +489,8 @@ static void draw_animation(Layer *layer, GContext *ctx) {
   // Start X is fixed (line_x_start_full), End X is animated.
   graphics_draw_line(
       ctx,
-      GPoint(line_x_start_full, time_y - line_y_offset - 3),
-      GPoint(line_x_start_full + current_line_length, time_y - line_y_offset - 3));
+      GPoint(line_x_start_full, time_y - line_y_offset),
+      GPoint(line_x_start_full + current_line_length, time_y - line_y_offset));
 
   // ANIMATE: Bottom line flies in from RIGHT
   // End X is fixed (line_x_start_full + max_line_length), Start X is animated.
@@ -473,10 +507,246 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_time();
 }
 
+// --- Info Drawing Functions ---
+
+// Draw weather icon in the specified info layer
+static void draw_weather_info(InfoLayer* info_layer) {
+  Layer* layer = info_layer->layer;
+  int y_pos = is_upper_layer(info_layer) ? 4 : 8;
+  int x_pos = is_left_layer(info_layer) ? 0 : (info_layer->bounds.size.w - 32);
+  
+  // Create a bitmap layer for the weather icon
+  info_layer->bitmap_layer = bitmap_layer_create(GRect(x_pos, y_pos, 32, 32));
+  bitmap_layer_set_bitmap(info_layer->bitmap_layer, s_weather_icon_bitmap);
+  bitmap_layer_set_compositing_mode(info_layer->bitmap_layer, GCompOpSet);
+  
+  // Add to the info layer
+  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer));
+}
+
+// Draw temperature and location in the specified info layer  
+static void draw_temperature_info(InfoLayer* info_layer) {
+  GRect bounds = info_layer->bounds;
+  Layer* layer = info_layer->layer;
+  //int y_pos = is_upper_layer(info_layer) ? 0 : 4;
+  int y_center = bounds.size.h / 2 - 10;
+  
+  // Create temperature text layer
+  GRect temp_frame = GRect(0, y_center-8, bounds.size.w, 20);
+  info_layer->text_layer1 = text_layer_create(temp_frame);
+  text_layer_set_background_color(info_layer->text_layer1, GColorClear);
+  text_layer_set_text_color(info_layer->text_layer1, get_text_color());
+  text_layer_set_text(info_layer->text_layer1, s_temperature_buffer);
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  
+  // Create location text layer
+  GRect location_frame = GRect(0, y_center+8, bounds.size.w, 16);
+  info_layer->text_layer2 = text_layer_create(location_frame);
+  text_layer_set_background_color(info_layer->text_layer2, GColorClear);
+  text_layer_set_text_color(info_layer->text_layer2, get_text_color());
+  text_layer_set_text(info_layer->text_layer2, s_location_buffer);
+  text_layer_set_font(info_layer->text_layer2, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+  
+  // Set alignment based on layer alignment
+  if (is_left_layer(info_layer)) {
+    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentLeft);
+    text_layer_set_text_alignment(info_layer->text_layer2, GTextAlignmentLeft);
+  } else {
+    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentRight);
+    text_layer_set_text_alignment(info_layer->text_layer2, GTextAlignmentRight);
+  }
+  
+  // Add to the info layer
+  layer_add_child(layer, text_layer_get_layer(info_layer->text_layer1));
+  layer_add_child(layer, text_layer_get_layer(info_layer->text_layer2));
+}
+
+// Draw steps icon and count in the specified info layer
+static void draw_steps_info(InfoLayer* info_layer) {
+  GRect bounds = info_layer->bounds;
+  Layer* layer = info_layer->layer;
+  
+  GRect icon_frame;
+  GRect text_frame;
+
+  int y_pos = info_layer->bounds.size.h / 2 - 12; // Center vertically
+  
+  if (is_left_layer(info_layer)) {
+    icon_frame = GRect(0, y_pos, 24, 24);
+    text_frame = GRect(22, y_pos, bounds.size.w - 24, 24);
+  } else {
+    icon_frame = GRect(bounds.size.w - 20, y_pos, 24, 24);
+    text_frame = GRect(0, y_pos, bounds.size.w - 20, 24);
+  }
+  
+  // Create step icon layer
+  info_layer->bitmap_layer = bitmap_layer_create(icon_frame);
+  bitmap_layer_set_bitmap(info_layer->bitmap_layer, s_step_icon_bitmap);
+  bitmap_layer_set_compositing_mode(info_layer->bitmap_layer, GCompOpSet);
+  
+  info_layer->text_layer1 = text_layer_create(text_frame);
+  text_layer_set_background_color(info_layer->text_layer1, GColorClear);
+  text_layer_set_text_color(info_layer->text_layer1, get_text_color());
+  text_layer_set_text(info_layer->text_layer1, s_step_buffer);
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  
+  if (is_left_layer(info_layer)) {
+    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentLeft);
+  } else {
+    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentRight);
+  }
+  
+  // Add to the info layer
+  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer));
+  layer_add_child(layer, text_layer_get_layer(info_layer->text_layer1));
+}
+
+// Draw battery percentage in the specified info layer
+static void draw_battery_info(InfoLayer* info_layer) {
+  GRect bounds = info_layer->bounds;
+  Layer* layer = info_layer->layer;
+  int y_center = bounds.size.h / 2 - 12;
+  
+  // Create battery text layer
+  GRect battery_frame = GRect(0, y_center, bounds.size.w, 24);
+  info_layer->text_layer1 = text_layer_create(battery_frame);
+  text_layer_set_background_color(info_layer->text_layer1, GColorClear);
+  text_layer_set_text_color(info_layer->text_layer1, get_text_color());
+  text_layer_set_text(info_layer->text_layer1, s_battery_buffer);
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  
+  if (is_left_layer(info_layer)) {
+    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentLeft);
+  } else {
+    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentRight);
+  }
+  
+  // Add to the info layer
+  layer_add_child(layer, text_layer_get_layer(info_layer->text_layer1));
+}
+
+
+// Its simply a box with a border width 3 in the text color
+static void draw_colored_box_info(InfoLayer* info_layer) {
+  Layer* layer = info_layer->layer;
+  // Create a filled rectangle layer
+  info_layer->bitmap_layer = bitmap_layer_create(GRect(1, 1, info_layer->bounds.size.w-2, info_layer->bounds.size.h-2));
+  bitmap_layer_set_background_color(info_layer->bitmap_layer, get_text_color());
+  // Add to the info layer
+  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer));
+}
+
+// Generic function to draw info based on type
+static void draw_info_for_type(InfoType info_type, InfoLayer* info_layer) {
+  switch (info_type) {
+    case INFO_TYPE_WEATHER:
+      draw_weather_info(info_layer);
+      break;
+    case INFO_TYPE_TEMPERATURE:
+      draw_temperature_info(info_layer);
+      break;
+    case INFO_TYPE_STEPS:
+      draw_steps_info(info_layer);
+      break;
+    case INFO_TYPE_BATTERY:
+      draw_battery_info(info_layer);
+      break;
+    case INFO_TYPE_COLORED_BOX:
+      draw_colored_box_info(info_layer);
+    case INFO_TYPE_NONE:
+      // Do nothing for empty layers
+      break;
+  }
+}
+
+// Clear all child layers from an info layer
+static void clear_info_layer(InfoLayer* info_layer) {
+  if (info_layer->text_layer1) {
+    text_layer_destroy(info_layer->text_layer1);
+    info_layer->text_layer1 = NULL;
+  }
+  if (info_layer->text_layer2) {
+    text_layer_destroy(info_layer->text_layer2);
+    info_layer->text_layer2 = NULL;
+  }
+  if (info_layer->bitmap_layer) {
+    bitmap_layer_destroy(info_layer->bitmap_layer);
+    info_layer->bitmap_layer = NULL;
+  }
+}
+
+// Update all info layers according to current assignments
+static void update_all_info_layers() {
+  for (int i = 0; i < NUM_INFO_LAYERS; i++) {
+    // Clear existing content first
+    clear_info_layer(&s_info_layers[i]);
+    // Redraw with current assignment
+    draw_info_for_type(s_layer_assignments[i], &s_info_layers[i]);
+  }
+}
+
 // Timer callback to request weather after UI is loaded
 static void delayed_weather_request(void *data) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting weather update (delayed)");
   request_weather_update();
+}
+
+// Initialize the 4 info layers with proper positioning
+static void init_info_layers(GRect bounds) {
+  const int info_layer_width = bounds.size.w / 2 - BORDER_THICKNESS - 2;
+  const int info_layer_height = 44;
+
+  int margin_w = 6;
+  int margin_h = 4;
+
+  
+  // Upper left
+  s_info_layers[LAYER_UPPER_LEFT].bounds = GRect(margin_w, margin_h, info_layer_width, info_layer_height);
+  s_info_layers[LAYER_UPPER_LEFT].position = LAYER_UPPER_LEFT;
+  s_info_layers[LAYER_UPPER_LEFT].layer = layer_create(s_info_layers[LAYER_UPPER_LEFT].bounds);
+  s_info_layers[LAYER_UPPER_LEFT].text_layer1 = NULL;
+  s_info_layers[LAYER_UPPER_LEFT].text_layer2 = NULL;
+  s_info_layers[LAYER_UPPER_LEFT].bitmap_layer = NULL;
+  
+  // Upper right 
+  s_info_layers[LAYER_UPPER_RIGHT].bounds = GRect(bounds.size.w - info_layer_width - margin_w, margin_h, info_layer_width, info_layer_height);
+  s_info_layers[LAYER_UPPER_RIGHT].position = LAYER_UPPER_RIGHT;
+  s_info_layers[LAYER_UPPER_RIGHT].layer = layer_create(s_info_layers[LAYER_UPPER_RIGHT].bounds);
+  s_info_layers[LAYER_UPPER_RIGHT].text_layer1 = NULL;
+  s_info_layers[LAYER_UPPER_RIGHT].text_layer2 = NULL;
+  s_info_layers[LAYER_UPPER_RIGHT].bitmap_layer = NULL;
+  
+  // Lower left
+  s_info_layers[LAYER_LOWER_LEFT].bounds = GRect(margin_w, bounds.size.h - info_layer_height - margin_h, info_layer_width, info_layer_height);
+  s_info_layers[LAYER_LOWER_LEFT].position = LAYER_LOWER_LEFT;
+  s_info_layers[LAYER_LOWER_LEFT].layer = layer_create(s_info_layers[LAYER_LOWER_LEFT].bounds);
+  s_info_layers[LAYER_LOWER_LEFT].text_layer1 = NULL;
+  s_info_layers[LAYER_LOWER_LEFT].text_layer2 = NULL;
+  s_info_layers[LAYER_LOWER_LEFT].bitmap_layer = NULL;
+  
+  // Lower right
+  s_info_layers[LAYER_LOWER_RIGHT].bounds = GRect(bounds.size.w - info_layer_width - margin_w, bounds.size.h - info_layer_height - margin_h, info_layer_width, info_layer_height);
+  s_info_layers[LAYER_LOWER_RIGHT].position = LAYER_LOWER_RIGHT;
+  s_info_layers[LAYER_LOWER_RIGHT].layer = layer_create(s_info_layers[LAYER_LOWER_RIGHT].bounds);
+  s_info_layers[LAYER_LOWER_RIGHT].text_layer1 = NULL;
+  s_info_layers[LAYER_LOWER_RIGHT].text_layer2 = NULL;
+  s_info_layers[LAYER_LOWER_RIGHT].bitmap_layer = NULL;
+}
+
+bool is_upper_layer(InfoLayer* info_layer) {
+  return (info_layer->position == LAYER_UPPER_LEFT || info_layer->position == LAYER_UPPER_RIGHT);
+}
+
+bool is_lower_layer(InfoLayer* info_layer) {
+  return (info_layer->position == LAYER_LOWER_LEFT || info_layer->position == LAYER_LOWER_RIGHT);
+}
+
+bool is_left_layer(InfoLayer* info_layer) {
+  return (info_layer->position == LAYER_UPPER_LEFT || info_layer->position == LAYER_LOWER_LEFT);
+}
+
+bool is_right_layer(InfoLayer* info_layer) {
+  return (info_layer->position == LAYER_UPPER_RIGHT || info_layer->position == LAYER_LOWER_RIGHT);
 }
 
 // --- Window Load/Unload Handlers ---
@@ -531,90 +801,47 @@ static void main_window_load(Window *window) {
   text_layer_set_text_alignment(s_date_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(s_date_layer));
 
-  // Create the Temperature Layer (Top Right)
-  s_temperature_layer = text_layer_create(
-      GRect(bounds.size.w - 68, 6, 60, 24)); // Positioned at top right, moved up
+  // Initialize the 4 info layers
+  init_info_layers(bounds);
+  
+  // Add the info layers to the window
+  for (int i = 0; i < NUM_INFO_LAYERS; i++) {
+    layer_add_child(window_layer, s_info_layers[i].layer);
+  }
 
-  text_layer_set_background_color(s_temperature_layer, GColorClear);
-  text_layer_set_text_color(s_temperature_layer, get_text_color());
-  text_layer_set_text(s_temperature_layer, s_temperature_buffer);
-  text_layer_set_font(s_temperature_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(s_temperature_layer, GTextAlignmentRight);
-  layer_add_child(window_layer, text_layer_get_layer(s_temperature_layer));
-
-  // Create the Location Layer (Below temperature)
-  s_location_layer = text_layer_create(
-      GRect(bounds.size.w - 80, 24, 72, 24)); // Positioned below temperature
-
-  text_layer_set_background_color(s_location_layer, GColorClear);
-  text_layer_set_text_color(s_location_layer, get_text_color());
-  text_layer_set_text(s_location_layer, s_location_buffer);
-  text_layer_set_font(s_location_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
-  text_layer_set_text_alignment(s_location_layer, GTextAlignmentRight);
-  layer_add_child(window_layer, text_layer_get_layer(s_location_layer));
-
-  // Create the Weather Icon Layer (Top Left)
-  s_weather_icon_layer = bitmap_layer_create(
-      GRect(0, 0, 50, 50)); // Positioned at top left
-
-  // Load default weather icon based on current theme
+  // Initialize bitmaps for use in info drawing functions
   uint32_t default_icon = get_weather_image_resource(s_current_weather_code);
   s_weather_icon_bitmap = gbitmap_create_with_resource(default_icon);
-  bitmap_layer_set_bitmap(s_weather_icon_layer, s_weather_icon_bitmap);
-  bitmap_layer_set_compositing_mode(s_weather_icon_layer, GCompOpSet);
-  layer_add_child(window_layer, bitmap_layer_get_layer(s_weather_icon_layer));
-
-  // Create the Battery Layer
-  const int lower_y = bounds.size.h - 32; // Example Y position
-  const int battery_width = 38;
-  s_battery_layer = text_layer_create(
-      GRect(bounds.size.w - battery_width - 20, lower_y, 50, 24)); // Positioned at upper right
-
-  text_layer_set_background_color(s_battery_layer, GColorClear);
-  text_layer_set_text_color(s_battery_layer, get_text_color());
-  text_layer_set_text(s_battery_layer, "100%"); // Default text
-  text_layer_set_font(s_battery_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(s_battery_layer, GTextAlignmentRight);
-  layer_add_child(window_layer, text_layer_get_layer(s_battery_layer));
-
-  // Load icon based on theme
+  
   uint32_t step_icon = s_color_theme == 1 ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK;
   s_step_icon_bitmap = gbitmap_create_with_resource(step_icon);
-  s_step_icon_layer = bitmap_layer_create(
-      GRect(4, lower_y, 24, 24));
-  bitmap_layer_set_bitmap(s_step_icon_layer, s_step_icon_bitmap);
-  bitmap_layer_set_compositing_mode(s_step_icon_layer, GCompOpSet); // Renders the icon cleanly
-  layer_add_child(window_layer, bitmap_layer_get_layer(s_step_icon_layer));
 
-  // Create Steps Layer (Lower Left) - Placeholder for future use
-  s_steps_layer = text_layer_create(
-      GRect(4 + 24, lower_y, 50, 24)); // Positioned at lower left
-  text_layer_set_background_color(s_steps_layer, GColorClear);
-  text_layer_set_text_color(s_steps_layer, get_text_color());
-  text_layer_set_text(s_steps_layer, "???"); // Placeholder text
-  text_layer_set_font(s_steps_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(s_steps_layer, GTextAlignmentLeft);
-  layer_add_child(window_layer, text_layer_get_layer(s_steps_layer));
+  // Initialize the display with current layer assignments
+  update_all_info_layers();
 
   // Make sure the initial time is displayed
   update_time();
 }
 
 static void main_window_unload(Window *window) {
-  // Destroy the Layers
+  // Destroy the main layers
   text_layer_destroy(s_time_layer);
   text_layer_destroy(s_date_layer);
-  text_layer_destroy(s_battery_layer);
-  text_layer_destroy(s_steps_layer);
-  text_layer_destroy(s_temperature_layer);
-  text_layer_destroy(s_location_layer);
-  bitmap_layer_destroy(s_weather_icon_layer);
   layer_destroy(s_frame_layer);
   layer_destroy(s_animation_layer);
-  bitmap_layer_destroy(s_step_icon_layer);
-  gbitmap_destroy(s_step_icon_bitmap);
 
-  // Destroy weather icon bitmap if it exists
+  // Destroy info layers (this will also destroy all their children via clear_info_layer)
+  for (int i = 0; i < NUM_INFO_LAYERS; i++) {
+    if (s_info_layers[i].layer) {
+      clear_info_layer(&s_info_layers[i]);
+      layer_destroy(s_info_layers[i].layer);
+    }
+  }
+
+  // Destroy bitmaps
+  if (s_step_icon_bitmap) {
+    gbitmap_destroy(s_step_icon_bitmap);
+  }
   if (s_weather_icon_bitmap) {
     gbitmap_destroy(s_weather_icon_bitmap);
   }
