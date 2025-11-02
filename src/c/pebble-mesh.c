@@ -600,17 +600,25 @@ static void draw_battery_info(InfoLayer* info_layer) {
   
   GRect icon_frame;
   GRect text_frame;
+  GRect bat_level_rect;
 
   int x_pos = bounds.size.w / 2 - 16;
   int y_pos = bounds.size.h / 2 - 16;
   
   icon_frame = GRect(x_pos, y_pos-8, 32, 32);
   text_frame = GRect(0, y_pos+12, bounds.size.w, 24);
-
-  // Create step icon layer
+  
+  // Create battery icon layer
   info_layer->bitmap_layer = bitmap_layer_create(icon_frame);
   bitmap_layer_set_bitmap(info_layer->bitmap_layer, s_battery_icon_bitmap);
   bitmap_layer_set_compositing_mode(info_layer->bitmap_layer, GCompOpSet);
+  
+  // Create small rectangle layer with text color background
+  int total_level_width = 17;
+  int real_width = (battery_level * total_level_width) / 100;
+  bat_level_rect = GRect(x_pos + 6, y_pos+4, real_width, 8);
+  BitmapLayer* small_rect_layer = bitmap_layer_create(bat_level_rect);
+  bitmap_layer_set_background_color(small_rect_layer, GColorLightGray);
   
   info_layer->text_layer1 = text_layer_create(text_frame);
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
@@ -621,6 +629,7 @@ static void draw_battery_info(InfoLayer* info_layer) {
 
   // Add to the info layer
   layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer));
+  layer_add_child(layer, bitmap_layer_get_layer(small_rect_layer));
   layer_add_child(layer, text_layer_get_layer(info_layer->text_layer1));
 }
 
