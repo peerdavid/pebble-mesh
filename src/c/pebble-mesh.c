@@ -18,10 +18,11 @@ typedef enum {
 typedef struct {
   Layer* layer;
   GRect bounds;
-  int position;               // 0 = upper left, 1 = upper right, 2 = lower left, 3 = lower right
-  TextLayer* text_layer1;    // For primary text (e.g., temperature, battery, steps)
-  TextLayer* text_layer2;    // For secondary text (e.g., location)
-  BitmapLayer* bitmap_layer; // For icons
+  int position;
+  TextLayer* text_layer1;
+  TextLayer* text_layer2;
+  BitmapLayer* bitmap_layer_1; 
+  BitmapLayer* bitmap_layer_2;
 } InfoLayer;
 
 // A pointer to the main window and layers
@@ -523,12 +524,12 @@ static void draw_weather_info(InfoLayer* info_layer) {
   int x_pos = (bounds.size.w / 2) - 16;
   
   // Create a bitmap layer for the weather icon
-  info_layer->bitmap_layer = bitmap_layer_create(GRect(x_pos, y_pos, 32, 32));
-  bitmap_layer_set_bitmap(info_layer->bitmap_layer, s_weather_icon_bitmap);
-  bitmap_layer_set_compositing_mode(info_layer->bitmap_layer, GCompOpSet);
+  info_layer->bitmap_layer_1 = bitmap_layer_create(GRect(x_pos, y_pos, 32, 32));
+  bitmap_layer_set_bitmap(info_layer->bitmap_layer_1, s_weather_icon_bitmap);
+  bitmap_layer_set_compositing_mode(info_layer->bitmap_layer_1, GCompOpSet);
   
   // Add to the info layer
-  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer));
+  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_1));
 }
 
 // Draw temperature and location in the specified info layer  
@@ -576,9 +577,9 @@ static void draw_steps_info(InfoLayer* info_layer) {
   text_frame = GRect(0, y_pos+6, bounds.size.w, 28);
   
   // Create step icon layer
-  info_layer->bitmap_layer = bitmap_layer_create(icon_frame);
-  bitmap_layer_set_bitmap(info_layer->bitmap_layer, s_step_icon_bitmap);
-  bitmap_layer_set_compositing_mode(info_layer->bitmap_layer, GCompOpSet);
+  info_layer->bitmap_layer_1 = bitmap_layer_create(icon_frame);
+  bitmap_layer_set_bitmap(info_layer->bitmap_layer_1, s_step_icon_bitmap);
+  bitmap_layer_set_compositing_mode(info_layer->bitmap_layer_1, GCompOpSet);
   
   info_layer->text_layer1 = text_layer_create(text_frame);
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
@@ -589,7 +590,7 @@ static void draw_steps_info(InfoLayer* info_layer) {
   
   
   // Add to the info layer
-  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer));
+  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_1));
   layer_add_child(layer, text_layer_get_layer(info_layer->text_layer1));
 }
 
@@ -609,16 +610,16 @@ static void draw_battery_info(InfoLayer* info_layer) {
   text_frame = GRect(0, y_pos+12, bounds.size.w, 24);
   
   // Create battery icon layer
-  info_layer->bitmap_layer = bitmap_layer_create(icon_frame);
-  bitmap_layer_set_bitmap(info_layer->bitmap_layer, s_battery_icon_bitmap);
-  bitmap_layer_set_compositing_mode(info_layer->bitmap_layer, GCompOpSet);
+  info_layer->bitmap_layer_1 = bitmap_layer_create(icon_frame);
+  bitmap_layer_set_bitmap(info_layer->bitmap_layer_1, s_battery_icon_bitmap);
+  bitmap_layer_set_compositing_mode(info_layer->bitmap_layer_1, GCompOpSet);
   
   // Create small rectangle layer with text color background
   int total_level_width = 17;
   int real_width = (battery_level * total_level_width) / 100;
   bat_level_rect = GRect(x_pos + 6, y_pos+4, real_width, 8);
-  BitmapLayer* small_rect_layer = bitmap_layer_create(bat_level_rect);
-  bitmap_layer_set_background_color(small_rect_layer, GColorLightGray);
+  info_layer->bitmap_layer_2 = bitmap_layer_create(bat_level_rect);
+  bitmap_layer_set_background_color(info_layer->bitmap_layer_2, GColorLightGray);
   
   info_layer->text_layer1 = text_layer_create(text_frame);
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
@@ -628,8 +629,8 @@ static void draw_battery_info(InfoLayer* info_layer) {
   text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
 
   // Add to the info layer
-  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer));
-  layer_add_child(layer, bitmap_layer_get_layer(small_rect_layer));
+  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_1));
+  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_2));
   layer_add_child(layer, text_layer_get_layer(info_layer->text_layer1));
 }
 
@@ -638,10 +639,10 @@ static void draw_battery_info(InfoLayer* info_layer) {
 static void draw_colored_box_info(InfoLayer* info_layer) {
   Layer* layer = info_layer->layer;
   // Create a filled rectangle layer
-  info_layer->bitmap_layer = bitmap_layer_create(GRect(1, 1, info_layer->bounds.size.w-2, info_layer->bounds.size.h-2));
-  bitmap_layer_set_background_color(info_layer->bitmap_layer, get_text_color());
+  info_layer->bitmap_layer_1 = bitmap_layer_create(GRect(1, 1, info_layer->bounds.size.w-2, info_layer->bounds.size.h-2));
+  bitmap_layer_set_background_color(info_layer->bitmap_layer_1, get_text_color());
   // Add to the info layer
-  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer));
+  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_1));
 }
 
 // Generic function to draw info based on type
@@ -677,9 +678,13 @@ static void clear_info_layer(InfoLayer* info_layer) {
     text_layer_destroy(info_layer->text_layer2);
     info_layer->text_layer2 = NULL;
   }
-  if (info_layer->bitmap_layer) {
-    bitmap_layer_destroy(info_layer->bitmap_layer);
-    info_layer->bitmap_layer = NULL;
+  if (info_layer->bitmap_layer_1) {
+    bitmap_layer_destroy(info_layer->bitmap_layer_1);
+    info_layer->bitmap_layer_1 = NULL;
+  }
+  if (info_layer->bitmap_layer_2) {
+    bitmap_layer_destroy(info_layer->bitmap_layer_2);
+    info_layer->bitmap_layer_2 = NULL;
   }
 }
 
@@ -716,7 +721,8 @@ static void init_info_layers(GRect bounds) {
   s_info_layers[LAYER_UPPER_LEFT].layer = layer_create(s_info_layers[LAYER_UPPER_LEFT].bounds);
   s_info_layers[LAYER_UPPER_LEFT].text_layer1 = NULL;
   s_info_layers[LAYER_UPPER_LEFT].text_layer2 = NULL;
-  s_info_layers[LAYER_UPPER_LEFT].bitmap_layer = NULL;
+  s_info_layers[LAYER_UPPER_LEFT].bitmap_layer_1 = NULL;
+  s_info_layers[LAYER_UPPER_LEFT].bitmap_layer_2 = NULL;
   
   // Upper right 
   s_info_layers[LAYER_UPPER_RIGHT].bounds = GRect(bounds.size.w - info_layer_width - margin_w, margin_h, info_layer_width, info_layer_height);
@@ -724,7 +730,8 @@ static void init_info_layers(GRect bounds) {
   s_info_layers[LAYER_UPPER_RIGHT].layer = layer_create(s_info_layers[LAYER_UPPER_RIGHT].bounds);
   s_info_layers[LAYER_UPPER_RIGHT].text_layer1 = NULL;
   s_info_layers[LAYER_UPPER_RIGHT].text_layer2 = NULL;
-  s_info_layers[LAYER_UPPER_RIGHT].bitmap_layer = NULL;
+  s_info_layers[LAYER_UPPER_RIGHT].bitmap_layer_1 = NULL;
+  s_info_layers[LAYER_UPPER_RIGHT].bitmap_layer_2 = NULL;
   
   // Lower left
   s_info_layers[LAYER_LOWER_LEFT].bounds = GRect(margin_w, bounds.size.h - info_layer_height - margin_h, info_layer_width, info_layer_height);
@@ -732,7 +739,8 @@ static void init_info_layers(GRect bounds) {
   s_info_layers[LAYER_LOWER_LEFT].layer = layer_create(s_info_layers[LAYER_LOWER_LEFT].bounds);
   s_info_layers[LAYER_LOWER_LEFT].text_layer1 = NULL;
   s_info_layers[LAYER_LOWER_LEFT].text_layer2 = NULL;
-  s_info_layers[LAYER_LOWER_LEFT].bitmap_layer = NULL;
+  s_info_layers[LAYER_LOWER_LEFT].bitmap_layer_1 = NULL;
+  s_info_layers[LAYER_LOWER_LEFT].bitmap_layer_2 = NULL;
   
   // Lower right
   s_info_layers[LAYER_LOWER_RIGHT].bounds = GRect(bounds.size.w - info_layer_width - margin_w, bounds.size.h - info_layer_height - margin_h, info_layer_width, info_layer_height);
@@ -740,7 +748,8 @@ static void init_info_layers(GRect bounds) {
   s_info_layers[LAYER_LOWER_RIGHT].layer = layer_create(s_info_layers[LAYER_LOWER_RIGHT].bounds);
   s_info_layers[LAYER_LOWER_RIGHT].text_layer1 = NULL;
   s_info_layers[LAYER_LOWER_RIGHT].text_layer2 = NULL;
-  s_info_layers[LAYER_LOWER_RIGHT].bitmap_layer = NULL;
+  s_info_layers[LAYER_LOWER_RIGHT].bitmap_layer_1 = NULL;
+  s_info_layers[LAYER_LOWER_RIGHT].bitmap_layer_2 = NULL;
 }
 
 

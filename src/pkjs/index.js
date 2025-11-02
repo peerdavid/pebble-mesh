@@ -1,7 +1,7 @@
 // Default configuration
 var config = {
-  location: 'Trins', // Default location
-  colorTheme: 'light'  // Default to dark theme (dark/light)
+  location: 'Vienna', // Default location
+  colorTheme: 'dark'  // Default to dark theme (dark/light)
 };
 
 // Load saved configuration
