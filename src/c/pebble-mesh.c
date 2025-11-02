@@ -23,6 +23,7 @@ typedef struct {
   TextLayer* text_layer2;
   BitmapLayer* bitmap_layer_1; 
   BitmapLayer* bitmap_layer_2;
+  BitmapLayer* bitmap_layer_3;
 } InfoLayer;
 
 // A pointer to the main window and layers
@@ -93,6 +94,7 @@ static int s_color_theme = 1; // Default to light theme
 static int s_current_weather_code = 0;
 
 static int battery_level = 100;
+static int step_count = 0;
 
 // Persistent storage keys
 #define PERSIST_KEY_COLOR_THEME 1
@@ -332,11 +334,11 @@ static void update_time() {
   strftime(s_date_buffer, sizeof(s_date_buffer), " %a %d", tick_time);
   text_layer_set_text(s_date_layer, s_date_buffer);
 
-  int steps = (int)health_service_sum_today(HealthMetricStepCount);
-  if (steps < 1000) {
-    snprintf(s_step_buffer, sizeof(s_step_buffer), "%d", steps);
+  step_count = (int)health_service_sum_today(HealthMetricStepCount);
+  if (step_count < 1000) {
+    snprintf(s_step_buffer, sizeof(s_step_buffer), "%d", step_count);
   } else {
-    snprintf(s_step_buffer, sizeof(s_step_buffer), "%d.%01dk", steps / 1000, (steps % 1000) / 100);
+    snprintf(s_step_buffer, sizeof(s_step_buffer), "%d.%01dk", step_count / 1000, (step_count % 1000) / 100);
   }
   
   // Update info layers to reflect new step count
@@ -570,6 +572,7 @@ static void draw_steps_info(InfoLayer* info_layer) {
   
   GRect icon_frame;
   GRect text_frame;
+  GRect step_count_rect;
 
   int y_pos = bounds.size.h / 4;
   int x_pos = bounds.size.w / 2 - 16;
@@ -588,8 +591,23 @@ static void draw_steps_info(InfoLayer* info_layer) {
   text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
   
+  // Draw a background color rectangle
+  int full_width = 28;
+  int full_height = 11;
+  step_count_rect = GRect(x_pos + 2, y_pos-2, full_width, full_height);
+  info_layer->bitmap_layer_3 = bitmap_layer_create(step_count_rect);
+  bitmap_layer_set_background_color(info_layer->bitmap_layer_3, get_background_color());
+
+  // Create small rectangle layer with text color background
+  int steps = step_count > 10000 ? 10000 : step_count;
+  int real_width = (steps * full_width) / 10000;
+  step_count_rect = GRect(x_pos + 2, y_pos-2, real_width, full_height);
+  info_layer->bitmap_layer_2 = bitmap_layer_create(step_count_rect);
+  bitmap_layer_set_background_color(info_layer->bitmap_layer_2, GColorLightGray);
   
   // Add to the info layer
+  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_3));
+  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_2));
   layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_1));
   layer_add_child(layer, text_layer_get_layer(info_layer->text_layer1));
 }
@@ -615,8 +633,7 @@ static void draw_battery_info(InfoLayer* info_layer) {
   bitmap_layer_set_compositing_mode(info_layer->bitmap_layer_1, GCompOpSet);
   
   // Create small rectangle layer with text color background
-  int total_level_width = 17;
-  int real_width = (battery_level * total_level_width) / 100;
+  int real_width = (battery_level * 17) / 100;
   bat_level_rect = GRect(x_pos + 6, y_pos+4, real_width, 8);
   info_layer->bitmap_layer_2 = bitmap_layer_create(bat_level_rect);
   bitmap_layer_set_background_color(info_layer->bitmap_layer_2, GColorLightGray);
@@ -686,6 +703,10 @@ static void clear_info_layer(InfoLayer* info_layer) {
     bitmap_layer_destroy(info_layer->bitmap_layer_2);
     info_layer->bitmap_layer_2 = NULL;
   }
+  if (info_layer->bitmap_layer_3) {
+    bitmap_layer_destroy(info_layer->bitmap_layer_3);
+    info_layer->bitmap_layer_3 = NULL;
+  }
 }
 
 // Update all info layers according to current assignments
@@ -723,6 +744,7 @@ static void init_info_layers(GRect bounds) {
   s_info_layers[LAYER_UPPER_LEFT].text_layer2 = NULL;
   s_info_layers[LAYER_UPPER_LEFT].bitmap_layer_1 = NULL;
   s_info_layers[LAYER_UPPER_LEFT].bitmap_layer_2 = NULL;
+  s_info_layers[LAYER_UPPER_LEFT].bitmap_layer_3 = NULL;
   
   // Upper right 
   s_info_layers[LAYER_UPPER_RIGHT].bounds = GRect(bounds.size.w - info_layer_width - margin_w, margin_h, info_layer_width, info_layer_height);
@@ -732,6 +754,7 @@ static void init_info_layers(GRect bounds) {
   s_info_layers[LAYER_UPPER_RIGHT].text_layer2 = NULL;
   s_info_layers[LAYER_UPPER_RIGHT].bitmap_layer_1 = NULL;
   s_info_layers[LAYER_UPPER_RIGHT].bitmap_layer_2 = NULL;
+  s_info_layers[LAYER_UPPER_RIGHT].bitmap_layer_3 = NULL;
   
   // Lower left
   s_info_layers[LAYER_LOWER_LEFT].bounds = GRect(margin_w, bounds.size.h - info_layer_height - margin_h, info_layer_width, info_layer_height);
@@ -741,6 +764,7 @@ static void init_info_layers(GRect bounds) {
   s_info_layers[LAYER_LOWER_LEFT].text_layer2 = NULL;
   s_info_layers[LAYER_LOWER_LEFT].bitmap_layer_1 = NULL;
   s_info_layers[LAYER_LOWER_LEFT].bitmap_layer_2 = NULL;
+  s_info_layers[LAYER_LOWER_LEFT].bitmap_layer_3 = NULL;
   
   // Lower right
   s_info_layers[LAYER_LOWER_RIGHT].bounds = GRect(bounds.size.w - info_layer_width - margin_w, bounds.size.h - info_layer_height - margin_h, info_layer_width, info_layer_height);
@@ -750,6 +774,7 @@ static void init_info_layers(GRect bounds) {
   s_info_layers[LAYER_LOWER_RIGHT].text_layer2 = NULL;
   s_info_layers[LAYER_LOWER_RIGHT].bitmap_layer_1 = NULL;
   s_info_layers[LAYER_LOWER_RIGHT].bitmap_layer_2 = NULL;
+  s_info_layers[LAYER_LOWER_RIGHT].bitmap_layer_3 = NULL;
 }
 
 
