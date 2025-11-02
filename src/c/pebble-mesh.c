@@ -47,7 +47,7 @@ typedef enum {
 // Current layer assignments (can be changed dynamically)
 static InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
   INFO_TYPE_WEATHER,      // LAYER_UPPER_LEFT
-  INFO_TYPE_TEMPERATURE,  // LAYER_UPPER_RIGHT  
+  INFO_TYPE_STEPS,  // LAYER_UPPER_RIGHT  
   INFO_TYPE_STEPS,        // LAYER_LOWER_LEFT
   INFO_TYPE_BATTERY       // LAYER_LOWER_RIGHT
 };
@@ -522,8 +522,9 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 // Draw weather icon in the specified info layer
 static void draw_weather_info(InfoLayer* info_layer) {
   Layer* layer = info_layer->layer;
-  int y_pos = 4;
-  int x_pos = is_left_layer(info_layer) ? 2 : (info_layer->bounds.size.w - 34);
+  GRect bounds = layer_get_bounds(layer);
+  int y_pos = bounds.size.h / 2 - 16;
+  int x_pos = (bounds.size.w / 2) - 16;
   
   // Create a bitmap layer for the weather icon
   info_layer->bitmap_layer = bitmap_layer_create(GRect(x_pos, y_pos, 32, 32));
@@ -579,15 +580,10 @@ static void draw_steps_info(InfoLayer* info_layer) {
   GRect icon_frame;
   GRect text_frame;
 
-  int y_pos = bounds.size.h / 2 - 30;
-  
-  if (is_left_layer(info_layer)) {
-    icon_frame = GRect(2, y_pos+4, 50, 50);
-    text_frame = GRect(6, y_pos+19, bounds.size.w - 20, 24);
-  } else {
-    icon_frame = GRect(bounds.size.w - 20, y_pos+4, 50, 50);
-    text_frame = GRect(0, y_pos, bounds.size.w - 20, 24);
-  }
+  int y_pos = bounds.size.h / 4;
+  int x_pos = bounds.size.w / 2 - 16;
+  icon_frame = GRect(x_pos, y_pos-12, 32, 32);
+  text_frame = GRect(0, y_pos+6, bounds.size.w, 28);
   
   // Create step icon layer
   info_layer->bitmap_layer = bitmap_layer_create(icon_frame);
@@ -598,12 +594,12 @@ static void draw_steps_info(InfoLayer* info_layer) {
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_step_buffer);
-  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   
   if (is_left_layer(info_layer)) {
-    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentLeft);
+    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
   } else {
-    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentRight);
+    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
   }
   
   // Add to the info layer
@@ -619,23 +615,11 @@ static void draw_battery_info(InfoLayer* info_layer) {
   GRect icon_frame;
   GRect text_frame;
 
-  int y_pos = bounds.size.h / 2 - 24;
-
-  int bat_offset = 0;
-  if(battery_level < 100){
-    bat_offset = 3;
-  } 
-  if (battery_level < 10){
-    bat_offset = 6;
-  }
+  int x_pos = bounds.size.w / 2 - 16;
+  int y_pos = bounds.size.h / 2 - 16;
   
-  if (is_left_layer(info_layer)) {
-    icon_frame = GRect(-8, y_pos, 40, 40);
-    text_frame = GRect(bat_offset+3, y_pos+9, bounds.size.w - 20, 24);
-  } else {
-    icon_frame = GRect(bounds.size.w - 34, y_pos, 40, 40);
-    text_frame = GRect(bounds.size.w - 23 + bat_offset, y_pos+9, bounds.size.w - 8, 24);
-  }
+  icon_frame = GRect(x_pos, y_pos-8, 32, 32);
+  text_frame = GRect(0, y_pos+12, bounds.size.w, 24);
 
   // Create step icon layer
   info_layer->bitmap_layer = bitmap_layer_create(icon_frame);
@@ -646,10 +630,9 @@ static void draw_battery_info(InfoLayer* info_layer) {
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_battery_buffer);
-  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_14));
-  text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentLeft);
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
 
-  
   // Add to the info layer
   layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer));
   layer_add_child(layer, text_layer_get_layer(info_layer->text_layer1));
