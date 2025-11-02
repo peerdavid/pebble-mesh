@@ -28,8 +28,8 @@ void draw_battery_info(InfoLayer* info_layer) {
   bitmap_layer_set_compositing_mode(info_layer->bitmap_layer_1, GCompOpSet);
   
   // Create small rectangle layer with text color background
-  int real_width = (battery_level * 17) / 100;
-  bat_level_rect = GRect(x_pos + 6, y_pos+4, real_width, 8);
+  int real_width = (battery_level * 19) / 100;
+  bat_level_rect = GRect(x_pos + 5, y_pos+3, real_width, 10);
   info_layer->bitmap_layer_2 = bitmap_layer_create(bat_level_rect);
   bitmap_layer_set_background_color(info_layer->bitmap_layer_2, GColorLightGray);
   
