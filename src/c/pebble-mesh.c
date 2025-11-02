@@ -47,7 +47,7 @@ typedef enum {
 // Current layer assignments (can be changed dynamically)
 static InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
   INFO_TYPE_WEATHER,      // LAYER_UPPER_LEFT
-  INFO_TYPE_STEPS,  // LAYER_UPPER_RIGHT  
+  INFO_TYPE_TEMPERATURE,  // LAYER_UPPER_RIGHT  
   INFO_TYPE_STEPS,        // LAYER_LOWER_LEFT
   INFO_TYPE_BATTERY       // LAYER_LOWER_RIGHT
 };
@@ -119,10 +119,6 @@ static void draw_battery_info(InfoLayer* info_layer);
 static void update_all_info_layers();
 static void draw_info_for_type(InfoType info_type, InfoLayer* info_layer);
 static void clear_info_layer(InfoLayer* info_layer);
-static bool is_upper_layer(InfoLayer* info_layer);
-static bool is_lower_layer(InfoLayer* info_layer);
-static bool is_left_layer(InfoLayer* info_layer);
-static bool is_right_layer(InfoLayer* info_layer);
 
 // Persistent storage functions
 static void save_theme_to_storage() {
@@ -350,7 +346,7 @@ static void update_time() {
 static void battery_handler(BatteryChargeState state) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Battery handler");
   battery_level = state.charge_percent;
-  snprintf(s_battery_buffer, sizeof(s_battery_buffer), "%d", battery_level);
+  snprintf(s_battery_buffer, sizeof(s_battery_buffer), "%d%%", battery_level);
   
   // Update info layers to reflect new battery level
   update_all_info_layers();
@@ -539,8 +535,7 @@ static void draw_weather_info(InfoLayer* info_layer) {
 static void draw_temperature_info(InfoLayer* info_layer) {
   GRect bounds = info_layer->bounds;
   Layer* layer = info_layer->layer;
-  //int y_pos = is_upper_layer(info_layer) ? 0 : 4;
-  int y_center = bounds.size.h / 2 - 10;
+  int y_center = bounds.size.h / 2 - 8;
   
   // Create temperature text layer
   GRect temp_frame = GRect(0, y_center-14, bounds.size.w, 24);
@@ -559,14 +554,9 @@ static void draw_temperature_info(InfoLayer* info_layer) {
   text_layer_set_font(info_layer->text_layer2, fonts_get_system_font(FONT_KEY_GOTHIC_14));
   
   // Set alignment based on layer alignment
-  if (is_left_layer(info_layer)) {
-    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentLeft);
-    text_layer_set_text_alignment(info_layer->text_layer2, GTextAlignmentLeft);
-  } else {
-    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentRight);
-    text_layer_set_text_alignment(info_layer->text_layer2, GTextAlignmentRight);
-  }
-  
+  text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
+  text_layer_set_text_alignment(info_layer->text_layer2, GTextAlignmentCenter);
+
   // Add to the info layer
   layer_add_child(layer, text_layer_get_layer(info_layer->text_layer1));
   layer_add_child(layer, text_layer_get_layer(info_layer->text_layer2));
@@ -595,12 +585,8 @@ static void draw_steps_info(InfoLayer* info_layer) {
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_step_buffer);
   text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
   
-  if (is_left_layer(info_layer)) {
-    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
-  } else {
-    text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
-  }
   
   // Add to the info layer
   layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer));
@@ -748,21 +734,6 @@ static void init_info_layers(GRect bounds) {
   s_info_layers[LAYER_LOWER_RIGHT].bitmap_layer = NULL;
 }
 
-bool is_upper_layer(InfoLayer* info_layer) {
-  return (info_layer->position == LAYER_UPPER_LEFT || info_layer->position == LAYER_UPPER_RIGHT);
-}
-
-bool is_lower_layer(InfoLayer* info_layer) {
-  return (info_layer->position == LAYER_LOWER_LEFT || info_layer->position == LAYER_LOWER_RIGHT);
-}
-
-bool is_left_layer(InfoLayer* info_layer) {
-  return (info_layer->position == LAYER_UPPER_LEFT || info_layer->position == LAYER_LOWER_LEFT);
-}
-
-bool is_right_layer(InfoLayer* info_layer) {
-  return (info_layer->position == LAYER_UPPER_RIGHT || info_layer->position == LAYER_LOWER_RIGHT);
-}
 
 // --- Window Load/Unload Handlers ---
 static void main_window_appear(Window *window) {
