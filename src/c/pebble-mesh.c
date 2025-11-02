@@ -574,7 +574,7 @@ static void draw_steps_info(InfoLayer* info_layer) {
   GRect text_frame;
   GRect step_count_rect;
 
-  int y_pos = bounds.size.h / 4;
+  int y_pos = bounds.size.h / 4 + 1;
   int x_pos = bounds.size.w / 2 - 16;
   icon_frame = GRect(x_pos, y_pos-12, 32, 32);
   text_frame = GRect(0, y_pos+6, bounds.size.w, 28);
