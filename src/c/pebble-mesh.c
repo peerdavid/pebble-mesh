@@ -1,30 +1,8 @@
 #include <pebble.h>
+#include "config.h"
+#include "weather.h"
 
-// Layer position and alignment enums
-typedef enum {
-  LAYER_UPPER_LEFT = 0,
-  LAYER_UPPER_RIGHT = 1,
-  LAYER_LOWER_LEFT = 2,
-  LAYER_LOWER_RIGHT = 3,
-  NUM_INFO_LAYERS = 4
-} InfoLayerPosition;
 
-typedef enum {
-  ALIGN_LEFT = 0,
-  ALIGN_RIGHT = 1
-} InfoLayerAlignment;
-
-// Info layer structure with layer tracking
-typedef struct {
-  Layer* layer;
-  GRect bounds;
-  int position;
-  TextLayer* text_layer1;
-  TextLayer* text_layer2;
-  BitmapLayer* bitmap_layer_1; 
-  BitmapLayer* bitmap_layer_2;
-  BitmapLayer* bitmap_layer_3;
-} InfoLayer;
 
 // A pointer to the main window and layers
 static Window *s_main_window;
@@ -33,29 +11,7 @@ static TextLayer *s_date_layer;
 static Layer *s_frame_layer;
 static Layer *s_animation_layer;
 
-// Info layers system
-static InfoLayer s_info_layers[NUM_INFO_LAYERS];
-
-// Layer assignment configuration - maps each layer position to an info type
-typedef enum {
-  INFO_TYPE_WEATHER = 0,
-  INFO_TYPE_TEMPERATURE = 1,
-  INFO_TYPE_STEPS = 2,
-  INFO_TYPE_BATTERY = 3,
-  INFO_TYPE_COLORED_BOX = 4,
-  INFO_TYPE_NONE = 5
-} InfoType;
-
-// Current layer assignments (can be changed dynamically)
-static InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
-  INFO_TYPE_WEATHER,      // LAYER_UPPER_LEFT
-  INFO_TYPE_TEMPERATURE,  // LAYER_UPPER_RIGHT  
-  INFO_TYPE_STEPS,        // LAYER_LOWER_LEFT
-  INFO_TYPE_BATTERY       // LAYER_LOWER_RIGHT
-};
-
 static GBitmap *s_step_icon_bitmap;
-static GBitmap *s_weather_icon_bitmap;
 static GBitmap *s_battery_icon_bitmap;
 
 // Pointer for the animation AppTimer
@@ -81,26 +37,13 @@ static char s_time_buffer[9];
 static char s_date_buffer[8];
 static char s_battery_buffer[5];
 static char s_step_buffer[20];
-static char s_temperature_buffer[8];
-static char s_location_buffer[20];
 
 // Flag to track the state of the animation
 static bool s_is_animation_running = false;
 
-// Color theme (0 = dark, 1 = light)
-static int s_color_theme = 1; // Default to light theme
-
 // Current weather code (stored for theme changes)
-static int s_current_weather_code = 0;
-
 static int battery_level = 100;
 static int step_count = 0;
-
-// Persistent storage keys
-#define PERSIST_KEY_COLOR_THEME 1
-#define PERSIST_KEY_WEATHER_CODE 2
-#define PERSIST_KEY_TEMPERATURE 3
-#define PERSIST_KEY_LOCATION 4
 
 // Forward declarations
 static void update_time();
@@ -112,101 +55,13 @@ static void try_stop_animation_timer();
 static void draw_frame(Layer *layer, GContext *ctx);
 static void draw_animation(Layer *layer, GContext *ctx);
 static void inbox_received_callback(DictionaryIterator *iterator, void *context);
-static void request_weather_update();
 static void delayed_weather_request(void *data);
 static void init_info_layers(GRect bounds);
-static void draw_weather_info(InfoLayer* info_layer);
-static void draw_temperature_info(InfoLayer* info_layer);
 static void draw_steps_info(InfoLayer* info_layer);
 static void draw_battery_info(InfoLayer* info_layer);
 static void update_all_info_layers();
 static void draw_info_for_type(InfoType info_type, InfoLayer* info_layer);
 static void clear_info_layer(InfoLayer* info_layer);
-
-// Persistent storage functions
-static void save_theme_to_storage() {
-  persist_write_int(PERSIST_KEY_COLOR_THEME, s_color_theme);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved theme to storage: %d", s_color_theme);
-}
-
-static void load_theme_from_storage() {
-  if (persist_exists(PERSIST_KEY_COLOR_THEME)) {
-    s_color_theme = persist_read_int(PERSIST_KEY_COLOR_THEME);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded theme from storage: %d", s_color_theme);
-  } else {
-    // Default to light theme if no preference exists
-    s_color_theme = 1;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "No theme preference found, using default light theme");
-  }
-}
-
-static void save_weather_to_storage() {
-  persist_write_int(PERSIST_KEY_WEATHER_CODE, s_current_weather_code);
-  persist_write_string(PERSIST_KEY_TEMPERATURE, s_temperature_buffer);
-  persist_write_string(PERSIST_KEY_LOCATION, s_location_buffer);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved weather to storage: code=%d, temp=%s, location=%s", 
-          s_current_weather_code, s_temperature_buffer, s_location_buffer);
-}
-
-static void load_weather_from_storage() {
-  // Load weather code
-  if (persist_exists(PERSIST_KEY_WEATHER_CODE)) {
-    s_current_weather_code = persist_read_int(PERSIST_KEY_WEATHER_CODE);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded weather code from storage: %d", s_current_weather_code);
-  }
-  
-  // Load temperature
-  if (persist_exists(PERSIST_KEY_TEMPERATURE)) {
-    persist_read_string(PERSIST_KEY_TEMPERATURE, s_temperature_buffer, sizeof(s_temperature_buffer));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded temperature from storage: %s", s_temperature_buffer);
-  } else {
-    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "--°C");
-  }
-  
-  // Load location
-  if (persist_exists(PERSIST_KEY_LOCATION)) {
-    persist_read_string(PERSIST_KEY_LOCATION, s_location_buffer, sizeof(s_location_buffer));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded location from storage: %s", s_location_buffer);
-  } else {
-    snprintf(s_location_buffer, sizeof(s_location_buffer), "---");
-  }
-}
-
-// Function to map weather codes to image resource IDs based on theme
-static uint32_t get_weather_image_resource(int weather_code) {
-  // Based on WMO Weather interpretation codes
-  if (weather_code == 0) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK; // Clear sky
-  } else if (weather_code <= 3) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_DARK; // Partly cloudy
-  } else if (weather_code <= 48) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_CLOUDY_DARK; // Overcast
-  } else if (weather_code <= 57) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_LIGHT_RAIN_LIGHT : RESOURCE_ID_IMAGE_LIGHT_RAIN_DARK; // Drizzle
-  } else if (weather_code <= 67) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_HEAVY_RAIN_LIGHT : RESOURCE_ID_IMAGE_HEAVY_RAIN_DARK; // Rain
-  } else if (weather_code <= 77) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_LIGHT_SNOW_LIGHT : RESOURCE_ID_IMAGE_LIGHT_SNOW_DARK; // Snow
-  } else if (weather_code <= 82) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_LIGHT_RAIN_LIGHT : RESOURCE_ID_IMAGE_LIGHT_RAIN_DARK; // Rain showers
-  } else if (weather_code <= 86) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_HEAVY_SNOW_LIGHT : RESOURCE_ID_IMAGE_HEAVY_SNOW_DARK; // Snow showers
-  } else if (weather_code <= 99) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_THUNDERSTORM_LIGHT : RESOURCE_ID_IMAGE_THUNDERSTORM_DARK; // Thunderstorm
-  } else
-  {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_GENERIC_WEATHER_LIGHT : RESOURCE_ID_IMAGE_GENERIC_WEATHER_DARK; // Unknown
-  }
-}
-
-// Function to get colors based on theme
-static GColor get_background_color() {
-  return s_color_theme == 1 ? GColorWhite : GColorBlack;
-}
-
-static GColor get_text_color() {
-  return s_color_theme == 1 ? GColorBlack : GColorWhite;
-}
 
 // Function to update all colors based on current theme
 static void update_colors() {
@@ -243,22 +98,6 @@ static void update_colors() {
 }
 
 // --- Weather Functions ---
-
-static void request_weather_update() {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting weather update");
-
-  DictionaryIterator *iter;
-  app_message_outbox_begin(&iter);
-
-  if (iter == NULL) {
-    APP_LOG(APP_LOG_LEVEL_ERROR, "Failed to create message iterator");
-    return;
-  }
-
-  dict_write_uint8(iter, MESSAGE_KEY_WEATHER_REQUEST, 1);
-  app_message_outbox_send();
-}
-
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Message received");
   
@@ -516,54 +355,6 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_time();
 }
 
-// --- Info Drawing Functions ---
-
-// Draw weather icon in the specified info layer
-static void draw_weather_info(InfoLayer* info_layer) {
-  Layer* layer = info_layer->layer;
-  GRect bounds = layer_get_bounds(layer);
-  int y_pos = bounds.size.h / 2 - 16;
-  int x_pos = (bounds.size.w / 2) - 16;
-  
-  // Create a bitmap layer for the weather icon
-  info_layer->bitmap_layer_1 = bitmap_layer_create(GRect(x_pos, y_pos, 32, 32));
-  bitmap_layer_set_bitmap(info_layer->bitmap_layer_1, s_weather_icon_bitmap);
-  bitmap_layer_set_compositing_mode(info_layer->bitmap_layer_1, GCompOpSet);
-  
-  // Add to the info layer
-  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_1));
-}
-
-// Draw temperature and location in the specified info layer  
-static void draw_temperature_info(InfoLayer* info_layer) {
-  GRect bounds = info_layer->bounds;
-  Layer* layer = info_layer->layer;
-  int y_center = bounds.size.h / 2 - 8;
-  
-  // Create temperature text layer
-  GRect temp_frame = GRect(0, y_center-14, bounds.size.w, 24);
-  info_layer->text_layer1 = text_layer_create(temp_frame);
-  text_layer_set_background_color(info_layer->text_layer1, GColorClear);
-  text_layer_set_text_color(info_layer->text_layer1, get_text_color());
-  text_layer_set_text(info_layer->text_layer1, s_temperature_buffer);
-  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-  
-  // Create location text layer
-  GRect location_frame = GRect(0, y_center+8, bounds.size.w, 18);
-  info_layer->text_layer2 = text_layer_create(location_frame);
-  text_layer_set_background_color(info_layer->text_layer2, GColorClear);
-  text_layer_set_text_color(info_layer->text_layer2, get_text_color());
-  text_layer_set_text(info_layer->text_layer2, s_location_buffer);
-  text_layer_set_font(info_layer->text_layer2, fonts_get_system_font(FONT_KEY_GOTHIC_14));
-  
-  // Set alignment based on layer alignment
-  text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
-  text_layer_set_text_alignment(info_layer->text_layer2, GTextAlignmentCenter);
-
-  // Add to the info layer
-  layer_add_child(layer, text_layer_get_layer(info_layer->text_layer1));
-  layer_add_child(layer, text_layer_get_layer(info_layer->text_layer2));
-}
 
 // Draw steps icon and count in the specified info layer
 static void draw_steps_info(InfoLayer* info_layer) {
@@ -574,7 +365,7 @@ static void draw_steps_info(InfoLayer* info_layer) {
   GRect text_frame;
   GRect step_count_rect;
 
-  int y_pos = bounds.size.h / 4 + 1;
+  int y_pos = bounds.size.h / 4;
   int x_pos = bounds.size.w / 2 - 16;
   icon_frame = GRect(x_pos, y_pos-12, 32, 32);
   text_frame = GRect(0, y_pos+6, bounds.size.w, 28);
@@ -633,8 +424,8 @@ static void draw_battery_info(InfoLayer* info_layer) {
   bitmap_layer_set_compositing_mode(info_layer->bitmap_layer_1, GCompOpSet);
   
   // Create small rectangle layer with text color background
-  int real_width = (battery_level * 19) / 100;
-  bat_level_rect = GRect(x_pos + 5, y_pos+3, real_width, 10);
+  int real_width = (battery_level * 17) / 100;
+  bat_level_rect = GRect(x_pos + 6, y_pos+4, real_width, 8);
   info_layer->bitmap_layer_2 = bitmap_layer_create(bat_level_rect);
   bitmap_layer_set_background_color(info_layer->bitmap_layer_2, GColorLightGray);
   
@@ -735,7 +526,6 @@ static void init_info_layers(GRect bounds) {
   int margin_w = 6 + theme_offset;
   const int margin_h = 4;
 
-  
   // Upper left
   s_info_layers[LAYER_UPPER_LEFT].bounds = GRect(margin_w, margin_h, info_layer_width, info_layer_height);
   s_info_layers[LAYER_UPPER_LEFT].position = LAYER_UPPER_LEFT;
