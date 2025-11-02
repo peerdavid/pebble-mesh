@@ -8,10 +8,10 @@
 /*
  * Definitions
  */
-int s_current_weather_code;
-GBitmap *s_weather_icon_bitmap;
-char s_temperature_buffer[8];
-char s_location_buffer[20];
+extern int s_current_weather_code;
+extern GBitmap *s_weather_icon_bitmap;
+extern char s_temperature_buffer[8];
+extern char s_location_buffer[20];
 
 
 /*

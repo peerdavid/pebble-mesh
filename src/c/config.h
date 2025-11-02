@@ -38,9 +38,6 @@ typedef struct {
 } InfoLayer;
 
 
-// Info layers system
-InfoLayer s_info_layers[NUM_INFO_LAYERS];
-
 // Layer assignment configuration - maps each layer position to an info type
 typedef enum {
   INFO_TYPE_WEATHER = 0,
@@ -52,13 +49,15 @@ typedef enum {
 } InfoType;
 
 // Current layer assignments (can be changed dynamically)
-InfoType s_layer_assignments[NUM_INFO_LAYERS];
+extern InfoType s_layer_assignments[NUM_INFO_LAYERS];
 
+// Info layers array
+extern InfoLayer s_info_layers[NUM_INFO_LAYERS];
 
 /*
  * Dynamic Config
  */
-int s_color_theme;
+extern int s_color_theme;
 
 
 /*
