@@ -2,6 +2,7 @@
 #include "config.h"
 
 int s_color_theme = 1;
+int s_step_goal = 10000;
 
 InfoLayer s_info_layers[NUM_INFO_LAYERS];
 InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
@@ -37,4 +38,20 @@ GColor get_background_color() {
 
 GColor get_text_color() {
   return s_color_theme == 1 ? GColorBlack : GColorWhite;
+}
+
+void save_step_goal_to_storage() {
+  persist_write_int(PERSIST_KEY_STEP_GOAL, s_step_goal);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved step goal to storage: %d", s_step_goal);
+}
+
+void load_step_goal_from_storage() {
+  if (persist_exists(PERSIST_KEY_STEP_GOAL)) {
+    s_step_goal = persist_read_int(PERSIST_KEY_STEP_GOAL);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded step goal from storage: %d", s_step_goal);
+  } else {
+    // Default to 10000 if no preference exists
+    s_step_goal = 10000;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No step goal preference found, using default 10000");
+  }
 }

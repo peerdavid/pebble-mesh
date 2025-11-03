@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.23",
+  "version": "1.24",
   "keywords": [
     "clock",
     "minimal",
@@ -34,7 +34,8 @@
       "WEATHER_REQUEST",
       "WEATHER_LOCATION_CONFIG",
       "WEATHER_CONDITION",
-      "COLOR_THEME"
+      "COLOR_THEME",
+      "STEP_GOAL"
     ],
     "resources": {
       "media": [

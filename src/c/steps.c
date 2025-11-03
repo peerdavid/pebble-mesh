@@ -61,13 +61,12 @@ void draw_steps_info(InfoLayer* info_layer) {
   bitmap_layer_set_background_color(info_layer->bitmap_layer_3, get_background_color());
 
   // Create small rectangle layer with text color background
-  int steps = step_count > 10000 ? 10000 : step_count;
-  int real_width = (steps * full_width) / 10000;
+  int steps = step_count > s_step_goal ? s_step_goal : step_count;
+  int real_width = (steps * full_width) / s_step_goal;
   step_count_rect = GRect(x_pos + 2, y_pos-2, real_width, full_height);
   info_layer->bitmap_layer_2 = bitmap_layer_create(step_count_rect);
   bitmap_layer_set_background_color(info_layer->bitmap_layer_2, GColorLightGray);
   
-  // Add to the info layer
   layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_3));
   layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_2));
   layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_1));

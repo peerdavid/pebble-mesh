@@ -9,6 +9,7 @@
 #define PERSIST_KEY_WEATHER_CODE 2
 #define PERSIST_KEY_TEMPERATURE 3
 #define PERSIST_KEY_LOCATION 4
+#define PERSIST_KEY_STEP_GOAL 5
 
 
 // Layer position and alignment enums
@@ -58,6 +59,7 @@ extern InfoLayer s_info_layers[NUM_INFO_LAYERS];
  * Dynamic Config
  */
 extern int s_color_theme;
+extern int s_step_goal;
 
 
 /*
@@ -65,6 +67,8 @@ extern int s_color_theme;
  */
 void save_theme_to_storage();
 void load_theme_from_storage();
+void save_step_goal_to_storage();
+void load_step_goal_from_storage();
 GColor get_background_color();
 GColor get_text_color();
 

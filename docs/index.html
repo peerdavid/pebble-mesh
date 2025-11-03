@@ -57,13 +57,27 @@
             -webkit-appearance: none;
             appearance: none;
         }
-        input[type="text"]:focus {
+        input[type="text"]:focus,
+        input[type="number"]:focus {
             outline: none;
             border-color: #007acc;
             background-color: #333;
         }
-        input[type="text"]::placeholder {
+        input[type="text"]::placeholder,
+        input[type="number"]::placeholder {
             color: #666;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background-color: #2a2a2a;
+            color: #ffffff;
+            font-size: 16px;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            appearance: none;
         }
         .description {
             font-size: 14px;
@@ -175,6 +189,13 @@
             </div>
             
             <div class="form-group">
+                <label for="stepGoal"><span class="icon">👟</span>Step Goal</label>
+                <input type="number" id="stepGoal" name="stepGoal" 
+                       placeholder="10000" min="100" max="100000" step="1000" required>
+                <div class="description">Set your daily step goal (default: 10,000)</div>
+            </div>
+            
+            <div class="form-group">
                 <label><span class="icon">🎨</span>Color Theme</label>
                 <div class="toggle-container">
                     <span>Dark</span>
@@ -223,6 +244,11 @@
             if (settings.COLOR_THEME) {
                 document.getElementById('colorTheme').checked = settings.COLOR_THEME === 'light';
             }
+            if (settings.STEP_GOAL) {
+                document.getElementById('stepGoal').value = settings.STEP_GOAL;
+            } else {
+                document.getElementById('stepGoal').value = 10000; // Default value
+            }
         }
 
         // Handle form submission
@@ -235,11 +261,18 @@
                 return;
             }
 
+            var stepGoal = parseInt(document.getElementById('stepGoal').value);
+            if (isNaN(stepGoal) || stepGoal < 1000 || stepGoal > 100000) {
+                alert('Please enter a valid step goal between 1,000 and 100,000');
+                return;
+            }
+
             var colorTheme = document.getElementById('colorTheme').checked ? 'light' : 'dark';
 
             var settings = {
                 'WEATHER_LOCATION_CONFIG': location,
-                'COLOR_THEME': colorTheme
+                'COLOR_THEME': colorTheme,
+                'STEP_GOAL': stepGoal
             };
 
             console.log('Saving settings: ' + JSON.stringify(settings));

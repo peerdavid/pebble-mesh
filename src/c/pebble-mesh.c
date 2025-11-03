@@ -131,6 +131,19 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       update_colors();
     }
   }
+
+  // Read step goal
+  Tuple *step_goal_tuple = dict_find(iterator, MESSAGE_KEY_STEP_GOAL);
+  if (step_goal_tuple) {
+    int new_step_goal = (int)step_goal_tuple->value->int32;
+    if (new_step_goal > 0 && new_step_goal != s_step_goal) {
+      s_step_goal = new_step_goal;
+      save_step_goal_to_storage(); // Save the new step goal preference
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Step goal changed to: %d", s_step_goal);
+      // Redraw steps info layer to update the progress bar
+      update_all_info_layers();
+    }
+  }
   
   // Save weather data to persistent storage if any was updated
   if (weather_data_updated) {
@@ -574,6 +587,9 @@ static void init() {
 
   // Load saved theme preference before creating UI
   load_theme_from_storage();
+  
+  // Load saved step goal preference
+  load_step_goal_from_storage();
   
   // Load saved weather data from storage
   load_weather_from_storage();

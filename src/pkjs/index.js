@@ -1,7 +1,8 @@
 // Default configuration
 var config = {
   location: 'Vienna', // Default location
-  colorTheme: 'dark'  // Default to dark theme (dark/light)
+  colorTheme: 'dark',  // Default to dark theme (dark/light)
+  stepGoal: 10000 // Default step goal
 };
 
 // Load saved configuration
@@ -10,6 +11,9 @@ if (localStorage.getItem('WEATHER_LOCATION_CONFIG')) {
 }
 if (localStorage.getItem('COLOR_THEME')) {
   config.colorTheme = localStorage.getItem('COLOR_THEME');
+}
+if (localStorage.getItem('STEP_GOAL')) {
+  config.stepGoal = parseInt(localStorage.getItem('STEP_GOAL'));
 }
 
 // Variables to store weather data
@@ -167,7 +171,8 @@ function sendDataToPebble() {
     'WEATHER_TEMPERATURE': weatherData.temperature,
     'WEATHER_LOCATION': weatherData.location,
     'WEATHER_CONDITION': weatherData.condition,
-    'COLOR_THEME': config.colorTheme === 'light' ? 1 : 0  // 0 = dark, 1 = light
+    'COLOR_THEME': config.colorTheme === 'light' ? 1 : 0,  // 0 = dark, 1 = light
+    'STEP_GOAL': config.stepGoal
   };
   
   Pebble.sendAppMessage(message,
@@ -219,6 +224,18 @@ Pebble.addEventListener('webviewclosed', function(e) {
         console.log('Color theme saved to: ' + config.colorTheme);
         sendDataToPebble(); // Send immediately to update colors
       }
+      
+      if (configData.STEP_GOAL) {
+        config.stepGoal = parseInt(configData.STEP_GOAL);
+        
+        // Security checks
+        config.stepGoal = isNaN(config.stepGoal) ? 10000 : config.stepGoal;
+        config.stepGoal = Math.max(100, Math.min(100000, config.stepGoal)); // Clamp between 1 and 100000
+        
+        localStorage.setItem('STEP_GOAL', config.stepGoal);
+        console.log('Step goal saved to: ' + config.stepGoal);
+        sendDataToPebble(); // Send immediately to update step goal display
+      }
     } catch (ex) {
       console.log('Configuration parse error: ' + ex.message);
     }
@@ -239,7 +256,8 @@ Pebble.addEventListener('showConfiguration', function() {
   // Create the configuration URL with current settings
   var currentSettings = encodeURIComponent(JSON.stringify({
     'WEATHER_LOCATION_CONFIG': config.location,
-    'COLOR_THEME': config.colorTheme
+    'COLOR_THEME': config.colorTheme,
+    'STEP_GOAL': config.stepGoal
   }));
   
   // Use the correct path for Pebble configuration pages
