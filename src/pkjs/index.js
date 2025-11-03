@@ -52,21 +52,21 @@ function getCoordinatesForCity(cityName) {
             weatherData.location = 'City Not Found';
             weatherData.temperature = 'N/A';
             weatherData.condition = 0;
-            sendWeatherToPebble();
+            sendDataToPebble();
           }
         } catch (e) {
           console.log('Geocoding JSON parse error: ' + e.message);
           weatherData.location = 'Parse Error';
           weatherData.temperature = 'N/A';
           weatherData.condition = 0;
-          sendWeatherToPebble();
+          sendDataToPebble();
         }
       } else {
         console.log('Geocoding request failed with status: ' + xhr.status);
         weatherData.location = 'Geocode Error';
         weatherData.temperature = 'N/A';
         weatherData.condition = 0;
-        sendWeatherToPebble();
+        sendDataToPebble();
       }
     }
   };
@@ -78,14 +78,14 @@ function getCoordinatesForCity(cityName) {
     weatherData.location = 'Timeout';
     weatherData.temperature = 'N/A';
     weatherData.condition = 0;
-    sendWeatherToPebble();
+    sendDataToPebble();
   };
   xhr.onerror = function() {
     console.log('Geocoding request network error');
     weatherData.location = 'Net Error';
     weatherData.temperature = 'N/A';
     weatherData.condition = 0;
-    sendWeatherToPebble();
+    sendDataToPebble();
   };
   xhr.send();
 }
@@ -120,24 +120,24 @@ function getWeatherData(latitude, longitude) {
             weatherData.temperature = temp.toString();
             weatherData.condition = response.current_weather.weathercode || 0;
             console.log('Temperature: ' + weatherData.temperature + ', Weather code: ' + weatherData.condition);
-            sendWeatherToPebble();
+            sendDataToPebble();
           } else {
             console.log('Invalid weather response format - no current_weather');
             weatherData.temperature = 'N/A';
             weatherData.condition = 0;
-            sendWeatherToPebble();
+            sendDataToPebble();
           }
         } catch (e) {
           console.log('Weather JSON parse error: ' + e.message);
           weatherData.temperature = 'Error';
           weatherData.condition = 0;
-          sendWeatherToPebble();
+          sendDataToPebble();
         }
       } else {
         console.log('Weather request failed with status: ' + xhr.status + ', response: ' + xhr.responseText);
         weatherData.temperature = 'Error';
         weatherData.condition = 0;
-        sendWeatherToPebble();
+        sendDataToPebble();
       }
     }
   };
@@ -148,20 +148,20 @@ function getWeatherData(latitude, longitude) {
     console.log('Weather request timed out');
     weatherData.temperature = 'Timeout';
     weatherData.condition = 0;
-    sendWeatherToPebble();
+    sendDataToPebble();
   };
   xhr.onerror = function() {
     console.log('Weather request network error');
     weatherData.temperature = 'Net Error';
     weatherData.condition = 0;
-    sendWeatherToPebble();
+    sendDataToPebble();
   };
   xhr.send();
 }
 
 // Function to send weather data to Pebble
-function sendWeatherToPebble() {
-  console.log('Sending to Pebble - Temperature: ' + weatherData.temperature + ', Location: ' + weatherData.location + ', Condition: ' + weatherData.condition + ', Theme: ' + config.colorTheme);
+function sendDataToPebble() {
+  console.log('Sending data to pebble.');
   
   var message = {
     'WEATHER_TEMPERATURE': weatherData.temperature,
@@ -172,10 +172,10 @@ function sendWeatherToPebble() {
   
   Pebble.sendAppMessage(message,
     function(e) {
-      console.log('Weather data sent successfully');
+      console.log('Data sent successfully');
     },
     function(e) {
-      console.log('Failed to send weather data: ' + e.error.message);
+      console.log('Failed to send data: ' + e.error.message);
     }
   );
 }
@@ -217,7 +217,7 @@ Pebble.addEventListener('webviewclosed', function(e) {
         config.colorTheme = configData.COLOR_THEME;
         localStorage.setItem('COLOR_THEME', config.colorTheme);
         console.log('Color theme saved to: ' + config.colorTheme);
-        sendWeatherToPebble(); // Send immediately to update colors
+        sendDataToPebble(); // Send immediately to update colors
       }
     } catch (ex) {
       console.log('Configuration parse error: ' + ex.message);
