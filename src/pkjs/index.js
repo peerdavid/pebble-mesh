@@ -1,3 +1,7 @@
+var Clay = require('pebble-clay');
+var clayConfig = require('./config');
+var clay = new Clay(clayConfig, null, { autoHandleEvents: false });
+
 // Default configuration
 var config = {
   location: 'Vienna', // Default location
@@ -185,7 +189,7 @@ function sendDataToPebble() {
   );
 }
 
-// Event listeners
+// Event listeners from app
 Pebble.addEventListener('appmessage', function(e) {
   console.log('AppMessage received: ' + JSON.stringify(e.payload));
   
@@ -203,42 +207,36 @@ Pebble.addEventListener('appmessage', function(e) {
   }
 });
 
+
 Pebble.addEventListener('webviewclosed', function(e) {
-  console.log('Configuration window closed');
+  if (e && !e.response) {
+    return;
+  }
   
-  if (e.response) {
-    try {
-      var configData = JSON.parse(decodeURIComponent(e.response));
-      console.log('Configuration received: ' + JSON.stringify(configData));
-      
-      if (configData.WEATHER_LOCATION_CONFIG) {
-        config.location = configData.WEATHER_LOCATION_CONFIG;
-        localStorage.setItem('WEATHER_LOCATION_CONFIG', config.location);
-        console.log('Location saved to: ' + config.location);
-        fetchWeatherForLocation();
-      }
-      
-      if (configData.COLOR_THEME) {
-        config.colorTheme = configData.COLOR_THEME;
-        localStorage.setItem('COLOR_THEME', config.colorTheme);
-        console.log('Color theme saved to: ' + config.colorTheme);
-        sendDataToPebble(); // Send immediately to update colors
-      }
-      
-      if (configData.STEP_GOAL) {
-        config.stepGoal = parseInt(configData.STEP_GOAL);
-        
-        // Security checks
-        config.stepGoal = isNaN(config.stepGoal) ? 10000 : config.stepGoal;
-        config.stepGoal = Math.max(100, Math.min(100000, config.stepGoal)); // Clamp between 1 and 100000
-        
-        localStorage.setItem('STEP_GOAL', config.stepGoal);
-        console.log('Step goal saved to: ' + config.stepGoal);
-        sendDataToPebble(); // Send immediately to update step goal display
-      }
-    } catch (ex) {
-      console.log('Configuration parse error: ' + ex.message);
-    }
+  // Get the keys and values from Clay
+  // Get the keys and values from each config item
+  var dict = clay.getSettings(e.response, false);
+  console.log('Configuration received: ' + JSON.stringify(dict));
+  
+  if (dict.WEATHER_LOCATION_CONFIG) {
+    config.location = dict.WEATHER_LOCATION_CONFIG.value;
+    localStorage.setItem('WEATHER_LOCATION_CONFIG', config.location);
+    console.log('Location saved to: ' + config.location);
+    fetchWeatherForLocation();
+  }
+  
+  if (dict.COLOR_THEME) {
+    config.colorTheme = dict.COLOR_THEME.value;
+    localStorage.setItem('COLOR_THEME', config.colorTheme);
+    console.log('Color theme saved to: ' + config.colorTheme);
+    sendDataToPebble(); // Send immediately to update colors
+  }
+  
+  if (dict.STEP_GOAL) {
+    config.stepGoal = parseInt(dict.STEP_GOAL.value);
+    localStorage.setItem('STEP_GOAL', config.stepGoal);
+    console.log('Step goal saved to: ' + config.stepGoal);
+    sendDataToPebble(); // Send immediately to update step goal display
   }
 });
 
@@ -252,17 +250,5 @@ setInterval(function() {
 // Handle configuration page request
 Pebble.addEventListener('showConfiguration', function() {
   console.log('Showing configuration page');
-  
-  // Create the configuration URL with current settings
-  var currentSettings = encodeURIComponent(JSON.stringify({
-    'WEATHER_LOCATION_CONFIG': config.location,
-    'COLOR_THEME': config.colorTheme,
-    'STEP_GOAL': config.stepGoal
-  }));
-  
-  // Use the correct path for Pebble configuration pages
-  var configUrl = 'https://peerdavid.github.io/pebble-mesh/?settings=' + currentSettings;
-  console.log('Opening configuration URL: ' + configUrl);
-  
-  Pebble.openURL(configUrl);
+  Pebble.openURL(clay.generateUrl());
 });
