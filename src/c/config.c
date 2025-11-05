@@ -3,6 +3,7 @@
 
 int s_color_theme = 1;
 int s_step_goal = 10000;
+int s_temperature_unit = 0;  // 0 = celsius, 1 = fahrenheit
 
 InfoLayer s_info_layers[NUM_INFO_LAYERS];
 InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
@@ -53,5 +54,21 @@ void load_step_goal_from_storage() {
     // Default to 10000 if no preference exists
     s_step_goal = 10000;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No step goal preference found, using default 10000");
+  }
+}
+
+void save_temperature_unit_to_storage() {
+  persist_write_int(PERSIST_KEY_TEMPERATURE_UNIT, s_temperature_unit);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved temperature unit to storage: %d", s_temperature_unit);
+}
+
+void load_temperature_unit_from_storage() {
+  if (persist_exists(PERSIST_KEY_TEMPERATURE_UNIT)) {
+    s_temperature_unit = persist_read_int(PERSIST_KEY_TEMPERATURE_UNIT);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded temperature unit from storage: %d", s_temperature_unit);
+  } else {
+    // Default to celsius if no preference exists
+    s_temperature_unit = 0;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No temperature unit preference found, using default celsius");
   }
 }

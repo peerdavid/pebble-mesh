@@ -90,10 +90,23 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   
   bool weather_data_updated = false;
 
+  // Read temperature unit first to know what symbol to use
+  Tuple *temp_unit_tuple = dict_find(iterator, MESSAGE_KEY_TEMPERATURE_UNIT);
+  if (temp_unit_tuple) {
+    int new_unit = (int)temp_unit_tuple->value->int32;
+    if (new_unit != s_temperature_unit) {
+      s_temperature_unit = new_unit;
+      save_temperature_unit_to_storage();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Temperature unit changed to: %d", s_temperature_unit);
+      weather_data_updated = true;
+    }
+  }
+
   // Read temperature
   Tuple *temperature_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_TEMPERATURE);
   if (temperature_tuple) {
-    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "%s°C", temperature_tuple->value->cstring);
+    const char* unit_symbol = s_temperature_unit == 1 ? "°F" : "°C";
+    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "%s%s", temperature_tuple->value->cstring, unit_symbol);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Temperature: %s", s_temperature_buffer);
     weather_data_updated = true;
   }
@@ -590,6 +603,9 @@ static void init() {
   
   // Load saved step goal preference
   load_step_goal_from_storage();
+  
+  // Load saved temperature unit preference
+  load_temperature_unit_from_storage();
   
   // Load saved weather data from storage
   load_weather_from_storage();

@@ -124,7 +124,9 @@ void load_weather_from_storage() {
     persist_read_string(PERSIST_KEY_TEMPERATURE, s_temperature_buffer, sizeof(s_temperature_buffer));
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded temperature from storage: %s", s_temperature_buffer);
   } else {
-    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "--°C");
+    // Use the current temperature unit for the default display
+    const char* unit_symbol = s_temperature_unit == 1 ? "°F" : "°C";
+    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "--%s", unit_symbol);
   }
   
   // Load location

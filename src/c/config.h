@@ -10,6 +10,7 @@
 #define PERSIST_KEY_TEMPERATURE 3
 #define PERSIST_KEY_LOCATION 4
 #define PERSIST_KEY_STEP_GOAL 5
+#define PERSIST_KEY_TEMPERATURE_UNIT 6
 
 
 // Layer position and alignment enums
@@ -60,6 +61,7 @@ extern InfoLayer s_info_layers[NUM_INFO_LAYERS];
  */
 extern int s_color_theme;
 extern int s_step_goal;
+extern int s_temperature_unit;  // 0 = celsius, 1 = fahrenheit
 
 
 /*
@@ -69,6 +71,8 @@ void save_theme_to_storage();
 void load_theme_from_storage();
 void save_step_goal_to_storage();
 void load_step_goal_from_storage();
+void save_temperature_unit_to_storage();
+void load_temperature_unit_from_storage();
 GColor get_background_color();
 GColor get_text_color();
 

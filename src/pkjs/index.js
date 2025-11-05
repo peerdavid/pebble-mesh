@@ -6,7 +6,8 @@ var clay = new Clay(clayConfig, null, { autoHandleEvents: false });
 var config = {
   location: 'Vienna', // Default location
   colorTheme: 'dark',  // Default to dark theme (dark/light)
-  stepGoal: 10000 // Default step goal
+  stepGoal: 10000, // Default step goal
+  temperatureUnit: 'celsius' // Default temperature unit (celsius/fahrenheit)
 };
 
 // Load saved configuration
@@ -19,6 +20,9 @@ if (localStorage.getItem('COLOR_THEME')) {
 if (localStorage.getItem('STEP_GOAL')) {
   config.stepGoal = parseInt(localStorage.getItem('STEP_GOAL'));
 }
+if (localStorage.getItem('TEMPERATURE_UNIT')) {
+  config.temperatureUnit = localStorage.getItem('TEMPERATURE_UNIT');
+}
 
 // Variables to store weather data
 var weatherData = {
@@ -28,7 +32,7 @@ var weatherData = {
 };
 
 // Function to get coordinates for a city name
-function getCoordinatesForCity(cityName) {
+function getCoordinatesForCityAndFetchWeather(cityName) {
   console.log('Getting coordinates for: ' + cityName);
   
   var url = 'https://geocoding-api.open-meteo.com/v1/search?name=' + 
@@ -103,14 +107,14 @@ function fetchWeatherForLocation() {
   console.log('Fetching weather for configured location: ' + config.location);
   weatherData.location = 'Loading...';
   weatherData.temperature = '--';
-  getCoordinatesForCity(config.location);
+  getCoordinatesForCityAndFetchWeather(config.location);
 }
 
 // Function to get weather data from Open-Meteo API
 function getWeatherData(latitude, longitude) {
   var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + 
             latitude + '&longitude=' + longitude + 
-            '&current_weather=true&temperature_unit=celsius&windspeed_unit=kmh';
+            '&current_weather=true&temperature_unit=' + config.temperatureUnit + '&windspeed_unit=kmh';
   
   console.log('Fetching weather from: ' + url);
   
@@ -176,7 +180,8 @@ function sendDataToPebble() {
     'WEATHER_LOCATION': weatherData.location,
     'WEATHER_CONDITION': weatherData.condition,
     'COLOR_THEME': config.colorTheme === 'light' ? 1 : 0,  // 0 = dark, 1 = light
-    'STEP_GOAL': config.stepGoal
+    'STEP_GOAL': config.stepGoal,
+    'TEMPERATURE_UNIT': config.temperatureUnit === 'fahrenheit' ? 1 : 0  // 0 = celsius, 1 = fahrenheit
   };
   
   Pebble.sendAppMessage(message,
@@ -237,6 +242,13 @@ Pebble.addEventListener('webviewclosed', function(e) {
     localStorage.setItem('STEP_GOAL', config.stepGoal);
     console.log('Step goal saved to: ' + config.stepGoal);
     sendDataToPebble(); // Send immediately to update step goal display
+  }
+  
+  if (dict.TEMPERATURE_UNIT) {
+    config.temperatureUnit = dict.TEMPERATURE_UNIT.value;
+    localStorage.setItem('TEMPERATURE_UNIT', config.temperatureUnit);
+    console.log('Temperature unit saved to: ' + config.temperatureUnit);
+    fetchWeatherForLocation(); // Fetch weather again with new unit
   }
 });
 

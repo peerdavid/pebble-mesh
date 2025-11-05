@@ -23,6 +23,22 @@ module.exports = [
         "attributes": {
           "placeholder": "e.g., Vienna"
         }
+      },
+      {
+        "type": "radiogroup",
+        "messageKey": "TEMPERATURE_UNIT",
+        "label": "Temperature Unit",
+        "defaultValue": "celsius",
+        "options": [
+          {
+            "label": "Celsius",
+            "value": "celsius"
+          },
+          {
+            "label": "Fahrenheit",
+            "value": "fahrenheit"
+          }
+        ]
       }
     ]
   },
