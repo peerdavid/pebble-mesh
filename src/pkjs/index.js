@@ -28,7 +28,7 @@ if (localStorage.getItem('TEMPERATURE_UNIT')) {
 var weatherData = {
   temperature: '--',
   location: 'Loading...',
-  condition: 0  // Weather code for condition
+  condition: -1  // Weather code for condition
 };
 
 // Function to get coordinates for a city name
@@ -61,23 +61,23 @@ function getCoordinatesForCityAndFetchWeather(cityName) {
             getWeatherData(latitude, longitude);
           } else {
             console.log('No results found for city: ' + cityName);
-            weatherData.location = 'City Not Found';
+            weatherData.location = config.location + ' Not Found';
             weatherData.temperature = 'N/A';
-            weatherData.condition = 0;
+            weatherData.condition = -1;
             sendDataToPebble();
           }
         } catch (e) {
           console.log('Geocoding JSON parse error: ' + e.message);
           weatherData.location = 'Parse Error';
           weatherData.temperature = 'N/A';
-          weatherData.condition = 0;
+          weatherData.condition = -1;
           sendDataToPebble();
         }
       } else {
         console.log('Geocoding request failed with status: ' + xhr.status);
         weatherData.location = 'Geocode Error';
         weatherData.temperature = 'N/A';
-        weatherData.condition = 0;
+        weatherData.condition = -1;
         sendDataToPebble();
       }
     }
@@ -89,14 +89,14 @@ function getCoordinatesForCityAndFetchWeather(cityName) {
     console.log('Geocoding request timed out');
     weatherData.location = 'Timeout';
     weatherData.temperature = 'N/A';
-    weatherData.condition = 0;
+    weatherData.condition = -1;
     sendDataToPebble();
   };
   xhr.onerror = function() {
     console.log('Geocoding request network error');
     weatherData.location = 'Net Error';
     weatherData.temperature = 'N/A';
-    weatherData.condition = 0;
+    weatherData.condition = -1;
     sendDataToPebble();
   };
   xhr.send();
@@ -136,7 +136,7 @@ function getLocationAndFetchWeather() {
       console.log('GPS location error: ' + err.message);
       weatherData.location = 'GPS Error';
       weatherData.temperature = 'N/A';
-      weatherData.condition = 0;
+      weatherData.condition = -1;
       sendDataToPebble();
     },
     {
@@ -171,23 +171,23 @@ function getReverseGeocodingAndFetchWeather(latitude, longitude) {
                              response.address.village || 
                              response.address.county ||
                              response.address.state ||
-                             'GPS Location';
+                             'GPS Loc';
             weatherData.location = locationName;
             console.log('Found location name: ' + weatherData.location);
           } else {
             console.log('No location name found, using GPS coordinates');
-            weatherData.location = 'GPS Location';
+            weatherData.location = 'GPS Loc';
           }
         } catch (e) {
           console.log('Reverse geocoding JSON parse error: ' + e.message);
-          weatherData.location = 'GPS Location';
+          weatherData.location = 'GPS Loc';
         }
         
         // Now get weather data for these coordinates
         getWeatherData(latitude, longitude);
       } else {
         console.log('Reverse geocoding request failed with status: ' + xhr.status);
-        weatherData.location = 'GPS Location';
+        weatherData.location = 'GPS Loc';
         // Still get weather data even if reverse geocoding failed
         getWeatherData(latitude, longitude);
       }
@@ -198,13 +198,13 @@ function getReverseGeocodingAndFetchWeather(latitude, longitude) {
   xhr.timeout = 10000;
   xhr.ontimeout = function() {
     console.log('Reverse geocoding request timed out');
-    weatherData.location = 'GPS Location';
+    weatherData.location = 'GPS Loc';
     // Still get weather data even if reverse geocoding timed out
     getWeatherData(latitude, longitude);
   };
   xhr.onerror = function() {
     console.log('Reverse geocoding request network error');
-    weatherData.location = 'GPS Location';
+    weatherData.location = 'GPS Loc';
     // Still get weather data even if reverse geocoding failed
     getWeatherData(latitude, longitude);
   };
@@ -237,19 +237,19 @@ function getWeatherData(latitude, longitude) {
           } else {
             console.log('Invalid weather response format - no current_weather');
             weatherData.temperature = 'N/A';
-            weatherData.condition = 0;
+            weatherData.condition = -1;
             sendDataToPebble();
           }
         } catch (e) {
           console.log('Weather JSON parse error: ' + e.message);
           weatherData.temperature = 'Error';
-          weatherData.condition = 0;
+          weatherData.condition = -1;
           sendDataToPebble();
         }
       } else {
         console.log('Weather request failed with status: ' + xhr.status + ', response: ' + xhr.responseText);
         weatherData.temperature = 'Error';
-        weatherData.condition = 0;
+        weatherData.condition = -1;
         sendDataToPebble();
       }
     }
@@ -260,13 +260,13 @@ function getWeatherData(latitude, longitude) {
   xhr.ontimeout = function() {
     console.log('Weather request timed out');
     weatherData.temperature = 'Timeout';
-    weatherData.condition = 0;
+    weatherData.condition = -1;
     sendDataToPebble();
   };
   xhr.onerror = function() {
     console.log('Weather request network error');
     weatherData.temperature = 'Net Error';
-    weatherData.condition = 0;
+    weatherData.condition = -1;
     sendDataToPebble();
   };
   xhr.send();

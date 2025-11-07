@@ -4,7 +4,7 @@
 /*
  * Definitions
  */
-int s_current_weather_code = 0;
+int s_current_weather_code = -1; // -1 indicates no weather data yet
 GBitmap *s_weather_icon_bitmap;
 char s_temperature_buffer[8];
 char s_location_buffer[20];
@@ -30,7 +30,7 @@ void draw_weather_info(InfoLayer* info_layer) {
 void draw_temperature_info(InfoLayer* info_layer) {
   GRect bounds = info_layer->bounds;
   Layer* layer = info_layer->layer;
-  int y_center = bounds.size.h / 2 - 8;
+  int y_center = bounds.size.h / 2 - 10;
   
   // Create temperature text layer
   GRect temp_frame = GRect(0, y_center-14, bounds.size.w, 24);
@@ -58,6 +58,10 @@ void draw_temperature_info(InfoLayer* info_layer) {
 }
 
 uint32_t get_weather_image_resource(int weather_code) {
+  // Handle error case with question mark icon
+  if (weather_code == -1) {
+    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_QUESTION_LIGHT : RESOURCE_ID_IMAGE_QUESTION_DARK; // Error/No data
+  }
   // Based on WMO Weather interpretation codes
   if (weather_code == 0) {
     return s_color_theme == 1 ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK; // Clear sky

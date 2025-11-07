@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.25",
+  "version": "1.26",
   "keywords": [
     "clock",
     "minimal",
@@ -83,7 +83,7 @@
         {
           "type": "bitmap",
           "name": "IMAGE_CLOUDY_DARK",
-          "file": "images/weather/cloudy_weather.png"
+          "file": "images/weather/cloudy_weather_dark.png"
         },
         {
           "type": "bitmap",
@@ -159,6 +159,16 @@
           "type": "bitmap",
           "name": "IMAGE_GENERIC_WEATHER_LIGHT",
           "file": "images/weather/generic_weather_light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_QUESTION_DARK",
+          "file": "images/question_dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_QUESTION_LIGHT",
+          "file": "images/question_light.png"
         }
       ]
     }
