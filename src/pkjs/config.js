@@ -18,10 +18,10 @@ module.exports = [
         "type": "input",
         "messageKey": "WEATHER_LOCATION_CONFIG",
         "label": "Location",
-        "defaultValue": "Vienna",
-        "description": "Enter your city name (e.g., Vienna, New York, Tokyo). Weather data is fetched from Open-Meteo API.",
+        "defaultValue": "",
+        "description": "Enter your city name (e.g., Vienna, New York, Tokyo) or leave empty to use GPS location automatically. Weather data is fetched from Open-Meteo API.",
         "attributes": {
-          "placeholder": "e.g., Vienna"
+          "placeholder": "e.g., Vienna (or leave empty for GPS)"
         }
       },
       {

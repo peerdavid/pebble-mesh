@@ -4,7 +4,7 @@ var clay = new Clay(clayConfig, null, { autoHandleEvents: false });
 
 // Default configuration
 var config = {
-  location: 'Vienna', // Default location
+  location: '', // Empty = use GPS, otherwise use static location
   colorTheme: 'dark',  // Default to dark theme (dark/light)
   stepGoal: 10000, // Default step goal
   temperatureUnit: 'celsius' // Default temperature unit (celsius/fahrenheit)
@@ -107,7 +107,108 @@ function fetchWeatherForLocation() {
   console.log('Fetching weather for configured location: ' + config.location);
   weatherData.location = 'Loading...';
   weatherData.temperature = '--';
-  getCoordinatesForCityAndFetchWeather(config.location);
+  
+  // If location is empty or not set, use GPS
+  if (!config.location || config.location.trim() === '') {
+    console.log('No static location configured, using GPS');
+    getLocationAndFetchWeather();
+  } else {
+    console.log('Using static location: ' + config.location);
+    getCoordinatesForCityAndFetchWeather(config.location);
+  }
+}
+
+// Function to get current GPS location and fetch weather
+function getLocationAndFetchWeather() {
+  console.log('Getting GPS location...');
+  weatherData.location = 'Getting GPS...';
+  
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      var latitude = pos.coords.latitude;
+      var longitude = pos.coords.longitude;
+      console.log('GPS coordinates: ' + latitude + ',' + longitude);
+      
+      // Get city name from reverse geocoding and then get weather
+      getReverseGeocodingAndFetchWeather(latitude, longitude);
+    },
+    function(err) {
+      console.log('GPS location error: ' + err.message);
+      weatherData.location = 'GPS Error';
+      weatherData.temperature = 'N/A';
+      weatherData.condition = 0;
+      sendDataToPebble();
+    },
+    {
+      timeout: 15000,
+      maximumAge: 60000
+    }
+  );
+}
+
+// Function to get city name from coordinates and fetch weather
+function getReverseGeocodingAndFetchWeather(latitude, longitude) {
+  console.log('Getting city name for coordinates: ' + latitude + ',' + longitude);
+  
+  // Use OpenStreetMap Nominatim for reverse geocoding
+  var url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + 
+            latitude + '&lon=' + longitude + '&zoom=10&addressdetails=1';
+  
+  console.log('Reverse geocoding URL: ' + url);
+  
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        try {
+          var response = JSON.parse(xhr.responseText);
+          console.log('Reverse geocoding response: ' + xhr.responseText);
+          
+          if (response.address) {
+            // Try to get city, town, village, or locality
+            var locationName = response.address.city || 
+                             response.address.town || 
+                             response.address.village || 
+                             response.address.county ||
+                             response.address.state ||
+                             'GPS Location';
+            weatherData.location = locationName;
+            console.log('Found location name: ' + weatherData.location);
+          } else {
+            console.log('No location name found, using GPS coordinates');
+            weatherData.location = 'GPS Location';
+          }
+        } catch (e) {
+          console.log('Reverse geocoding JSON parse error: ' + e.message);
+          weatherData.location = 'GPS Location';
+        }
+        
+        // Now get weather data for these coordinates
+        getWeatherData(latitude, longitude);
+      } else {
+        console.log('Reverse geocoding request failed with status: ' + xhr.status);
+        weatherData.location = 'GPS Location';
+        // Still get weather data even if reverse geocoding failed
+        getWeatherData(latitude, longitude);
+      }
+    }
+  };
+  
+  xhr.open('GET', url, true);
+  xhr.timeout = 10000;
+  xhr.ontimeout = function() {
+    console.log('Reverse geocoding request timed out');
+    weatherData.location = 'GPS Location';
+    // Still get weather data even if reverse geocoding timed out
+    getWeatherData(latitude, longitude);
+  };
+  xhr.onerror = function() {
+    console.log('Reverse geocoding request network error');
+    weatherData.location = 'GPS Location';
+    // Still get weather data even if reverse geocoding failed
+    getWeatherData(latitude, longitude);
+  };
+  xhr.send();
 }
 
 // Function to get weather data from Open-Meteo API
@@ -223,10 +324,10 @@ Pebble.addEventListener('webviewclosed', function(e) {
   var dict = clay.getSettings(e.response, false);
   console.log('Configuration received: ' + JSON.stringify(dict));
   
-  if (dict.WEATHER_LOCATION_CONFIG) {
-    config.location = dict.WEATHER_LOCATION_CONFIG.value;
+  if (dict.WEATHER_LOCATION_CONFIG !== undefined) {
+    config.location = dict.WEATHER_LOCATION_CONFIG.value || ''; // Empty string for GPS
     localStorage.setItem('WEATHER_LOCATION_CONFIG', config.location);
-    console.log('Location saved to: ' + config.location);
+    console.log('Location saved to: "' + config.location + '" (empty = GPS)');
     fetchWeatherForLocation();
   }
   
@@ -257,6 +358,14 @@ setInterval(function() {
   console.log('Periodic weather update (30min timer) for: ' + config.location);
   fetchWeatherForLocation();
 }, 30 * 60 * 1000);
+
+
+// Handle Pebble ready event
+Pebble.addEventListener('ready', function() {
+  console.log('PebbleKit JS ready!');
+  console.log('Initial weather fetch for location: "' + config.location + '" (empty = GPS)');
+  fetchWeatherForLocation();
+});
 
 
 // Handle configuration page request
