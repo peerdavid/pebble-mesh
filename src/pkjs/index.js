@@ -5,7 +5,7 @@ var clay = new Clay(clayConfig, null, { autoHandleEvents: false });
 // Default configuration
 var config = {
   location: '', // Empty = use GPS, otherwise use static location
-  colorTheme: 'dark',  // Default to dark theme (dark/light)
+  colorTheme: 'light',  // Default to dark theme (dark/light)
   stepGoal: 10000, // Default step goal
   temperatureUnit: 'celsius' // Default temperature unit (celsius/fahrenheit)
 };

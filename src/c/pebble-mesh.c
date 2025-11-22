@@ -8,8 +8,8 @@
 
 // A pointer to the main window and layers
 static Window *s_main_window;
-static TextLayer *s_time_layer;
-static TextLayer *s_date_layer;
+static Layer *s_time_layer;
+static Layer *s_date_layer;
 static Layer *s_frame_layer;
 static Layer *s_animation_layer;
 
@@ -47,6 +47,8 @@ static void try_start_animation_timer();
 static void try_stop_animation_timer();
 static void draw_frame(Layer *layer, GContext *ctx);
 static void draw_animation(Layer *layer, GContext *ctx);
+static void draw_time(Layer *layer, GContext *ctx);
+static void draw_date(Layer *layer, GContext *ctx);
 static void inbox_received_callback(DictionaryIterator *iterator, void *context);
 static void delayed_weather_request(void *data);
 static void init_info_layers(GRect bounds);
@@ -58,8 +60,8 @@ static void clear_info_layer(InfoLayer* info_layer);
 static void update_colors() {
   window_set_background_color(s_main_window, get_background_color());
 
-  text_layer_set_text_color(s_time_layer, get_text_color());
-  text_layer_set_text_color(s_date_layer, get_text_color());
+  layer_mark_dirty(s_time_layer);
+  layer_mark_dirty(s_date_layer);
 
   // Recreate bitmaps for new theme
   if (s_weather_icon_bitmap) {
@@ -181,10 +183,10 @@ static void update_time() {
     strftime(s_time_buffer, sizeof(s_time_buffer), "%I:%M", tick_time);
   }
 
-  text_layer_set_text(s_time_layer, s_time_buffer);
+  layer_mark_dirty(s_time_layer);
 
   strftime(s_date_buffer, sizeof(s_date_buffer), " %a %d", tick_time);
-  text_layer_set_text(s_date_layer, s_date_buffer);
+  layer_mark_dirty(s_date_layer);
 
   update_step_count();
   
@@ -356,6 +358,88 @@ static void draw_animation(Layer *layer, GContext *ctx) {
       GPoint(line_x_start_full + max_line_length, time_y + line_y_offset));
 }
 
+// --- Draw Time with Outline ---
+static void draw_time(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  GFont font = fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS);
+  
+  // In light mode (s_color_theme == 1), draw white outline around black text
+  if (s_color_theme == 1) {
+    // Draw white outline by drawing the text 4 times with 1-pixel offsets
+    graphics_context_set_text_color(ctx, GColorWhite);
+    
+    // Left
+    graphics_draw_text(ctx, s_time_buffer, font,
+                      GRect(bounds.origin.x - 1, bounds.origin.y, bounds.size.w, bounds.size.h),
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    // Right
+    graphics_draw_text(ctx, s_time_buffer, font,
+                      GRect(bounds.origin.x + 1, bounds.origin.y, bounds.size.w, bounds.size.h),
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    // Up
+    graphics_draw_text(ctx, s_time_buffer, font,
+                      GRect(bounds.origin.x, bounds.origin.y - 1, bounds.size.w, bounds.size.h),
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    // Down
+    graphics_draw_text(ctx, s_time_buffer, font,
+                      GRect(bounds.origin.x, bounds.origin.y + 1, bounds.size.w, bounds.size.h),
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    
+    // Draw black text in center
+    graphics_context_set_text_color(ctx, GColorBlack);
+    graphics_draw_text(ctx, s_time_buffer, font,
+                      bounds,
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+  } else {
+    // Dark mode: just draw white text without outline
+    graphics_context_set_text_color(ctx, GColorWhite);
+    graphics_draw_text(ctx, s_time_buffer, font,
+                      bounds,
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+  }
+}
+
+// --- Draw Date with Outline ---
+static void draw_date(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
+  
+  // In light mode (s_color_theme == 1), draw white outline around black text
+  if (s_color_theme == 1) {
+    // Draw white outline by drawing the text 4 times with 1-pixel offsets
+    graphics_context_set_text_color(ctx, GColorWhite);
+    
+    // Left
+    graphics_draw_text(ctx, s_date_buffer, font,
+                      GRect(bounds.origin.x - 1, bounds.origin.y, bounds.size.w, bounds.size.h),
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    // Right
+    graphics_draw_text(ctx, s_date_buffer, font,
+                      GRect(bounds.origin.x + 1, bounds.origin.y, bounds.size.w, bounds.size.h),
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    // Up
+    graphics_draw_text(ctx, s_date_buffer, font,
+                      GRect(bounds.origin.x, bounds.origin.y - 1, bounds.size.w, bounds.size.h),
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    // Down
+    graphics_draw_text(ctx, s_date_buffer, font,
+                      GRect(bounds.origin.x, bounds.origin.y + 1, bounds.size.w, bounds.size.h),
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    
+    // Draw black text in center
+    graphics_context_set_text_color(ctx, GColorBlack);
+    graphics_draw_text(ctx, s_date_buffer, font,
+                      bounds,
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+  } else {
+    // Dark mode: just draw white text without outline
+    graphics_context_set_text_color(ctx, GColorWhite);
+    graphics_draw_text(ctx, s_date_buffer, font,
+                      bounds,
+                      GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+  }
+}
+
 
 // --- Tick Handler ---
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -520,26 +604,16 @@ static void main_window_load(Window *window) {
 
   // Create Time Layer
   const int time_y_pos = bounds.size.h / 2 - 20 - 14;
-  s_time_layer = text_layer_create(
+  s_time_layer = layer_create(
       GRect(0, time_y_pos, bounds.size.w, bounds.size.h));
-
-  text_layer_set_background_color(s_time_layer, GColorClear);
-  text_layer_set_text_color(s_time_layer, get_text_color());
-  text_layer_set_text(s_time_layer, "00:00");
-  text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS));
-  text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
-  layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
+  layer_set_update_proc(s_time_layer, draw_time);
+  layer_add_child(window_layer, s_time_layer);
 
   // Create the Date Layer (Center below time)
-  s_date_layer = text_layer_create(
-      GRect(0, time_y_pos + 38, bounds.size.w, 24)); // Positioned at upper left
-
-  text_layer_set_background_color(s_date_layer, GColorClear);
-  text_layer_set_text_color(s_date_layer, get_text_color());
-  text_layer_set_text(s_date_layer, "Mon 01");
-  text_layer_set_font(s_date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(s_date_layer, GTextAlignmentCenter);
-  layer_add_child(window_layer, text_layer_get_layer(s_date_layer));
+  s_date_layer = layer_create(
+      GRect(0, time_y_pos + 38, bounds.size.w, 24));
+  layer_set_update_proc(s_date_layer, draw_date);
+  layer_add_child(window_layer, s_date_layer);
 
   // Initialize the 4 info layers
   init_info_layers(bounds);
@@ -568,8 +642,8 @@ static void main_window_load(Window *window) {
 
 static void main_window_unload(Window *window) {
   // Destroy the main layers
-  text_layer_destroy(s_time_layer);
-  text_layer_destroy(s_date_layer);
+  layer_destroy(s_time_layer);
+  layer_destroy(s_date_layer);
   layer_destroy(s_frame_layer);
   layer_destroy(s_animation_layer);
 
