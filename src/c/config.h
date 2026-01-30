@@ -11,7 +11,7 @@
 #define PERSIST_KEY_LOCATION 4
 #define PERSIST_KEY_STEP_GOAL 5
 #define PERSIST_KEY_TEMPERATURE_UNIT 6
-
+#define PERSIST_KEY_IS_DAY 7
 
 // Layer position and alignment enums
 typedef enum {
@@ -62,7 +62,7 @@ extern InfoLayer s_info_layers[NUM_INFO_LAYERS];
 extern int s_color_theme;
 extern int s_step_goal;
 extern int s_temperature_unit;  // 0 = celsius, 1 = fahrenheit
-
+extern int s_is_day; // 1 = day, 0 = night
 
 /*
  * Function Declarations

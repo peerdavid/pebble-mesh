@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.28",
+  "version": "1.29",
   "keywords": [
     "clock",
     "minimal",
@@ -34,6 +34,7 @@
       "WEATHER_REQUEST",
       "WEATHER_LOCATION_CONFIG",
       "WEATHER_CONDITION",
+      "WEATHER_IS_DAY",
       "COLOR_THEME",
       "STEP_GOAL",
       "TEMPERATURE_UNIT"
@@ -79,6 +80,16 @@
           "type": "bitmap",
           "name": "IMAGE_PARTLY_CLOUDY_LIGHT",
           "file": "images/weather/partly_cloudy_light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_PARTLY_CLOUDY_NIGHT_DARK",
+          "file": "images/weather/partly_cloudy_night_dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_PARTLY_CLOUDY_NIGHT_LIGHT",
+          "file": "images/weather/partly_cloudy_night_light.png"
         },
         {
           "type": "bitmap",
@@ -152,16 +163,6 @@
         },
         {
           "type": "bitmap",
-          "name": "IMAGE_GENERIC_WEATHER_DARK",
-          "file": "images/weather/generic_weather_dark.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_GENERIC_WEATHER_LIGHT",
-          "file": "images/weather/generic_weather_light.png"
-        },
-        {
-          "type": "bitmap",
           "name": "IMAGE_QUESTION_DARK",
           "file": "images/question_dark.png"
         },
@@ -169,6 +170,16 @@
           "type": "bitmap",
           "name": "IMAGE_QUESTION_LIGHT",
           "file": "images/question_light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CLEAR_NIGHT_DARK",
+          "file": "images/weather/clear_night_dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CLEAR_NIGHT_LIGHT",
+          "file": "images/weather/clear_night_light.png"
         }
       ]
     }

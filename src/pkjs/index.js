@@ -28,7 +28,8 @@ if (localStorage.getItem('TEMPERATURE_UNIT')) {
 var weatherData = {
   temperature: '--',
   location: 'Loading...',
-  condition: -1  // Weather code for condition
+  condition: -1,  // Weather code for condition
+  is_day: true    // Default to true (day)
 };
 
 // Function to get coordinates for a city name
@@ -213,12 +214,19 @@ function getReverseGeocodingAndFetchWeather(latitude, longitude) {
 
 // Function to get weather data from Open-Meteo API
 function getWeatherData(latitude, longitude) {
+  // Request sunrise and sunset for today, along with current weather
+  var now = new Date();
+  var yyyy = now.getUTCFullYear();
+  var mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+  var dd = String(now.getUTCDate()).padStart(2, '0');
+  var today = yyyy + '-' + mm + '-' + dd;
   var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + 
             latitude + '&longitude=' + longitude + 
-            '&current_weather=true&temperature_unit=' + config.temperatureUnit + '&windspeed_unit=kmh';
-  
+            '&current_weather=true&temperature_unit=' + config.temperatureUnit + '&windspeed_unit=kmh' +
+            '&daily=sunrise,sunset&timezone=auto&start_date=' + today + '&end_date=' + today;
+
   console.log('Fetching weather from: ' + url);
-  
+
   var xhr = new XMLHttpRequest();
   xhr.onreadystatechange = function() {
     if (xhr.readyState === 4) {
@@ -227,46 +235,69 @@ function getWeatherData(latitude, longitude) {
         try {
           var response = JSON.parse(xhr.responseText);
           console.log('Weather response: ' + xhr.responseText);
-          
+
           if (response.current_weather && response.current_weather.temperature !== undefined) {
             var temp = Math.round(response.current_weather.temperature);
             weatherData.temperature = temp.toString();
             weatherData.condition = response.current_weather.weathercode || 0;
-            console.log('Temperature: ' + weatherData.temperature + ', Weather code: ' + weatherData.condition);
+
+            // Default to is_day from API if available, else calculate
+            var isDay = true; // Default to true
+            // Fallback: calculate from sunrise/sunset
+            try {
+              var sunrise = null, sunset = null;
+              if (response.daily && response.daily.sunrise && response.daily.sunset) {
+                sunrise = new Date(response.daily.sunrise[0]);
+                sunset = new Date(response.daily.sunset[0]);
+                var nowLocal = new Date();
+                isDay = (nowLocal >= sunrise && nowLocal < sunset);
+              }
+            } catch (e) {
+              isDay = true; // Fallback to true if error
+              console.log('Error calculating is_day: ' + e.message);
+            }
+            
+            weatherData.is_day = isDay;
+            console.log('Temperature: ' + weatherData.temperature + ', Weather code: ' + weatherData.condition + ', is_day: ' + isDay);
             sendDataToPebble();
           } else {
             console.log('Invalid weather response format - no current_weather');
             weatherData.temperature = 'N/A';
             weatherData.condition = -1;
+            weatherData.is_day = true;
             sendDataToPebble();
           }
         } catch (e) {
           console.log('Weather JSON parse error: ' + e.message);
           weatherData.temperature = 'Error';
           weatherData.condition = -1;
+          weatherData.is_day = true;
           sendDataToPebble();
         }
       } else {
         console.log('Weather request failed with status: ' + xhr.status + ', response: ' + xhr.responseText);
         weatherData.temperature = 'Error';
         weatherData.condition = -1;
+        weatherData.is_day = true;
         sendDataToPebble();
       }
     }
   };
-  
+
   xhr.open('GET', url, true);
   xhr.timeout = 15000;
   xhr.ontimeout = function() {
     console.log('Weather request timed out');
     weatherData.temperature = 'Timeout';
     weatherData.condition = -1;
+    weatherData.is_day = true;
     sendDataToPebble();
   };
   xhr.onerror = function() {
     console.log('Weather request network error');
     weatherData.temperature = 'Net Error';
     weatherData.condition = -1;
+    weatherData.is_day = true;
     sendDataToPebble();
   };
   xhr.send();
@@ -275,16 +306,17 @@ function getWeatherData(latitude, longitude) {
 // Function to send weather data to Pebble
 function sendDataToPebble() {
   console.log('Sending data to pebble.');
-  
+
   var message = {
     'WEATHER_TEMPERATURE': weatherData.temperature,
     'WEATHER_LOCATION': weatherData.location,
     'WEATHER_CONDITION': weatherData.condition,
     'COLOR_THEME': config.colorTheme === 'light' ? 1 : 0,  // 0 = dark, 1 = light
     'STEP_GOAL': config.stepGoal,
-    'TEMPERATURE_UNIT': config.temperatureUnit === 'fahrenheit' ? 1 : 0  // 0 = celsius, 1 = fahrenheit
+    'TEMPERATURE_UNIT': config.temperatureUnit === 'fahrenheit' ? 1 : 0,  // 0 = celsius, 1 = fahrenheit
+    'WEATHER_IS_DAY': weatherData.is_day ? 1 : 0
   };
-  
+
   Pebble.sendAppMessage(message,
     function(e) {
       console.log('Data sent successfully');

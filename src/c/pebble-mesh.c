@@ -135,6 +135,14 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     weather_data_updated = true;
   }
 
+  // Read is_day
+  Tuple *is_day_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_IS_DAY);
+  if (is_day_tuple) {
+    s_is_day = (int)is_day_tuple->value->int32;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Is day: %d", s_is_day);
+    weather_data_updated = true;
+  }
+
   // Read color theme
   Tuple *theme_tuple = dict_find(iterator, MESSAGE_KEY_COLOR_THEME);
   if (theme_tuple) {

@@ -62,13 +62,26 @@ uint32_t get_weather_image_resource(int weather_code) {
   if (weather_code == -1) {
     return s_color_theme == 1 ? RESOURCE_ID_IMAGE_QUESTION_LIGHT : RESOURCE_ID_IMAGE_QUESTION_DARK; // Error/No data
   }
+
   // Based on WMO Weather interpretation codes
   if (weather_code == 0) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK; // Clear sky
+    if (s_is_day == 1) {
+      return s_color_theme == 1 ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK; // Clear sky day
+    } else {
+      return s_color_theme == 1 ? RESOURCE_ID_IMAGE_CLEAR_NIGHT_LIGHT : RESOURCE_ID_IMAGE_CLEAR_NIGHT_DARK; // Clear sky night
+    }
   } else if (weather_code <= 3) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_DARK; // Partly cloudy
+    if (s_is_day == 1) {
+      return s_color_theme == 1 ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_DARK; // Mostly cloudy day
+    } else {
+      return s_color_theme == 1 ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_DARK; // Mostly cloudy night
+    }
   } else if (weather_code <= 48) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_CLOUDY_DARK; // Overcast
+    if (s_is_day == 1) {
+      return s_color_theme == 1 ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_DARK; // Mostly cloudy day
+    } else {
+      return s_color_theme == 1 ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_DARK; // Mostly cloudy night
+    }
   } else if (weather_code <= 57) {
     return s_color_theme == 1 ? RESOURCE_ID_IMAGE_LIGHT_RAIN_LIGHT : RESOURCE_ID_IMAGE_LIGHT_RAIN_DARK; // Drizzle
   } else if (weather_code <= 67) {
@@ -81,10 +94,9 @@ uint32_t get_weather_image_resource(int weather_code) {
     return s_color_theme == 1 ? RESOURCE_ID_IMAGE_HEAVY_SNOW_LIGHT : RESOURCE_ID_IMAGE_HEAVY_SNOW_DARK; // Snow showers
   } else if (weather_code <= 99) {
     return s_color_theme == 1 ? RESOURCE_ID_IMAGE_THUNDERSTORM_LIGHT : RESOURCE_ID_IMAGE_THUNDERSTORM_DARK; // Thunderstorm
-  } else
-  {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_GENERIC_WEATHER_LIGHT : RESOURCE_ID_IMAGE_GENERIC_WEATHER_DARK; // Unknown
   }
+  
+  return s_color_theme == 1 ? RESOURCE_ID_IMAGE_QUESTION_LIGHT : RESOURCE_ID_IMAGE_QUESTION_DARK; // Unknown
 }
 
 /*
@@ -112,6 +124,7 @@ void save_weather_to_storage() {
   persist_write_int(PERSIST_KEY_WEATHER_CODE, s_current_weather_code);
   persist_write_string(PERSIST_KEY_TEMPERATURE, s_temperature_buffer);
   persist_write_string(PERSIST_KEY_LOCATION, s_location_buffer);
+  persist_write_int(PERSIST_KEY_IS_DAY, s_is_day);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved weather to storage: code=%d, temp=%s, location=%s", 
           s_current_weather_code, s_temperature_buffer, s_location_buffer);
 }
@@ -139,5 +152,13 @@ void load_weather_from_storage() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded location from storage: %s", s_location_buffer);
   } else {
     snprintf(s_location_buffer, sizeof(s_location_buffer), "---");
+  }
+
+  // Load is_day
+  if (persist_exists(PERSIST_KEY_IS_DAY)) {
+    s_is_day = persist_read_int(PERSIST_KEY_IS_DAY);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded is_day from storage: %d", s_is_day);
+  } else {
+    s_is_day = 1; // Default to day
   }
 }
