@@ -15,7 +15,7 @@ void load_step_icon() {
   if (s_step_icon_bitmap) {
     gbitmap_destroy(s_step_icon_bitmap);
   }
-  uint32_t step_resource_id = s_color_theme == 1 ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK;
+  uint32_t step_resource_id = is_light_theme() ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK;
   s_step_icon_bitmap = gbitmap_create_with_resource(step_resource_id);
 }
 

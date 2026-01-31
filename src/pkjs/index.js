@@ -5,7 +5,7 @@ var clay = new Clay(clayConfig, null, { autoHandleEvents: false });
 // Default configuration
 var config = {
   location: '', // Empty = use GPS, otherwise use static location
-  colorTheme: 'dark',  // Default to dark theme (dark/light)
+  colorTheme: 'dark',  // Default to dark theme (dark/light/dynamic)
   stepGoal: 10000, // Default step goal
   temperatureUnit: 'celsius' // Default temperature unit (celsius/fahrenheit)
 };
@@ -299,6 +299,18 @@ function getWeatherData(latitude, longitude) {
   xhr.send();
 }
 
+
+function colorThemeStrToInt(themeStr) {
+  if (themeStr === 'light') {
+    return 1;
+  } else if (themeStr === 'dynamic') {
+    return 2;
+  } else {
+    return 0; // Default to dark
+  }
+}
+
+
 // Function to send weather data to Pebble
 function sendDataToPebble() {
   console.log('Sending data to pebble.');
@@ -307,7 +319,7 @@ function sendDataToPebble() {
     'WEATHER_TEMPERATURE': weatherData.temperature,
     'WEATHER_LOCATION': weatherData.location,
     'WEATHER_CONDITION': weatherData.condition,
-    'COLOR_THEME': config.colorTheme === 'light' ? 1 : 0,  // 0 = dark, 1 = light
+    'COLOR_THEME': colorThemeStrToInt(config.colorTheme),  // 0 = dark, 1 = light, 2 = dynamic
     'STEP_GOAL': config.stepGoal,
     'TEMPERATURE_UNIT': config.temperatureUnit === 'fahrenheit' ? 1 : 0,  // 0 = celsius, 1 = fahrenheit
     'WEATHER_IS_DAY': weatherData.is_day ? 1 : 0

@@ -5,7 +5,58 @@ module.exports = [
   },
   {
     "type": "text",
-    "defaultValue": "Made by David Peer, 2025"
+    "defaultValue": "Made by David Peer, 2026"
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Appearance"
+      },
+      {
+        "type": "select",
+        "messageKey": "COLOR_THEME",
+        "label": "Color Theme",
+        "defaultValue": "dark",
+        "options": [
+          {
+            "label": "Dark",
+            "value": "dark"
+          },
+          {
+            "label": "Light",
+            "value": "light"
+          },
+          {
+            "label": "Dynamic (Sunrise/Sunset)",
+            "value": "dynamic"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Health"
+      },
+      {
+        "type": "input",
+        "messageKey": "STEP_GOAL",
+        "label": "Daily Step Goal",
+        "defaultValue": "10000",
+        "description": "Set your daily step goal (100-100000)",
+        "attributes": {
+          "type": "number",
+          "min": 100,
+          "max": 100000,
+          "placeholder": "10000"
+        }
+      }
+    ]
   },
   {
     "type": "section",
@@ -37,53 +88,6 @@ module.exports = [
           {
             "label": "Fahrenheit",
             "value": "fahrenheit"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "type": "section",
-    "items": [
-      {
-        "type": "heading",
-        "defaultValue": "Steps"
-      },
-      {
-        "type": "input",
-        "messageKey": "STEP_GOAL",
-        "label": "Daily Step Goal",
-        "defaultValue": "10000",
-        "description": "Set your daily step goal (100-100000)",
-        "attributes": {
-          "type": "number",
-          "min": 100,
-          "max": 100000,
-          "placeholder": "10000"
-        }
-      }
-    ]
-  },
-  {
-    "type": "section",
-    "items": [
-      {
-        "type": "heading",
-        "defaultValue": "Appearance"
-      },
-      {
-        "type": "radiogroup",
-        "messageKey": "COLOR_THEME",
-        "label": "Color Theme",
-        "defaultValue": "dark",
-        "options": [
-          {
-            "label": "Dark",
-            "value": "dark"
-          },
-          {
-            "label": "Light",
-            "value": "light"
           }
         ]
       }

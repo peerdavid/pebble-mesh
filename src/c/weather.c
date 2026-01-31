@@ -60,43 +60,43 @@ void draw_temperature_info(InfoLayer* info_layer) {
 uint32_t get_weather_image_resource(int weather_code) {
   // Handle error case with question mark icon
   if (weather_code == -1) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_QUESTION_LIGHT : RESOURCE_ID_IMAGE_QUESTION_DARK; // Error/No data
+    return is_light_theme() ? RESOURCE_ID_IMAGE_QUESTION_LIGHT : RESOURCE_ID_IMAGE_QUESTION_DARK; // Error/No data
   }
 
   // Based on WMO Weather interpretation codes
   if (weather_code == 0) {
     if (s_is_day == 1) {
-      return s_color_theme == 1 ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK; // Clear sky day
+      return is_light_theme() ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK; // Clear sky day
     } else {
-      return s_color_theme == 1 ? RESOURCE_ID_IMAGE_CLEAR_NIGHT_LIGHT : RESOURCE_ID_IMAGE_CLEAR_NIGHT_DARK; // Clear sky night
+      return is_light_theme() ? RESOURCE_ID_IMAGE_CLEAR_NIGHT_LIGHT : RESOURCE_ID_IMAGE_CLEAR_NIGHT_DARK; // Clear sky night
     }
   } else if (weather_code <= 3) {
     if (s_is_day == 1) {
-      return s_color_theme == 1 ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_DARK; // Mostly cloudy day
+      return is_light_theme() ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_DARK; // Mostly cloudy day
     } else {
-      return s_color_theme == 1 ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_DARK; // Mostly cloudy night
+      return is_light_theme() ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_DARK; // Mostly cloudy night
     }
   } else if (weather_code <= 48) {
     if (s_is_day == 1) {
-      return s_color_theme == 1 ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_DARK; // Mostly cloudy day
+      return is_light_theme() ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_DARK; // Mostly cloudy day
     } else {
-      return s_color_theme == 1 ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_DARK; // Mostly cloudy night
+      return is_light_theme() ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_DARK; // Mostly cloudy night
     }
   } else if (weather_code <= 57) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_LIGHT_RAIN_LIGHT : RESOURCE_ID_IMAGE_LIGHT_RAIN_DARK; // Drizzle
+    return is_light_theme() ? RESOURCE_ID_IMAGE_LIGHT_RAIN_LIGHT : RESOURCE_ID_IMAGE_LIGHT_RAIN_DARK; // Drizzle
   } else if (weather_code <= 67) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_HEAVY_RAIN_LIGHT : RESOURCE_ID_IMAGE_HEAVY_RAIN_DARK; // Rain
+    return is_light_theme() ? RESOURCE_ID_IMAGE_HEAVY_RAIN_LIGHT : RESOURCE_ID_IMAGE_HEAVY_RAIN_DARK; // Rain
   } else if (weather_code <= 77) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_LIGHT_SNOW_LIGHT : RESOURCE_ID_IMAGE_LIGHT_SNOW_DARK; // Snow
+    return is_light_theme() ? RESOURCE_ID_IMAGE_LIGHT_SNOW_LIGHT : RESOURCE_ID_IMAGE_LIGHT_SNOW_DARK; // Snow
   } else if (weather_code <= 82) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_LIGHT_RAIN_LIGHT : RESOURCE_ID_IMAGE_LIGHT_RAIN_DARK; // Rain showers
+    return is_light_theme() ? RESOURCE_ID_IMAGE_LIGHT_RAIN_LIGHT : RESOURCE_ID_IMAGE_LIGHT_RAIN_DARK; // Rain showers
   } else if (weather_code <= 86) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_HEAVY_SNOW_LIGHT : RESOURCE_ID_IMAGE_HEAVY_SNOW_DARK; // Snow showers
+    return is_light_theme() ? RESOURCE_ID_IMAGE_HEAVY_SNOW_LIGHT : RESOURCE_ID_IMAGE_HEAVY_SNOW_DARK; // Snow showers
   } else if (weather_code <= 99) {
-    return s_color_theme == 1 ? RESOURCE_ID_IMAGE_THUNDERSTORM_LIGHT : RESOURCE_ID_IMAGE_THUNDERSTORM_DARK; // Thunderstorm
+    return is_light_theme() ? RESOURCE_ID_IMAGE_THUNDERSTORM_LIGHT : RESOURCE_ID_IMAGE_THUNDERSTORM_DARK; // Thunderstorm
   }
   
-  return s_color_theme == 1 ? RESOURCE_ID_IMAGE_QUESTION_LIGHT : RESOURCE_ID_IMAGE_QUESTION_DARK; // Unknown
+  return is_light_theme() ? RESOURCE_ID_IMAGE_QUESTION_LIGHT : RESOURCE_ID_IMAGE_QUESTION_DARK; // Unknown
 }
 
 /*

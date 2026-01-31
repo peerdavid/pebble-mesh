@@ -56,6 +56,7 @@ static void update_all_info_layers();
 static void draw_info_for_type(InfoType info_type, InfoLayer* info_layer);
 static void clear_info_layer(InfoLayer* info_layer);
 
+
 // Function to update all colors based on current theme
 static void update_colors() {
   window_set_background_color(s_main_window, get_background_color());
@@ -75,7 +76,7 @@ static void update_colors() {
   if (s_battery_icon_bitmap) {
     gbitmap_destroy(s_battery_icon_bitmap);
   }
-  uint32_t battery_resource_id = s_color_theme == 1 ? RESOURCE_ID_IMAGE_BATTERY_LIGHT : RESOURCE_ID_IMAGE_BATTERY_DARK;
+  uint32_t battery_resource_id = is_light_theme() ? RESOURCE_ID_IMAGE_BATTERY_LIGHT : RESOURCE_ID_IMAGE_BATTERY_DARK;
   s_battery_icon_bitmap = gbitmap_create_with_resource(battery_resource_id);
 
   // Update all info layers to refresh the display
@@ -279,14 +280,14 @@ static void draw_frame(Layer *layer, GContext *ctx) {
   GColor frame_color = get_text_color(); // Use theme-appropriate color
 
   // In case we have light theme, we don't draw a frame
-  if(BORDER_THICKNESS > 0 && s_color_theme == 0) {
+  if(BORDER_THICKNESS > 0 && is_dark_theme()) {
     graphics_context_set_stroke_color(ctx, frame_color);
     graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
     graphics_draw_rect(ctx, GRect(1, 1, bounds.size.w - 2, bounds.size.h - 2));
   }
 
   // IN case we have light theme, we draw a gray rectangle in the middle
-  if(s_color_theme == 1) {
+  if(is_light_theme()) {
     graphics_context_set_fill_color(ctx, GColorLightGray);
     
     // We draw the rectange exactly from the upper to the lower animated line in  the same length
@@ -371,8 +372,8 @@ static void draw_time(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GFont font = fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS);
   
-  // In light mode (s_color_theme == 1), draw white outline around black text
-  if (s_color_theme == 1) {
+  // In light mode, draw white outline around black text
+  if (is_light_theme()) {
     // Draw white outline by drawing the text 4 times with 1-pixel offsets
     graphics_context_set_text_color(ctx, GColorWhite);
     
@@ -412,8 +413,8 @@ static void draw_date(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
   
-  // In light mode (s_color_theme == 1), draw white outline around black text
-  if (s_color_theme == 1) {
+  // In light mode, draw white outline around black text
+  if (is_light_theme()) {
     // Draw white outline by drawing the text 4 times with 1-pixel offsets
     graphics_context_set_text_color(ctx, GColorWhite);
     
@@ -532,7 +533,7 @@ static void delayed_weather_request(void *data) {
 // Initialize the 4 info layers with proper positioning
 static void init_info_layers(GRect bounds) {
 
-  int theme_offset = s_color_theme == 0 ? 2 : 0;
+  int theme_offset = is_dark_theme() ? 2 : 0;
   const int info_layer_width = bounds.size.w / 2 - BORDER_THICKNESS - 2 - theme_offset;
   const int info_layer_height = 44;
 
@@ -635,10 +636,10 @@ static void main_window_load(Window *window) {
   uint32_t default_icon = get_weather_image_resource(s_current_weather_code);
   s_weather_icon_bitmap = gbitmap_create_with_resource(default_icon);
   
-  uint32_t step_icon = s_color_theme == 1 ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK;
+  uint32_t step_icon = is_light_theme() ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK;
   s_step_icon_bitmap = gbitmap_create_with_resource(step_icon);
 
-  uint32_t battery_icon = s_color_theme == 1 ? RESOURCE_ID_IMAGE_BATTERY_LIGHT : RESOURCE_ID_IMAGE_BATTERY_DARK;
+  uint32_t battery_icon = is_light_theme() ? RESOURCE_ID_IMAGE_BATTERY_LIGHT : RESOURCE_ID_IMAGE_BATTERY_DARK;
   s_battery_icon_bitmap = gbitmap_create_with_resource(battery_icon);
 
   // Initialize the display with current layer assignments

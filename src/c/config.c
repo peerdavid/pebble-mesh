@@ -32,14 +32,30 @@ void load_theme_from_storage() {
   }
 }
 
+bool is_dark_theme(){
+  if(s_color_theme == 0) {
+    return true;
+  }
+  else if(s_color_theme == 2) {
+    // Dynamic theme based on is_day
+    return s_is_day == 0;
+  }
+
+  return false;
+}
+
+bool is_light_theme(){
+  return !is_dark_theme();
+}
+
 
 // Function to get colors based on theme
 GColor get_background_color() {
-  return s_color_theme == 1 ? GColorWhite : GColorBlack;
+  return is_light_theme() ? GColorWhite : GColorBlack;
 }
 
 GColor get_text_color() {
-  return s_color_theme == 1 ? GColorBlack : GColorWhite;
+  return is_light_theme() ? GColorBlack : GColorWhite;
 }
 
 void save_step_goal_to_storage() {

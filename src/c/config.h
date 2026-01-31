@@ -73,6 +73,8 @@ void save_step_goal_to_storage();
 void load_step_goal_from_storage();
 void save_temperature_unit_to_storage();
 void load_temperature_unit_from_storage();
+bool is_dark_theme();
+bool is_light_theme();
 GColor get_background_color();
 GColor get_text_color();
 
