@@ -7,7 +7,8 @@ var config = {
   location: '', // Empty = use GPS, otherwise use static location
   colorTheme: 'dark',  // Default to dark theme (dark/light/dynamic)
   stepGoal: 10000, // Default step goal
-  temperatureUnit: 'celsius' // Default temperature unit (celsius/fahrenheit)
+  temperatureUnit: 'celsius', // Default temperature unit (celsius/fahrenheit)
+  enableAnimations: true // Default to animations enabled
 };
 
 // Load saved configuration
@@ -22,6 +23,9 @@ if (localStorage.getItem('STEP_GOAL')) {
 }
 if (localStorage.getItem('TEMPERATURE_UNIT')) {
   config.temperatureUnit = localStorage.getItem('TEMPERATURE_UNIT');
+}
+if (localStorage.getItem('ENABLE_ANIMATIONS')) {
+  config.enableAnimations = (localStorage.getItem('ENABLE_ANIMATIONS') === 'true');
 }
 
 // Variables to store weather data
@@ -322,7 +326,8 @@ function sendDataToPebble() {
     'COLOR_THEME': colorThemeStrToInt(config.colorTheme),  // 0 = dark, 1 = light, 2 = dynamic
     'STEP_GOAL': config.stepGoal,
     'TEMPERATURE_UNIT': config.temperatureUnit === 'fahrenheit' ? 1 : 0,  // 0 = celsius, 1 = fahrenheit
-    'WEATHER_IS_DAY': weatherData.is_day ? 1 : 0
+    'WEATHER_IS_DAY': weatherData.is_day ? 1 : 0,
+    'ENABLE_ANIMATIONS': config.enableAnimations ? 1 : 0
   };
 
   Pebble.sendAppMessage(message,
@@ -390,6 +395,13 @@ Pebble.addEventListener('webviewclosed', function(e) {
     localStorage.setItem('TEMPERATURE_UNIT', config.temperatureUnit);
     console.log('Temperature unit saved to: ' + config.temperatureUnit);
     fetchWeatherForLocation(); // Fetch weather again with new unit
+  }
+
+  if (dict.ENABLE_ANIMATIONS) {
+    config.enableAnimations = dict.ENABLE_ANIMATIONS.value;
+    localStorage.setItem('ENABLE_ANIMATIONS', config.enableAnimations);
+    console.log('Enable animations saved to: ' + config.enableAnimations);
+    sendDataToPebble(); // Send immediately to update animation setting
   }
 });
 

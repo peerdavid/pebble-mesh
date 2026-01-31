@@ -5,6 +5,7 @@ int s_color_theme = 1;
 int s_step_goal = 10000;
 int s_temperature_unit = 0;  // 0 = celsius, 1 = fahrenheit
 int s_is_day = 1; // 1 = day, 0 = night
+int s_enable_animations = 1; // 1 = enabled, 0 = disabled
 
 InfoLayer s_info_layers[NUM_INFO_LAYERS];
 InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
@@ -87,5 +88,21 @@ void load_temperature_unit_from_storage() {
     // Default to celsius if no preference exists
     s_temperature_unit = 0;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No temperature unit preference found, using default celsius");
+  }
+}
+
+void save_enable_animations_to_storage() {
+  persist_write_int(PERSIST_KEY_ENABLE_ANIMATIONS, s_enable_animations);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved enable animations to storage: %d", s_enable_animations);
+}
+
+void load_enable_animations_from_storage() {
+  if (persist_exists(PERSIST_KEY_ENABLE_ANIMATIONS)) {
+    s_enable_animations = persist_read_int(PERSIST_KEY_ENABLE_ANIMATIONS);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded enable animations from storage: %d", s_enable_animations);
+  } else {
+    // Default to enabled if no preference exists
+    s_enable_animations = 1;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No enable animations preference found, using default enabled");
   }
 }

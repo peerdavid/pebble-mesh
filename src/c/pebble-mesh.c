@@ -18,25 +18,20 @@ static Layer *s_animation_layer;
 #define CROSS_SIZE 0
 
 #define VERY_FIRST_ANIMATION_FRAME 500
+#define DECREASE_PER_FRAME 10
 #define ANIMATION_RATE_MS 20
 
 #define NUM_ANIMATION_FRAMES 500
-#define ANIMATION_DECREASE_STEP 15
-#define SLOW_DOWN_ANIMATION_FRAME 130
 
 #define BORDER_THICKNESS 3
 
 // Animation
 static AppTimer *s_animation_timer = NULL;
 static int current_animation_frame = 0; // Ranges from NUM_ANIMATION_FRAMES down to 0
-static int current_decrease_rate = 1;
 
 // Buffer to hold the time string (e.g., "12:34" or "23:59")
 static char s_time_buffer[9];
 static char s_date_buffer[8];
-
-// Flag to track the state of the animation
-static bool s_is_animation_running = false;
 
 // Forward declarations
 static void update_time();
@@ -175,6 +170,17 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     // Redraw all info layers to show updated weather data
     update_all_info_layers();
   }
+
+  // Read enable animations
+  Tuple *enable_animations_tuple = dict_find(iterator, MESSAGE_KEY_ENABLE_ANIMATIONS);
+  if (enable_animations_tuple) {
+    int new_enable_animations = (int)enable_animations_tuple->value->int32;
+    if (new_enable_animations != s_enable_animations) {
+      s_enable_animations = new_enable_animations;
+      save_enable_animations_to_storage();
+      try_start_animation_timer();
+    }
+  }
 }
 
 // --- Update Time Function ---
@@ -217,17 +223,12 @@ static void battery_handler(BatteryChargeState state) {
  * @brief Stops the animation timer and resets the running flag.
  */
 static void try_stop_animation_timer() {
-  if (!s_is_animation_running) {
-    return;
-  }
-
   if (s_animation_timer) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Stop animation timer");
     app_timer_cancel(s_animation_timer);
     s_animation_timer = NULL;
   }
 
-  s_is_animation_running = false;
   current_animation_frame = 0;
 }
 
@@ -235,42 +236,30 @@ static void try_stop_animation_timer() {
  * @brief Starts the animation timer if it's not already running.
  */
 static void try_start_animation_timer() {
-  if (s_is_animation_running) {
-    return;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Start animation timer");
+
+  if(current_animation_frame == 0){
+    current_animation_frame = s_enable_animations == 0 ? 0 : NUM_ANIMATION_FRAMES;
   }
 
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Start animation timer");
-  current_animation_frame = NUM_ANIMATION_FRAMES;
-  current_decrease_rate = ANIMATION_DECREASE_STEP;
-  s_is_animation_running = true;
-
-  s_animation_timer = app_timer_register(VERY_FIRST_ANIMATION_FRAME, animation_timer_callback, NULL);
+  if(current_animation_frame > 0){
+    s_animation_timer = app_timer_register(VERY_FIRST_ANIMATION_FRAME, animation_timer_callback, NULL);
+  } else {
+    layer_mark_dirty(s_animation_layer);
+  }
 }
 
 /**
  * @brief AppTimer callback that triggers the frame redraw and reschedules itself.
  */
 static void animation_timer_callback(void *data) {
-  // If the animation was stopped between the last timer call and now, don't restart it
-  if (!s_is_animation_running) {
-    return;
-  }
-
-  current_animation_frame -= current_decrease_rate;
-  if(current_animation_frame < 0) {
-    try_stop_animation_timer();
-    return; // try_stop_animation_timer will trigger the final redraw
-  }
-
-  if(current_animation_frame <= SLOW_DOWN_ANIMATION_FRAME && current_decrease_rate > 2) {
-    current_decrease_rate -= 1;
-  }
-
-  // Mark the frame layer as dirty to trigger a redraw for the animation effect
   layer_mark_dirty(s_animation_layer);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Current animation frame: %d", current_animation_frame);
 
   // Reschedule the timer for the next frame, creating a continuous loop
-  s_animation_timer = app_timer_register(ANIMATION_RATE_MS, animation_timer_callback, NULL);
+  if(current_animation_frame > 0){
+    s_animation_timer = app_timer_register(ANIMATION_RATE_MS, animation_timer_callback, NULL);
+  }
 }
 
 
@@ -327,18 +316,20 @@ static void draw_animation(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GColor color = get_text_color(); // Use theme-appropriate color
 
-  // Horizontal lines above and below the time with 80% width
   const int max_line_length = bounds.size.w * 0.8;
   const int line_x_start_full = (bounds.size.w - max_line_length) / 2;
   const int time_y = bounds.size.h / 2;
   const int line_y_offset = 30; // Distance from the center of the time text
+
+  current_animation_frame -= DECREASE_PER_FRAME;
+  current_animation_frame = current_animation_frame < 0 ? 0 : current_animation_frame;
 
   // Calculate the current animated line length. It goes from 0 up to max_line_length.
   // current_animation_frame ranges from NUM_ANIMATION_FRAMES (max) down to 0.
   // The factor should go from 0 (when frame is max) up to 1 (when frame is 0).
   float animation_factor = 1.0f - ((float)current_animation_frame / NUM_ANIMATION_FRAMES);
   int current_line_length = (int)(max_line_length * animation_factor);
-
+  
   // Safety check
   if (current_line_length < 0)
     current_line_length = 0;
@@ -366,6 +357,7 @@ static void draw_animation(Layer *layer, GContext *ctx) {
       GPoint(line_x_start_full + max_line_length - current_line_length, time_y + line_y_offset),
       GPoint(line_x_start_full + max_line_length, time_y + line_y_offset));
 }
+
 
 // --- Draw Time with Outline ---
 static void draw_time(Layer *layer, GContext *ctx) {
@@ -689,6 +681,9 @@ static void init() {
   
   // Load saved temperature unit preference
   load_temperature_unit_from_storage();
+
+  // Load animation
+  load_enable_animations_from_storage();
   
   // Load saved weather data from storage
   load_weather_from_storage();
@@ -703,7 +698,7 @@ static void init() {
 
   // Initialize App Message
   app_message_register_inbox_received(inbox_received_callback);
-  app_message_open(64, 64); // Increase buffer size for weather data
+  app_message_open(128, 128); // Increase buffer size for weather data
 
   // Subscribe to MINUTE_UNIT (for time update/minute-start trigger) and SECOND_UNIT (for stop trigger)
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);

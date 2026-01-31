@@ -33,6 +33,12 @@ module.exports = [
             "value": "dynamic"
           }
         ]
+      },
+      {
+        "type": "toggle",
+        "messageKey": "ENABLE_ANIMATIONS",
+        "label": "Enable Animations",
+        "defaultValue": true
       }
     ]
   },

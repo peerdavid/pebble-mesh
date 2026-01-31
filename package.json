@@ -37,7 +37,8 @@
       "WEATHER_IS_DAY",
       "COLOR_THEME",
       "STEP_GOAL",
-      "TEMPERATURE_UNIT"
+      "TEMPERATURE_UNIT",
+      "ENABLE_ANIMATIONS"
     ],
     "resources": {
       "media": [

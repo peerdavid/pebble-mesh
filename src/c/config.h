@@ -12,6 +12,7 @@
 #define PERSIST_KEY_STEP_GOAL 5
 #define PERSIST_KEY_TEMPERATURE_UNIT 6
 #define PERSIST_KEY_IS_DAY 7
+#define PERSIST_KEY_ENABLE_ANIMATIONS 8
 
 // Layer position and alignment enums
 typedef enum {
@@ -63,6 +64,7 @@ extern int s_color_theme;
 extern int s_step_goal;
 extern int s_temperature_unit;  // 0 = celsius, 1 = fahrenheit
 extern int s_is_day; // 1 = day, 0 = night
+extern int s_enable_animations; // 1 = enabled, 0 = disabled
 
 /*
  * Function Declarations
@@ -73,6 +75,8 @@ void save_step_goal_to_storage();
 void load_step_goal_from_storage();
 void save_temperature_unit_to_storage();
 void load_temperature_unit_from_storage();
+void save_enable_animations_to_storage();
+void load_enable_animations_from_storage();
 bool is_dark_theme();
 bool is_light_theme();
 GColor get_background_color();
