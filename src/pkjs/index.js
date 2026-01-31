@@ -129,7 +129,6 @@ function getLocationAndFetchWeather() {
       var latitude = pos.coords.latitude;
       var longitude = pos.coords.longitude;
       console.log('GPS coordinates: ' + latitude + ',' + longitude);
-      
       // Get city name from reverse geocoding and then get weather
       getReverseGeocodingAndFetchWeather(latitude, longitude);
     },
@@ -152,9 +151,8 @@ function getReverseGeocodingAndFetchWeather(latitude, longitude) {
   console.log('Getting city name for coordinates: ' + latitude + ',' + longitude);
   
   // Use OpenStreetMap Nominatim for reverse geocoding
-  var url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + 
-            latitude + '&lon=' + longitude + '&zoom=10&addressdetails=1';
-  
+  var url = 'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=' + latitude + '&longitude=' + longitude;
+
   console.log('Reverse geocoding URL: ' + url);
   
   var xhr = new XMLHttpRequest();
@@ -165,13 +163,11 @@ function getReverseGeocodingAndFetchWeather(latitude, longitude) {
           var response = JSON.parse(xhr.responseText);
           console.log('Reverse geocoding response: ' + xhr.responseText);
           
-          if (response.address) {
+          if (response) {
             // Try to get city, town, village, or locality
-            var locationName = response.address.city || 
-                             response.address.town || 
-                             response.address.village || 
-                             response.address.county ||
-                             response.address.state ||
+            var locationName = response.city || 
+                             response.locality || 
+                             response.countryName ||
                              'GPS Loc';
             weatherData.location = locationName;
             console.log('Found location name: ' + weatherData.location);
@@ -396,7 +392,7 @@ setInterval(function() {
 Pebble.addEventListener('ready', function() {
   console.log('PebbleKit JS ready!');
   console.log('Initial weather fetch for location: "' + config.location + '" (empty = GPS)');
-  fetchWeatherForLocation();
+  //fetchWeatherForLocation();
 });
 
 
