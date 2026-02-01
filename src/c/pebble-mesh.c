@@ -28,6 +28,7 @@ static Layer *s_animation_layer;
 // Animation
 static AppTimer *s_animation_timer = NULL;
 static int current_animation_frame = 0; // Ranges from NUM_ANIMATION_FRAMES down to 0
+static int old_background_color = -1;
 
 // Buffer to hold the time string (e.g., "12:34" or "23:59")
 static char s_time_buffer[9];
@@ -136,7 +137,9 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (is_day_tuple) {
     s_is_day = (int)is_day_tuple->value->int32;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Is day: %d", s_is_day);
-    weather_data_updated = true;
+    
+    // In case lets update the background colors (dynamic day/night theme)
+    update_colors();
   }
 
   // Read color theme
@@ -203,9 +206,6 @@ static void update_time() {
   layer_mark_dirty(s_date_layer);
 
   update_step_count();
-  
-  // Update info layers and colors in case the theme changed (dynamic theme)
-  update_colors();
 }
 
 // --- Battery Handler ---
