@@ -19,7 +19,7 @@ static Layer *s_animation_layer;
 
 #define VERY_FIRST_ANIMATION_FRAME 500
 #define DECREASE_PER_FRAME 10
-#define ANIMATION_RATE_MS 20
+#define ANIMATION_RATE_MS 50
 
 #define NUM_ANIMATION_FRAMES 500
 
@@ -253,6 +253,8 @@ static void try_start_animation_timer() {
  */
 static void animation_timer_callback(void *data) {
   layer_mark_dirty(s_animation_layer);
+  layer_mark_dirty(s_time_layer);
+  layer_mark_dirty(s_date_layer);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Current animation frame: %d", current_animation_frame);
 
   // Reschedule the timer for the next frame, creating a continuous loop
@@ -327,6 +329,11 @@ static void draw_animation(Layer *layer, GContext *ctx) {
 
   float animation_factor = 1.0f - ((float)current_animation_frame / NUM_ANIMATION_FRAMES);
   
+  // Don't draw lines until time and date are done (after 0.40)
+  if (animation_factor < 0.40f) {
+    return;
+  }
+  
   graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
   
@@ -334,10 +341,10 @@ static void draw_animation(Layer *layer, GContext *ctx) {
   int total_segments = (max_line_length + segment_length + segment_gap - 1) / (segment_length + segment_gap);
   
   // Typewriter effect: draw lines in discrete segments
-  // First half of animation: upper line, second half: lower line
-  if (animation_factor < 0.5f) {
+  // Phase 3 (0.40 - 0.70): upper line, Phase 4 (0.70 - 1.0): lower line
+  if (animation_factor < 0.70f) {
     // Upper line typing
-    float upper_progress = animation_factor * 2.0f; // 0.0 to 1.0
+    float upper_progress = (animation_factor - 0.40f) / 0.30f; // 0.0 to 1.0
     int segments_to_draw = (int)(total_segments * upper_progress);
     
     // Draw complete segments only
@@ -372,7 +379,7 @@ static void draw_animation(Layer *layer, GContext *ctx) {
         GPoint(line_x_end_full, time_y - line_y_offset));
     
     // Lower line typing
-    float lower_progress = (animation_factor - 0.5f) * 2.0f; // 0.0 to 1.0
+    float lower_progress = (animation_factor - 0.70f) / 0.30f; // 0.0 to 1.0
     
     if (lower_progress >= 0.99f) {
       // Lower line complete - draw it fully as a solid line
@@ -418,37 +425,53 @@ static void draw_time(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GFont font = fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS);
   
+  // Calculate animation progress
+  float animation_factor = 1.0f - ((float)current_animation_frame / NUM_ANIMATION_FRAMES);
+  
+  // Typewriter effect: only show characters progressively during first phase (0.0 - 0.25)
+  char display_buffer[9];
+  if (animation_factor < 0.25f) {
+    float time_progress = animation_factor / 0.25f; // 0.0 to 1.0
+    int time_len = strlen(s_time_buffer);
+    int chars_to_show = (int)(time_len * time_progress);
+    
+    strncpy(display_buffer, s_time_buffer, chars_to_show);
+    display_buffer[chars_to_show] = '\0';
+  } else {
+    strcpy(display_buffer, s_time_buffer);
+  }
+  
   // In light mode, draw white outline around black text
   if (is_light_theme()) {
     // Draw white outline by drawing the text 4 times with 1-pixel offsets
     graphics_context_set_text_color(ctx, GColorWhite);
     
     // Left
-    graphics_draw_text(ctx, s_time_buffer, font,
+    graphics_draw_text(ctx, display_buffer, font,
                       GRect(bounds.origin.x - 1, bounds.origin.y, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     // Right
-    graphics_draw_text(ctx, s_time_buffer, font,
+    graphics_draw_text(ctx, display_buffer, font,
                       GRect(bounds.origin.x + 1, bounds.origin.y, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     // Up
-    graphics_draw_text(ctx, s_time_buffer, font,
+    graphics_draw_text(ctx, display_buffer, font,
                       GRect(bounds.origin.x, bounds.origin.y - 1, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     // Down
-    graphics_draw_text(ctx, s_time_buffer, font,
+    graphics_draw_text(ctx, display_buffer, font,
                       GRect(bounds.origin.x, bounds.origin.y + 1, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     
     // Draw black text in center
     graphics_context_set_text_color(ctx, GColorBlack);
-    graphics_draw_text(ctx, s_time_buffer, font,
+    graphics_draw_text(ctx, display_buffer, font,
                       bounds,
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   } else {
     // Dark mode: just draw white text without outline
     graphics_context_set_text_color(ctx, GColorWhite);
-    graphics_draw_text(ctx, s_time_buffer, font,
+    graphics_draw_text(ctx, display_buffer, font,
                       bounds,
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   }
@@ -459,37 +482,56 @@ static void draw_date(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
   
+  // Calculate animation progress
+  float animation_factor = 1.0f - ((float)current_animation_frame / NUM_ANIMATION_FRAMES);
+  
+  // Typewriter effect: only show characters progressively during second phase (0.25 - 0.40)
+  char display_buffer[8];
+  if (animation_factor < 0.25f) {
+    // Time still typing - don't show date yet
+    display_buffer[0] = '\0';
+  } else if (animation_factor < 0.40f) {
+    float date_progress = (animation_factor - 0.25f) / 0.15f; // 0.0 to 1.0
+    int date_len = strlen(s_date_buffer);
+    int chars_to_show = (int)(date_len * date_progress);
+    
+    strncpy(display_buffer, s_date_buffer, chars_to_show);
+    display_buffer[chars_to_show] = '\0';
+  } else {
+    strcpy(display_buffer, s_date_buffer);
+  }
+  
   // In light mode, draw white outline around black text
   if (is_light_theme()) {
     // Draw white outline by drawing the text 4 times with 1-pixel offsets
     graphics_context_set_text_color(ctx, GColorWhite);
     
     // Left
-    graphics_draw_text(ctx, s_date_buffer, font,
+    graphics_draw_text(ctx, display_buffer, font,
                       GRect(bounds.origin.x - 1, bounds.origin.y, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     // Right
-    graphics_draw_text(ctx, s_date_buffer, font,
+    graphics_draw_text(ctx, display_buffer, font,
                       GRect(bounds.origin.x + 1, bounds.origin.y, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     // Up
-    graphics_draw_text(ctx, s_date_buffer, font,
+    graphics_draw_text(ctx, display_buffer, font,
                       GRect(bounds.origin.x, bounds.origin.y - 1, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     // Down
-    graphics_draw_text(ctx, s_date_buffer, font,
+    graphics_draw_text(ctx, display_buffer, font,
                       GRect(bounds.origin.x, bounds.origin.y + 1, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     
     // Draw black text in center
     graphics_context_set_text_color(ctx, GColorBlack);
-    graphics_draw_text(ctx, s_date_buffer, font,
+    graphics_draw_text(ctx, display_buffer, font,
                       bounds,
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   } else {
     // Dark mode: just draw white text without outline
     graphics_context_set_text_color(ctx, GColorWhite);
-    graphics_draw_text(ctx, s_date_buffer, font,
+    graphics_draw_text(ctx, display_buffer, font,
                       bounds,
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   }
