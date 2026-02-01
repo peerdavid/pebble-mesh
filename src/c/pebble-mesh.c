@@ -187,7 +187,6 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
 static void update_time() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Update time");
-
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
 
@@ -205,8 +204,8 @@ static void update_time() {
 
   update_step_count();
   
-  // Update info layers to reflect new step count
-  update_all_info_layers();
+  // Update info layers and colors in case the theme changed (dynamic theme)
+  update_colors();
 }
 
 // --- Battery Handler ---
@@ -311,51 +310,106 @@ static void draw_frame(Layer *layer, GContext *ctx) {
   }
 }
 
-
 static void draw_animation(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
-  GColor color = get_text_color(); // Use theme-appropriate color
+  GColor color = get_text_color();
 
   const int max_line_length = bounds.size.w * 0.8;
   const int line_x_start_full = (bounds.size.w - max_line_length) / 2;
+  const int line_x_end_full = line_x_start_full + max_line_length;
   const int time_y = bounds.size.h / 2;
-  const int line_y_offset = 30; // Distance from the center of the time text
+  const int line_y_offset = 30;
+  const int segment_length = 12; // Length of each typed segment
+  const int segment_gap = 2; // Gap between segments
 
   current_animation_frame -= DECREASE_PER_FRAME;
   current_animation_frame = current_animation_frame < 0 ? 0 : current_animation_frame;
 
-  // Calculate the current animated line length. It goes from 0 up to max_line_length.
-  // current_animation_frame ranges from NUM_ANIMATION_FRAMES (max) down to 0.
-  // The factor should go from 0 (when frame is max) up to 1 (when frame is 0).
   float animation_factor = 1.0f - ((float)current_animation_frame / NUM_ANIMATION_FRAMES);
-  int current_line_length = (int)(max_line_length * animation_factor);
   
-  // Safety check
-  if (current_line_length < 0)
-    current_line_length = 0;
-  if (current_line_length > max_line_length)
-    current_line_length = max_line_length;
-
-  if (current_line_length < 1) {
-    return;
-  }
-
   graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
-
-  // ANIMATE: Top line flies in from LEFT
-  // Start X is fixed (line_x_start_full), End X is animated.
-  graphics_draw_line(
-      ctx,
-      GPoint(line_x_start_full, time_y - line_y_offset),
-      GPoint(line_x_start_full + current_line_length, time_y - line_y_offset));
-
-  // ANIMATE: Bottom line flies in from RIGHT
-  // End X is fixed (line_x_start_full + max_line_length), Start X is animated.
-  graphics_draw_line(
-      ctx,
-      GPoint(line_x_start_full + max_line_length - current_line_length, time_y + line_y_offset),
-      GPoint(line_x_start_full + max_line_length, time_y + line_y_offset));
+  
+  // Calculate total number of segments needed for the full line
+  int total_segments = (max_line_length + segment_length + segment_gap - 1) / (segment_length + segment_gap);
+  
+  // Typewriter effect: draw lines in discrete segments
+  // First half of animation: upper line, second half: lower line
+  if (animation_factor < 0.5f) {
+    // Upper line typing
+    float upper_progress = animation_factor * 2.0f; // 0.0 to 1.0
+    int segments_to_draw = (int)(total_segments * upper_progress);
+    
+    // Draw complete segments only
+    for (int i = 0; i < segments_to_draw; i++) {
+      int segment_start = i * (segment_length + segment_gap);
+      int segment_end = segment_start + segment_length;
+      
+      // Don't exceed line length
+      if (segment_start >= max_line_length) break;
+      if (segment_end > max_line_length) segment_end = max_line_length;
+      
+      graphics_draw_line(ctx,
+          GPoint(line_x_start_full + segment_start, time_y - line_y_offset),
+          GPoint(line_x_start_full + segment_end, time_y - line_y_offset));
+    }
+    
+    // Draw blinking cursor at end of last segment
+    if (segments_to_draw < total_segments) {
+      int cursor_x = segments_to_draw * (segment_length + segment_gap);
+      if (cursor_x < max_line_length && (current_animation_frame % 6) < 3) {
+        graphics_context_set_stroke_width(ctx, 2);
+        graphics_draw_line(ctx,
+            GPoint(line_x_start_full + cursor_x, time_y - line_y_offset - 3),
+            GPoint(line_x_start_full + cursor_x, time_y - line_y_offset + 3));
+        graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
+      }
+    }
+  } else {
+    // Upper line complete - draw it fully
+    graphics_draw_line(ctx,
+        GPoint(line_x_start_full, time_y - line_y_offset),
+        GPoint(line_x_end_full, time_y - line_y_offset));
+    
+    // Lower line typing
+    float lower_progress = (animation_factor - 0.5f) * 2.0f; // 0.0 to 1.0
+    
+    if (lower_progress >= 0.99f) {
+      // Lower line complete - draw it fully as a solid line
+      graphics_draw_line(ctx,
+          GPoint(line_x_start_full, time_y + line_y_offset),
+          GPoint(line_x_end_full, time_y + line_y_offset));
+    } else {
+      // Lower line still typing - draw in segments
+      int segments_to_draw = (int)(total_segments * lower_progress);
+      
+      // Draw complete segments only
+      for (int i = 0; i < segments_to_draw; i++) {
+        int segment_start = i * (segment_length + segment_gap);
+        int segment_end = segment_start + segment_length;
+        
+        // Don't exceed line length
+        if (segment_start >= max_line_length) break;
+        if (segment_end > max_line_length) segment_end = max_line_length;
+        
+        graphics_draw_line(ctx,
+            GPoint(line_x_start_full + segment_start, time_y + line_y_offset),
+            GPoint(line_x_start_full + segment_end, time_y + line_y_offset));
+      }
+      
+      // Draw blinking cursor at end of last segment
+      if (segments_to_draw < total_segments) {
+        int cursor_x = segments_to_draw * (segment_length + segment_gap);
+        if (cursor_x < max_line_length && (current_animation_frame % 6) < 3) {
+          graphics_context_set_stroke_width(ctx, 2);
+          graphics_draw_line(ctx,
+              GPoint(line_x_start_full + cursor_x, time_y + line_y_offset - 3),
+              GPoint(line_x_start_full + cursor_x, time_y + line_y_offset + 3));
+          graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
+        }
+      }
+    }
+  }
 }
 
 
