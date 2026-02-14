@@ -309,6 +309,8 @@ function colorThemeStrToInt(themeStr) {
     return 1;
   } else if (themeStr === 'dynamic') {
     return 2;
+  } else if (themeStr === 'quiet') {
+    return 3;
   } else {
     return 0; // Default to dark
   }

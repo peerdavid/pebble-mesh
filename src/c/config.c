@@ -38,8 +38,10 @@ bool is_dark_theme(){
     return true;
   }
   else if(s_color_theme == 2) {
-    // Dynamic theme based on is_day
     return s_is_day == 0;
+  }
+  else if(s_color_theme == 3) {
+    return quiet_time_is_active();
   }
 
   return false;

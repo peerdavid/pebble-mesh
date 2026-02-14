@@ -31,7 +31,11 @@ module.exports = [
           {
             "label": "Dynamic (Sunrise/Sunset)",
             "value": "dynamic"
-          }
+          },
+          {
+            "label": "Dynamic (Quiet)",
+            "value": "quiet"
+          },
         ]
       },
       {
