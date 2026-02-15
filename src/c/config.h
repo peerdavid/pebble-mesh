@@ -52,7 +52,8 @@ typedef enum {
   INFO_TYPE_STEPS = 2,
   INFO_TYPE_BATTERY = 3,
   INFO_TYPE_COLORED_BOX = 4,
-  INFO_TYPE_NONE = 5
+  INFO_TYPE_NONE = 5,
+  INFO_TYPE_CALENDAR = 6
 } InfoType;
 
 // Current layer assignments (can be changed dynamically)

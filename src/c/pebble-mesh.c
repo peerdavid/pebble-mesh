@@ -3,6 +3,7 @@
 #include "weather.h"
 #include "steps.h"
 #include "battery.h"
+#include "calendar.h"
 
 
 
@@ -68,6 +69,7 @@ static void update_colors() {
   s_weather_icon_bitmap = gbitmap_create_with_resource(weather_resource_id);
   
   load_step_icon();
+  load_calendar_icon();
 
   if (s_battery_icon_bitmap) {
     gbitmap_destroy(s_battery_icon_bitmap);
@@ -223,6 +225,7 @@ static void update_time() {
   layer_mark_dirty(s_date_layer);
 
   update_step_count();
+  update_day();
 }
 
 // --- Battery Handler ---
@@ -587,6 +590,9 @@ static void draw_info_for_type(InfoType info_type, InfoLayer* info_layer) {
     case INFO_TYPE_BATTERY:
       draw_battery_info(info_layer);
       break;
+    case INFO_TYPE_CALENDAR:
+      draw_calendar_info(info_layer);
+      break;
     case INFO_TYPE_COLORED_BOX:
       draw_colored_box_info(info_layer);
     case INFO_TYPE_NONE:
@@ -747,6 +753,9 @@ static void main_window_load(Window *window) {
   uint32_t battery_icon = is_light_theme() ? RESOURCE_ID_IMAGE_BATTERY_LIGHT : RESOURCE_ID_IMAGE_BATTERY_DARK;
   s_battery_icon_bitmap = gbitmap_create_with_resource(battery_icon);
 
+  load_calendar_icon();
+  update_day();
+
   // Initialize the display with current layer assignments
   update_all_info_layers();
 
@@ -778,6 +787,9 @@ static void main_window_unload(Window *window) {
   }
   if (s_battery_icon_bitmap) {
     gbitmap_destroy(s_battery_icon_bitmap);
+  }
+  if (s_calendar_icon_bitmap) {
+    gbitmap_destroy(s_calendar_icon_bitmap);
   }
 }
 

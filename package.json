@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.35",
+  "version": "1.36",
   "keywords": [
     "clock",
     "minimal",
@@ -185,6 +185,16 @@
           "type": "bitmap",
           "name": "IMAGE_CLEAR_NIGHT_LIGHT",
           "file": "images/weather/clear_night_light.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CALENDAR_DARK",
+          "file": "images/calendar_dark.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_CALENDAR_LIGHT",
+          "file": "images/calendar_light.png"
         }
       ]
     }

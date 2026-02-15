@@ -120,6 +120,7 @@ module.exports = [
           { "label": "Temperature", "value": "1" },
           { "label": "Steps", "value": "2" },
           { "label": "Battery", "value": "3" },
+          { "label": "Calendar", "value": "6" },
           { "label": "None", "value": "5" }
         ]
       },
@@ -133,6 +134,7 @@ module.exports = [
           { "label": "Temperature", "value": "1" },
           { "label": "Steps", "value": "2" },
           { "label": "Battery", "value": "3" },
+          { "label": "Calendar", "value": "6" },
           { "label": "None", "value": "5" }
         ]
       },
@@ -146,6 +148,7 @@ module.exports = [
           { "label": "Temperature", "value": "1" },
           { "label": "Steps", "value": "2" },
           { "label": "Battery", "value": "3" },
+          { "label": "Calendar", "value": "6" },
           { "label": "None", "value": "5" }
         ]
       },
@@ -159,6 +162,7 @@ module.exports = [
           { "label": "Temperature", "value": "1" },
           { "label": "Steps", "value": "2" },
           { "label": "Battery", "value": "3" },
+          { "label": "Calendar", "value": "6" },
           { "label": "None", "value": "5" }
         ]
       }
