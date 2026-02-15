@@ -13,6 +13,10 @@
 #define PERSIST_KEY_TEMPERATURE_UNIT 6
 #define PERSIST_KEY_IS_DAY 7
 #define PERSIST_KEY_ENABLE_ANIMATIONS 8
+#define PERSIST_KEY_LAYOUT_UPPER_LEFT 9
+#define PERSIST_KEY_LAYOUT_UPPER_RIGHT 10
+#define PERSIST_KEY_LAYOUT_LOWER_LEFT 11
+#define PERSIST_KEY_LAYOUT_LOWER_RIGHT 12
 
 // Layer position and alignment enums
 typedef enum {
@@ -77,6 +81,8 @@ void save_temperature_unit_to_storage();
 void load_temperature_unit_from_storage();
 void save_enable_animations_to_storage();
 void load_enable_animations_from_storage();
+void save_layout_to_storage();
+void load_layout_from_storage();
 bool is_dark_theme();
 bool is_light_theme();
 GColor get_background_color();

@@ -104,6 +104,67 @@ module.exports = [
     ]
   },
   {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Layout"
+      },
+      {
+        "type": "select",
+        "messageKey": "LAYOUT_UPPER_LEFT",
+        "label": "Upper Left",
+        "defaultValue": "0",
+        "options": [
+          { "label": "Weather Icon", "value": "0" },
+          { "label": "Temperature", "value": "1" },
+          { "label": "Steps", "value": "2" },
+          { "label": "Battery", "value": "3" },
+          { "label": "None", "value": "5" }
+        ]
+      },
+      {
+        "type": "select",
+        "messageKey": "LAYOUT_UPPER_RIGHT",
+        "label": "Upper Right",
+        "defaultValue": "1",
+        "options": [
+          { "label": "Weather Icon", "value": "0" },
+          { "label": "Temperature", "value": "1" },
+          { "label": "Steps", "value": "2" },
+          { "label": "Battery", "value": "3" },
+          { "label": "None", "value": "5" }
+        ]
+      },
+      {
+        "type": "select",
+        "messageKey": "LAYOUT_LOWER_LEFT",
+        "label": "Lower Left",
+        "defaultValue": "2",
+        "options": [
+          { "label": "Weather Icon", "value": "0" },
+          { "label": "Temperature", "value": "1" },
+          { "label": "Steps", "value": "2" },
+          { "label": "Battery", "value": "3" },
+          { "label": "None", "value": "5" }
+        ]
+      },
+      {
+        "type": "select",
+        "messageKey": "LAYOUT_LOWER_RIGHT",
+        "label": "Lower Right",
+        "defaultValue": "3",
+        "options": [
+          { "label": "Weather Icon", "value": "0" },
+          { "label": "Temperature", "value": "1" },
+          { "label": "Steps", "value": "2" },
+          { "label": "Battery", "value": "3" },
+          { "label": "None", "value": "5" }
+        ]
+      }
+    ]
+  },
+  {
     "type": "submit",
     "defaultValue": "Save Settings"
   }

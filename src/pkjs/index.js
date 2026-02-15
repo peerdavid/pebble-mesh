@@ -8,7 +8,11 @@ var config = {
   colorTheme: 'dark',  // Default to dark theme (dark/light/dynamic)
   stepGoal: 10000, // Default step goal
   temperatureUnit: 'celsius', // Default temperature unit (celsius/fahrenheit)
-  enableAnimations: true // Default to animations enabled
+  enableAnimations: true, // Default to animations enabled
+  layoutUpperLeft: 0,   // INFO_TYPE_WEATHER
+  layoutUpperRight: 1,  // INFO_TYPE_TEMPERATURE
+  layoutLowerLeft: 2,   // INFO_TYPE_STEPS
+  layoutLowerRight: 3   // INFO_TYPE_BATTERY
 };
 
 // Load saved configuration
@@ -26,6 +30,18 @@ if (localStorage.getItem('TEMPERATURE_UNIT')) {
 }
 if (localStorage.getItem('ENABLE_ANIMATIONS')) {
   config.enableAnimations = (localStorage.getItem('ENABLE_ANIMATIONS') === 'true');
+}
+if (localStorage.getItem('LAYOUT_UPPER_LEFT') !== null) {
+  config.layoutUpperLeft = parseInt(localStorage.getItem('LAYOUT_UPPER_LEFT'));
+}
+if (localStorage.getItem('LAYOUT_UPPER_RIGHT') !== null) {
+  config.layoutUpperRight = parseInt(localStorage.getItem('LAYOUT_UPPER_RIGHT'));
+}
+if (localStorage.getItem('LAYOUT_LOWER_LEFT') !== null) {
+  config.layoutLowerLeft = parseInt(localStorage.getItem('LAYOUT_LOWER_LEFT'));
+}
+if (localStorage.getItem('LAYOUT_LOWER_RIGHT') !== null) {
+  config.layoutLowerRight = parseInt(localStorage.getItem('LAYOUT_LOWER_RIGHT'));
 }
 
 // Variables to store weather data
@@ -329,7 +345,11 @@ function sendDataToPebble() {
     'STEP_GOAL': config.stepGoal,
     'TEMPERATURE_UNIT': config.temperatureUnit === 'fahrenheit' ? 1 : 0,  // 0 = celsius, 1 = fahrenheit
     'WEATHER_IS_DAY': weatherData.is_day ? 1 : 0,
-    'ENABLE_ANIMATIONS': config.enableAnimations ? 1 : 0
+    'ENABLE_ANIMATIONS': config.enableAnimations ? 1 : 0,
+    'LAYOUT_UPPER_LEFT': config.layoutUpperLeft,
+    'LAYOUT_UPPER_RIGHT': config.layoutUpperRight,
+    'LAYOUT_LOWER_LEFT': config.layoutLowerLeft,
+    'LAYOUT_LOWER_RIGHT': config.layoutLowerRight
   };
 
   Pebble.sendAppMessage(message,
@@ -404,6 +424,32 @@ Pebble.addEventListener('webviewclosed', function(e) {
     localStorage.setItem('ENABLE_ANIMATIONS', config.enableAnimations);
     console.log('Enable animations saved to: ' + config.enableAnimations);
     sendDataToPebble(); // Send immediately to update animation setting
+  }
+
+  var layoutChanged = false;
+  if (dict.LAYOUT_UPPER_LEFT) {
+    config.layoutUpperLeft = parseInt(dict.LAYOUT_UPPER_LEFT.value);
+    localStorage.setItem('LAYOUT_UPPER_LEFT', config.layoutUpperLeft);
+    layoutChanged = true;
+  }
+  if (dict.LAYOUT_UPPER_RIGHT) {
+    config.layoutUpperRight = parseInt(dict.LAYOUT_UPPER_RIGHT.value);
+    localStorage.setItem('LAYOUT_UPPER_RIGHT', config.layoutUpperRight);
+    layoutChanged = true;
+  }
+  if (dict.LAYOUT_LOWER_LEFT) {
+    config.layoutLowerLeft = parseInt(dict.LAYOUT_LOWER_LEFT.value);
+    localStorage.setItem('LAYOUT_LOWER_LEFT', config.layoutLowerLeft);
+    layoutChanged = true;
+  }
+  if (dict.LAYOUT_LOWER_RIGHT) {
+    config.layoutLowerRight = parseInt(dict.LAYOUT_LOWER_RIGHT.value);
+    localStorage.setItem('LAYOUT_LOWER_RIGHT', config.layoutLowerRight);
+    layoutChanged = true;
+  }
+  if (layoutChanged) {
+    console.log('Layout saved: ' + config.layoutUpperLeft + ',' + config.layoutUpperRight + ',' + config.layoutLowerLeft + ',' + config.layoutLowerRight);
+    sendDataToPebble();
   }
 });
 

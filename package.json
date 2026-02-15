@@ -38,7 +38,11 @@
       "COLOR_THEME",
       "STEP_GOAL",
       "TEMPERATURE_UNIT",
-      "ENABLE_ANIMATIONS"
+      "ENABLE_ANIMATIONS",
+      "LAYOUT_UPPER_LEFT",
+      "LAYOUT_UPPER_RIGHT",
+      "LAYOUT_LOWER_LEFT",
+      "LAYOUT_LOWER_RIGHT"
     ],
     "resources": {
       "media": [

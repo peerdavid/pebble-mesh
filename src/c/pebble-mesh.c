@@ -184,6 +184,23 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       try_start_animation_timer();
     }
   }
+
+  // Read layout assignments
+  Tuple *layout_ul = dict_find(iterator, MESSAGE_KEY_LAYOUT_UPPER_LEFT);
+  Tuple *layout_ur = dict_find(iterator, MESSAGE_KEY_LAYOUT_UPPER_RIGHT);
+  Tuple *layout_ll = dict_find(iterator, MESSAGE_KEY_LAYOUT_LOWER_LEFT);
+  Tuple *layout_lr = dict_find(iterator, MESSAGE_KEY_LAYOUT_LOWER_RIGHT);
+  if (layout_ul || layout_ur || layout_ll || layout_lr) {
+    if (layout_ul) s_layer_assignments[LAYER_UPPER_LEFT] = (InfoType)layout_ul->value->int32;
+    if (layout_ur) s_layer_assignments[LAYER_UPPER_RIGHT] = (InfoType)layout_ur->value->int32;
+    if (layout_ll) s_layer_assignments[LAYER_LOWER_LEFT] = (InfoType)layout_ll->value->int32;
+    if (layout_lr) s_layer_assignments[LAYER_LOWER_RIGHT] = (InfoType)layout_lr->value->int32;
+    save_layout_to_storage();
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Layout updated: %d %d %d %d",
+            s_layer_assignments[0], s_layer_assignments[1],
+            s_layer_assignments[2], s_layer_assignments[3]);
+    update_all_info_layers();
+  }
 }
 
 // --- Update Time Function ---
@@ -784,6 +801,9 @@ static void init() {
   // Load saved weather data from storage
   load_weather_from_storage();
 
+  // Load saved layout assignments
+  load_layout_from_storage();
+
   s_main_window = window_create();
   window_set_background_color(s_main_window, get_background_color());
 
@@ -794,7 +814,7 @@ static void init() {
 
   // Initialize App Message
   app_message_register_inbox_received(inbox_received_callback);
-  app_message_open(128, 128); // Increase buffer size for weather data
+  app_message_open(256, 128); // Buffer size for weather + layout data
 
   // Subscribe to MINUTE_UNIT (for time update/minute-start trigger) and SECOND_UNIT (for stop trigger)
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);

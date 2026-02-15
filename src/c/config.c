@@ -108,3 +108,21 @@ void load_enable_animations_from_storage() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No enable animations preference found, using default enabled");
   }
 }
+
+void save_layout_to_storage() {
+  persist_write_int(PERSIST_KEY_LAYOUT_UPPER_LEFT, s_layer_assignments[LAYER_UPPER_LEFT]);
+  persist_write_int(PERSIST_KEY_LAYOUT_UPPER_RIGHT, s_layer_assignments[LAYER_UPPER_RIGHT]);
+  persist_write_int(PERSIST_KEY_LAYOUT_LOWER_LEFT, s_layer_assignments[LAYER_LOWER_LEFT]);
+  persist_write_int(PERSIST_KEY_LAYOUT_LOWER_RIGHT, s_layer_assignments[LAYER_LOWER_RIGHT]);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved layout to storage");
+}
+
+void load_layout_from_storage() {
+  if (persist_exists(PERSIST_KEY_LAYOUT_UPPER_LEFT)) {
+    s_layer_assignments[LAYER_UPPER_LEFT] = persist_read_int(PERSIST_KEY_LAYOUT_UPPER_LEFT);
+    s_layer_assignments[LAYER_UPPER_RIGHT] = persist_read_int(PERSIST_KEY_LAYOUT_UPPER_RIGHT);
+    s_layer_assignments[LAYER_LOWER_LEFT] = persist_read_int(PERSIST_KEY_LAYOUT_LOWER_LEFT);
+    s_layer_assignments[LAYER_LOWER_RIGHT] = persist_read_int(PERSIST_KEY_LAYOUT_LOWER_RIGHT);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded layout from storage");
+  }
+}
