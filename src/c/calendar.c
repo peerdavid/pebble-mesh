@@ -23,6 +23,13 @@ void draw_calendar_info(InfoLayer* info_layer) {
 
   int x_pos = bounds.size.w / 2 - 16;
   int y_pos = bounds.size.h / 2 - 16;
+  int left_shift = 0;
+
+  // 2 digit numbers starting with '1' seem to be shifted slightly to the right, so we apply a small left shift to center them better
+  // If the day is 2 digits and starts with a '1', shift the icon slightly to the left to center it better
+  if (s_day_buffer[0] == '1' && s_day_buffer[1] != '\0') {
+    left_shift = -1;
+  }
 
   // Calendar icon
   GRect icon_frame = GRect(x_pos, y_pos, 32, 32);
@@ -31,7 +38,7 @@ void draw_calendar_info(InfoLayer* info_layer) {
   bitmap_layer_set_compositing_mode(info_layer->bitmap_layer_1, GCompOpSet);
 
   // Day number text drawn over the icon
-  GRect text_frame = GRect(x_pos, y_pos, 32, 32);
+  GRect text_frame = GRect(x_pos + left_shift, y_pos, 32, 32);
   info_layer->text_layer1 = text_layer_create(text_frame);
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());

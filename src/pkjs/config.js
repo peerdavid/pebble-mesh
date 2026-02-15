@@ -46,64 +46,7 @@ module.exports = [
       }
     ]
   },
-  {
-    "type": "section",
-    "items": [
-      {
-        "type": "heading",
-        "defaultValue": "Health"
-      },
-      {
-        "type": "input",
-        "messageKey": "STEP_GOAL",
-        "label": "Daily Step Goal",
-        "defaultValue": "10000",
-        "description": "Set your daily step goal (100-100000)",
-        "attributes": {
-          "type": "number",
-          "min": 100,
-          "max": 100000,
-          "placeholder": "10000"
-        }
-      }
-    ]
-  },
-  {
-    "type": "section",
-    "items": [
-      {
-        "type": "heading",
-        "defaultValue": "Weather"
-      },
-      {
-        "type": "input",
-        "messageKey": "WEATHER_LOCATION_CONFIG",
-        "label": "Location",
-        "defaultValue": "",
-        "description": "Enter your city name (e.g., Vienna, New York, Tokyo) or leave empty to use GPS location automatically. Weather data is fetched from Open-Meteo API.",
-        "attributes": {
-          "placeholder": "e.g., Vienna (or leave empty for GPS)"
-        }
-      },
-      {
-        "type": "radiogroup",
-        "messageKey": "TEMPERATURE_UNIT",
-        "label": "Temperature Unit",
-        "defaultValue": "celsius",
-        "options": [
-          {
-            "label": "Celsius",
-            "value": "celsius"
-          },
-          {
-            "label": "Fahrenheit",
-            "value": "fahrenheit"
-          }
-        ]
-      }
-    ]
-  },
-  {
+    {
     "type": "section",
     "items": [
       {
@@ -164,6 +107,63 @@ module.exports = [
           { "label": "Battery", "value": "3" },
           { "label": "Calendar", "value": "6" },
           { "label": "None", "value": "5" }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Health"
+      },
+      {
+        "type": "input",
+        "messageKey": "STEP_GOAL",
+        "label": "Daily Step Goal",
+        "defaultValue": "10000",
+        "description": "Set your daily step goal (100-100000)",
+        "attributes": {
+          "type": "number",
+          "min": 100,
+          "max": 100000,
+          "placeholder": "10000"
+        }
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Weather"
+      },
+      {
+        "type": "input",
+        "messageKey": "WEATHER_LOCATION_CONFIG",
+        "label": "Location",
+        "defaultValue": "",
+        "description": "Enter your city name (e.g., Vienna, New York, Tokyo) or leave empty to use GPS location automatically. Weather data is fetched from Open-Meteo API.",
+        "attributes": {
+          "placeholder": "e.g., Vienna (or leave empty for GPS)"
+        }
+      },
+      {
+        "type": "radiogroup",
+        "messageKey": "TEMPERATURE_UNIT",
+        "label": "Temperature Unit",
+        "defaultValue": "celsius",
+        "options": [
+          {
+            "label": "Celsius",
+            "value": "celsius"
+          },
+          {
+            "label": "Fahrenheit",
+            "value": "fahrenheit"
+          }
         ]
       }
     ]
