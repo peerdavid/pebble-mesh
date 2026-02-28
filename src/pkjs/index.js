@@ -8,7 +8,7 @@ var config = {
   colorTheme: 'dark',  // Default to dark theme (dark/light/dynamic)
   stepGoal: 10000, // Default step goal
   temperatureUnit: 'celsius', // Default temperature unit (celsius/fahrenheit)
-  enableAnimations: true, // Default to animations enabled
+  enableAnimations: false, // Default to animations enabled
   layoutUpperLeft: 0,   // INFO_TYPE_WEATHER
   layoutUpperRight: 1,  // INFO_TYPE_TEMPERATURE
   layoutLowerLeft: 2,   // INFO_TYPE_STEPS
