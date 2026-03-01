@@ -24,6 +24,7 @@ void load_step_icon() {
 
 void update_step_count() {
   step_count = (int)health_service_sum_today(HealthMetricStepCount);
+  step_count = 5000;
   if (step_count < 1000) {
     snprintf(s_step_buffer, sizeof(s_step_buffer), "%d", step_count);
   } else {
@@ -41,7 +42,7 @@ void draw_steps_info(InfoLayer* info_layer) {
 
   int y_pos = bounds.size.h / 4 + 1;
   int x_pos = bounds.size.w / 2 - ICON_SIZE / 2;
-  icon_frame = GRect(x_pos, y_pos-ICON_SIZE / 2 + 2, ICON_SIZE, ICON_SIZE);
+  icon_frame = GRect(x_pos, y_pos-ICON_SIZE / 2 + 1, ICON_SIZE, ICON_SIZE);
   text_frame = GRect(0, y_pos+6, bounds.size.w, 28);
   
   // Create step icon layer via PDC draw command
