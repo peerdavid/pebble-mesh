@@ -24,7 +24,6 @@ void load_step_icon() {
 
 void update_step_count() {
   step_count = (int)health_service_sum_today(HealthMetricStepCount);
-  step_count = 10000;
   if (step_count < 1000) {
     snprintf(s_step_buffer, sizeof(s_step_buffer), "%d", step_count);
   } else {
