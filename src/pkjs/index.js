@@ -10,7 +10,7 @@ var config = {
   temperatureUnit: 'celsius', // Default temperature unit (celsius/fahrenheit)
   enableAnimations: false, // Default to animations enabled
   layoutUpperLeft: 0,   // INFO_TYPE_WEATHER
-  layoutUpperRight: 1,  // INFO_TYPE_TEMPERATURE
+  layoutUpperRight: 6,  // INFO_TYPE_TEMPERATURE
   layoutLowerLeft: 2,   // INFO_TYPE_STEPS
   layoutLowerRight: 3   // INFO_TYPE_BATTERY
 };

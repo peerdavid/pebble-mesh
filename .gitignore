@@ -2,6 +2,7 @@
 build/
 .lock*
 node_modules/
+.venv/
 
 # Prerequisites
 *.d

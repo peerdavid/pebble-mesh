@@ -3,16 +3,13 @@
 
 #include <pebble.h>
 #include "config.h"
+#include "utils.h"
 
-// Current weather code (stored for theme changes)
-int battery_level;
+extern GDrawCommandImage *s_battery_icon;
+extern char s_battery_buffer[5];
+extern int battery_level;
 
-// Buffers for drawing
-char s_battery_buffer[5];
-GBitmap *s_battery_icon_bitmap;
-
-// Function Declarations
 void draw_battery_info(InfoLayer* info_layer);
-
+void load_battery_icon();
 
 #endif // BATTERY_H

@@ -42,6 +42,7 @@ typedef struct {
   BitmapLayer* bitmap_layer_1; 
   BitmapLayer* bitmap_layer_2;
   BitmapLayer* bitmap_layer_3;
+  Layer* custom_layer;
 } InfoLayer;
 
 

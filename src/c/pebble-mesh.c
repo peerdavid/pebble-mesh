@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include "config.h"
+#include "utils.h"
 #include "weather.h"
 #include "steps.h"
 #include "battery.h"
@@ -70,12 +71,7 @@ static void update_colors() {
   
   load_step_icon();
   load_calendar_icon();
-
-  if (s_battery_icon_bitmap) {
-    gbitmap_destroy(s_battery_icon_bitmap);
-  }
-  uint32_t battery_resource_id = is_light_theme() ? RESOURCE_ID_IMAGE_BATTERY_LIGHT : RESOURCE_ID_IMAGE_BATTERY_DARK;
-  s_battery_icon_bitmap = gbitmap_create_with_resource(battery_resource_id);
+  load_battery_icon();
 
   // Update all info layers to refresh the display
   update_all_info_layers();
@@ -623,6 +619,10 @@ static void clear_info_layer(InfoLayer* info_layer) {
     bitmap_layer_destroy(info_layer->bitmap_layer_3);
     info_layer->bitmap_layer_3 = NULL;
   }
+  if (info_layer->custom_layer) {
+    layer_destroy(info_layer->custom_layer);
+    info_layer->custom_layer = NULL;
+  }
 }
 
 // Update all info layers according to current assignments
@@ -747,12 +747,8 @@ static void main_window_load(Window *window) {
   uint32_t default_icon = get_weather_image_resource(s_current_weather_code);
   s_weather_icon_bitmap = gbitmap_create_with_resource(default_icon);
   
-  uint32_t step_icon = is_light_theme() ? RESOURCE_ID_IMAGE_STEP_LIGHT : RESOURCE_ID_IMAGE_STEP_DARK;
-  s_step_icon_bitmap = gbitmap_create_with_resource(step_icon);
-
-  uint32_t battery_icon = is_light_theme() ? RESOURCE_ID_IMAGE_BATTERY_LIGHT : RESOURCE_ID_IMAGE_BATTERY_DARK;
-  s_battery_icon_bitmap = gbitmap_create_with_resource(battery_icon);
-
+  load_step_icon();
+  load_battery_icon();
   load_calendar_icon();
   update_day();
 
@@ -779,17 +775,17 @@ static void main_window_unload(Window *window) {
   }
 
   // Destroy bitmaps
-  if (s_step_icon_bitmap) {
-    gbitmap_destroy(s_step_icon_bitmap);
+  if (s_step_icon) {
+    gdraw_command_image_destroy(s_step_icon);
   }
   if (s_weather_icon_bitmap) {
     gbitmap_destroy(s_weather_icon_bitmap);
   }
-  if (s_battery_icon_bitmap) {
-    gbitmap_destroy(s_battery_icon_bitmap);
+  if (s_battery_icon) {
+    gdraw_command_image_destroy(s_battery_icon);
   }
-  if (s_calendar_icon_bitmap) {
-    gbitmap_destroy(s_calendar_icon_bitmap);
+  if (s_calendar_icon) {
+    gdraw_command_image_destroy(s_calendar_icon);
   }
 }
 

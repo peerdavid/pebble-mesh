@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 18.1.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+
+<svg
+   version="1.1"
+   id="Comments"
+   x="0px"
+   y="0px"
+   viewBox="0 0 25 25"
+   enable-background="new 0 0 25 25"
+   xml:space="preserve"
+   sodipodi:docname="calendar.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs17" /><sodipodi:namedview
+   id="namedview15"
+   pagecolor="#ffffff"
+   bordercolor="#000000"
+   borderopacity="0.25"
+   inkscape:showpageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1"
+   showgrid="false"
+   inkscape:zoom="15.7"
+   inkscape:cx="13.184713"
+   inkscape:cy="12.324841"
+   inkscape:window-width="1854"
+   inkscape:window-height="1011"
+   inkscape:window-x="0"
+   inkscape:window-y="0"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="Comments" />
+<polygon
+   display="inline"
+   fill="#FFFFFF"
+   stroke="#000000"
+   stroke-width="2"
+   stroke-linecap="round"
+   stroke-linejoin="round"
+   stroke-miterlimit="10"
+   points="  3,3 22,3 22,23 3,23 3,3 "
+   id="polygon2" />
+<line
+   display="inline"
+   fill="none"
+   stroke="#000000"
+   stroke-width="2"
+   stroke-linecap="round"
+   stroke-linejoin="round"
+   stroke-miterlimit="10"
+   x1="8"
+   y1="1"
+   x2="8"
+   y2="7"
+   id="line4" />
+<line
+   display="inline"
+   fill="none"
+   stroke="#000000"
+   stroke-width="2"
+   stroke-linecap="round"
+   stroke-linejoin="round"
+   stroke-miterlimit="10"
+   x1="17"
+   y1="1"
+   x2="17"
+   y2="7"
+   id="line6" />
+
+<line
+   display="inline"
+   fill="#FFFFFF"
+   stroke="#000000"
+   stroke-width="2"
+   stroke-linecap="round"
+   stroke-linejoin="round"
+   stroke-miterlimit="10"
+   x1="10"
+   y1="7"
+   x2="6"
+   y2="7"
+   id="line10" />
+<line
+   display="inline"
+   fill="#FFFFFF"
+   stroke="#000000"
+   stroke-width="2"
+   stroke-linecap="round"
+   stroke-linejoin="round"
+   stroke-miterlimit="10"
+   x1="15"
+   y1="7"
+   x2="19"
+   y2="7"
+   id="line12" />
+</svg>

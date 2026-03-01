@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.38",
+  "version": "1.39",
   "keywords": [
     "clock",
     "minimal",
@@ -47,24 +47,9 @@
     "resources": {
       "media": [
         {
-          "type": "bitmap",
-          "name": "IMAGE_STEP_LIGHT",
-          "file": "images/step_light.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_STEP_DARK",
-          "file": "images/step_dark.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BATTERY_LIGHT",
-          "file": "images/battery_light.png"
-        },
-        {
-          "type": "bitmap",
-          "name": "IMAGE_BATTERY_DARK",
-          "file": "images/battery_dark.png"
+          "type": "raw",
+          "name": "IMAGE_BATTERY",
+          "file": "images/battery.pdc"
         },
         {
           "type": "bitmap",
@@ -187,14 +172,14 @@
           "file": "images/weather/clear_night_light.png"
         },
         {
-          "type": "bitmap",
-          "name": "IMAGE_CALENDAR_DARK",
-          "file": "images/calendar_dark.png"
+          "type": "raw",
+          "name": "IMAGE_CALENDAR",
+          "file": "images/calendar.pdc"
         },
         {
-          "type": "bitmap",
-          "name": "IMAGE_CALENDAR_LIGHT",
-          "file": "images/calendar_light.png"
+          "type": "raw",
+          "name": "IMAGE_STEP",
+          "file": "images/step.pdc"
         }
       ]
     }

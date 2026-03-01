@@ -3,11 +3,9 @@
 
 #include <pebble.h>
 #include "config.h"
+#include "utils.h"
 
-/*
- * Definitions
- */
-extern GBitmap *s_step_icon_bitmap;
+extern GDrawCommandImage *s_step_icon;
 extern char s_step_buffer[20];
 extern int step_count;
 
