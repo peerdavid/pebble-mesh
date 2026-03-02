@@ -1,30 +1,37 @@
 #include "weather.h"
+#include "utils.h"
 
 
 /*
  * Definitions
  */
 int s_current_weather_code = -1; // -1 indicates no weather data yet
-GBitmap *s_weather_icon_bitmap;
+GDrawCommandImage *s_weather_icon = NULL;
 char s_temperature_buffer[8];
 char s_location_buffer[20];
 
  /*
   * Draw Functions
   */
+static void weather_icon_layer_update_proc(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  GPoint origin = GPoint((bounds.size.w - gdraw_command_image_get_bounds_size(s_weather_icon).w) / 2,
+                         (bounds.size.h - gdraw_command_image_get_bounds_size(s_weather_icon).h) / 2);
+  gdraw_command_image_draw(ctx, s_weather_icon, origin);
+}
+
 void draw_weather_info(InfoLayer* info_layer) {
   Layer* layer = info_layer->layer;
   GRect bounds = layer_get_bounds(layer);
-  int y_pos = bounds.size.h / 2 - 16;
-  int x_pos = (bounds.size.w / 2) - 16;
-  
-  // Create a bitmap layer for the weather icon
-  info_layer->bitmap_layer_1 = bitmap_layer_create(GRect(x_pos, y_pos, 32, 32));
-  bitmap_layer_set_bitmap(info_layer->bitmap_layer_1, s_weather_icon_bitmap);
-  bitmap_layer_set_compositing_mode(info_layer->bitmap_layer_1, GCompOpSet);
-  
+  int y_pos = bounds.size.h / 2 - WEATHER_ICON_SIZE / 2;
+  int x_pos = (bounds.size.w / 2) - WEATHER_ICON_SIZE / 2;
+
+  // Create weather icon layer via PDC draw command
+  info_layer->custom_layer = layer_create(GRect(x_pos, y_pos, WEATHER_ICON_SIZE, WEATHER_ICON_SIZE));
+  layer_set_update_proc(info_layer->custom_layer, weather_icon_layer_update_proc);
+
   // Add to the info layer
-  layer_add_child(layer, bitmap_layer_get_layer(info_layer->bitmap_layer_1));
+  layer_add_child(layer, info_layer->custom_layer);
 }
 
 void draw_temperature_info(InfoLayer* info_layer) {
@@ -58,45 +65,47 @@ void draw_temperature_info(InfoLayer* info_layer) {
 }
 
 uint32_t get_weather_image_resource(int weather_code) {
+
   // Handle error case with question mark icon
   if (weather_code == -1) {
-    return is_light_theme() ? RESOURCE_ID_IMAGE_QUESTION_LIGHT : RESOURCE_ID_IMAGE_QUESTION_DARK; // Error/No data
+    return RESOURCE_ID_IMAGE_QUESTION; // Error/No data
   }
 
   // Based on WMO Weather interpretation codes
   if (weather_code == 0) {
     if (s_is_day == 1) {
-      return is_light_theme() ? RESOURCE_ID_IMAGE_SUNNY_LIGHT : RESOURCE_ID_IMAGE_SUNNY_DARK; // Clear sky day
+      return RESOURCE_ID_IMAGE_SUNNY; // Clear sky day
     } else {
-      return is_light_theme() ? RESOURCE_ID_IMAGE_CLEAR_NIGHT_LIGHT : RESOURCE_ID_IMAGE_CLEAR_NIGHT_DARK; // Clear sky night
+      return RESOURCE_ID_IMAGE_CLEAR_NIGHT; // Clear sky night
     }
-  } else if (weather_code <= 3) {
+  } else if (weather_code <= 3) { // FAIL
     if (s_is_day == 1) {
-      return is_light_theme() ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_DARK; // Mostly cloudy day
+      return RESOURCE_ID_IMAGE_PARTLY_CLOUDY; // Mostly cloudy day
     } else {
-      return is_light_theme() ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_DARK; // Mostly cloudy night
+      return RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT; // Mostly cloudy night
     }
   } else if (weather_code <= 48) {
-    if (s_is_day == 1) {
-      return is_light_theme() ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_DARK; // Mostly cloudy day
-    } else {
-      return is_light_theme() ? RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_LIGHT : RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT_DARK; // Mostly cloudy night
-    }
+    return RESOURCE_ID_IMAGE_CLOUDY; // Fog/deposits
   } else if (weather_code <= 57) {
-    return is_light_theme() ? RESOURCE_ID_IMAGE_LIGHT_RAIN_LIGHT : RESOURCE_ID_IMAGE_LIGHT_RAIN_DARK; // Drizzle
+    return RESOURCE_ID_IMAGE_LIGHT_RAIN; // Drizzle
   } else if (weather_code <= 67) {
-    return is_light_theme() ? RESOURCE_ID_IMAGE_HEAVY_RAIN_LIGHT : RESOURCE_ID_IMAGE_HEAVY_RAIN_DARK; // Rain
+    return RESOURCE_ID_IMAGE_HEAVY_RAIN; // Rain
   } else if (weather_code <= 77) {
-    return is_light_theme() ? RESOURCE_ID_IMAGE_LIGHT_SNOW_LIGHT : RESOURCE_ID_IMAGE_LIGHT_SNOW_DARK; // Snow
+    return RESOURCE_ID_IMAGE_LIGHT_SNOW; // Snow
   } else if (weather_code <= 82) {
-    return is_light_theme() ? RESOURCE_ID_IMAGE_LIGHT_RAIN_LIGHT : RESOURCE_ID_IMAGE_LIGHT_RAIN_DARK; // Rain showers
+    return RESOURCE_ID_IMAGE_LIGHT_RAIN; // Rain showers
   } else if (weather_code <= 86) {
-    return is_light_theme() ? RESOURCE_ID_IMAGE_HEAVY_SNOW_LIGHT : RESOURCE_ID_IMAGE_HEAVY_SNOW_DARK; // Snow showers
+    return RESOURCE_ID_IMAGE_HEAVY_SNOW; // Snow showers
   } else if (weather_code <= 99) {
-    return is_light_theme() ? RESOURCE_ID_IMAGE_THUNDERSTORM_LIGHT : RESOURCE_ID_IMAGE_THUNDERSTORM_DARK; // Thunderstorm
+    return RESOURCE_ID_IMAGE_THUNDERSTORM; // Thunderstorm
   }
-  
-  return is_light_theme() ? RESOURCE_ID_IMAGE_QUESTION_LIGHT : RESOURCE_ID_IMAGE_QUESTION_DARK; // Unknown
+
+  return RESOURCE_ID_IMAGE_QUESTION; // Unknown
+}
+
+void load_weather_icon() {
+  uint32_t resource_id = get_weather_image_resource(s_current_weather_code);
+  load_pdc_icon(&s_weather_icon, resource_id, ORIG_WEATHER_ICON_SIZE, WEATHER_ICON_SIZE);
 }
 
 /*

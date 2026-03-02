@@ -5,6 +5,9 @@
 #include "config.h"
 #include "utils.h"
 
+#define ORIG_BATTERY_ICON_SIZE 25
+#define BATTERY_ICON_SIZE 32
+
 extern GDrawCommandImage *s_battery_icon;
 extern char s_battery_buffer[5];
 extern int battery_level;

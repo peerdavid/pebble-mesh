@@ -12,7 +12,7 @@ static void calendar_layer_update_proc(Layer *layer, GContext *ctx) {
 
 
 void load_calendar_icon() {
-  load_pdc_icon(&s_calendar_icon, RESOURCE_ID_IMAGE_CALENDAR);
+  load_pdc_icon(&s_calendar_icon, RESOURCE_ID_IMAGE_CALENDAR, ORIG_CAL_ICON_SIZE, CAL_ICON_SIZE);
 }
 
 void update_day() {
@@ -25,8 +25,8 @@ void draw_calendar_info(InfoLayer* info_layer) {
   GRect bounds = info_layer->bounds;
   Layer* layer = info_layer->layer;
 
-  int x_pos = bounds.size.w / 2 - ICON_SIZE / 2;
-  int y_pos = bounds.size.h / 2 - ICON_SIZE / 2;
+  int x_pos = bounds.size.w / 2 - CAL_ICON_SIZE / 2;
+  int y_pos = bounds.size.h / 2 - CAL_ICON_SIZE / 2;
   int left_shift = 0;
 
   // 2 digit numbers starting with '1' seem to be shifted slightly to the right, so we apply a small left shift to center them better
@@ -35,12 +35,12 @@ void draw_calendar_info(InfoLayer* info_layer) {
   }
 
   // Calendar icon via PDC draw command
-  GRect icon_frame = GRect(x_pos, y_pos, ICON_SIZE, ICON_SIZE);
+  GRect icon_frame = GRect(x_pos, y_pos, CAL_ICON_SIZE, CAL_ICON_SIZE);
   info_layer->custom_layer = layer_create(icon_frame);
   layer_set_update_proc(info_layer->custom_layer, calendar_layer_update_proc);
 
   // Day number text drawn over the icon
-  GRect text_frame = GRect(x_pos + left_shift, y_pos+2, ICON_SIZE, ICON_SIZE);
+  GRect text_frame = GRect(x_pos + left_shift, y_pos+2, CAL_ICON_SIZE, CAL_ICON_SIZE);
   info_layer->text_layer1 = text_layer_create(text_frame);
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());

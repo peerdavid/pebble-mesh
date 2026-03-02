@@ -5,6 +5,9 @@
 #include "config.h"
 #include "utils.h"
 
+#define ORIG_CAL_ICON_SIZE 25
+#define CAL_ICON_SIZE 32
+
 extern GDrawCommandImage *s_calendar_icon;
 extern char s_day_buffer[3];
 

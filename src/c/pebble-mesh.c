@@ -62,13 +62,8 @@ static void update_colors() {
   layer_mark_dirty(s_time_layer);
   layer_mark_dirty(s_date_layer);
 
-  // Recreate bitmaps for new theme
-  if (s_weather_icon_bitmap) {
-    gbitmap_destroy(s_weather_icon_bitmap);
-  }
-  uint32_t weather_resource_id = get_weather_image_resource(s_current_weather_code);
-  s_weather_icon_bitmap = gbitmap_create_with_resource(weather_resource_id);
-  
+  // Recreate PDC icons for new theme
+  load_weather_icon();
   load_step_icon();
   load_calendar_icon();
   load_battery_icon();
@@ -120,12 +115,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Tuple *condition_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_CONDITION);
   if (condition_tuple) {
     s_current_weather_code = (int)condition_tuple->value->int32;
-    // Recreate weather bitmap with new weather code
-    if (s_weather_icon_bitmap) {
-      gbitmap_destroy(s_weather_icon_bitmap);
-    }
-    uint32_t resource_id = get_weather_image_resource(s_current_weather_code);
-    s_weather_icon_bitmap = gbitmap_create_with_resource(resource_id);
+    // Recreate weather icon with new weather code
+    load_weather_icon();
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather condition: %d", s_current_weather_code);
     weather_data_updated = true;
   }
@@ -743,10 +734,8 @@ static void main_window_load(Window *window) {
     layer_add_child(window_layer, s_info_layers[i].layer);
   }
 
-  // Initialize bitmaps for use in info drawing functions
-  uint32_t default_icon = get_weather_image_resource(s_current_weather_code);
-  s_weather_icon_bitmap = gbitmap_create_with_resource(default_icon);
-  
+  // Initialize PDC icons for use in info drawing functions
+  load_weather_icon();
   load_step_icon();
   load_battery_icon();
   load_calendar_icon();
@@ -778,8 +767,8 @@ static void main_window_unload(Window *window) {
   if (s_step_icon) {
     gdraw_command_image_destroy(s_step_icon);
   }
-  if (s_weather_icon_bitmap) {
-    gbitmap_destroy(s_weather_icon_bitmap);
+  if (s_weather_icon) {
+    gdraw_command_image_destroy(s_weather_icon);
   }
   if (s_battery_icon) {
     gdraw_command_image_destroy(s_battery_icon);

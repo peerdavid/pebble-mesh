@@ -8,11 +8,14 @@
 /*
  * Definitions
  */
+
+#define ORIG_WEATHER_ICON_SIZE 50
+#define WEATHER_ICON_SIZE 36
+
 extern int s_current_weather_code;
-extern GBitmap *s_weather_icon_bitmap;
+extern GDrawCommandImage *s_weather_icon;
 extern char s_temperature_buffer[8];
 extern char s_location_buffer[20];
-
 
 /*
  * Function Declarations
@@ -20,6 +23,7 @@ extern char s_location_buffer[20];
 void draw_weather_info(InfoLayer* info_layer);
 void draw_temperature_info(InfoLayer* info_layer);
 uint32_t get_weather_image_resource(int weather_code);
+void load_weather_icon();
 void request_weather_update();
 void save_weather_to_storage();
 void load_weather_from_storage();

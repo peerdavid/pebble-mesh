@@ -5,6 +5,9 @@
 #include "config.h"
 #include "utils.h"
 
+#define ORIG_STEP_ICON_SIZE 25
+#define STEP_ICON_SIZE 32
+
 extern GDrawCommandImage *s_step_icon;
 extern char s_step_buffer[20];
 extern int step_count;

@@ -1,12 +1,12 @@
 #include "utils.h"
 
-void load_pdc_icon(GDrawCommandImage **icon, uint32_t resource_id) {
+void load_pdc_icon(GDrawCommandImage **icon, uint32_t resource_id, int orig_icon_size, int target_icon_size) {
   if (*icon) {
     gdraw_command_image_destroy(*icon);
   }
   *icon = gdraw_command_image_create_with_resource(resource_id);
 
-  scale_pdc(*icon, ORIG_ICON_SIZE, ICON_SIZE);
+  scale_pdc(*icon, orig_icon_size, target_icon_size);
 
   // In dark theme, invert black↔white; in light theme, PDC colors are already correct
   if (!is_light_theme()) {

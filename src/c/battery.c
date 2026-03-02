@@ -12,7 +12,7 @@ static void battery_icon_layer_update_proc(Layer *layer, GContext *ctx) {
 }
 
 void load_battery_icon() {
-  load_pdc_icon(&s_battery_icon, RESOURCE_ID_IMAGE_BATTERY);
+  load_pdc_icon(&s_battery_icon, RESOURCE_ID_IMAGE_BATTERY, ORIG_BATTERY_ICON_SIZE, BATTERY_ICON_SIZE);
 }
 
 // Draw battery percentage in the specified info layer
@@ -21,17 +21,17 @@ void draw_battery_info(InfoLayer* info_layer) {
   Layer* layer = info_layer->layer;
   GRect bat_level_rect;
 
-  int x_pos = bounds.size.w / 2 - ICON_SIZE / 2;
-  int y_pos = bounds.size.h / 2 - ICON_SIZE / 2;
+  int x_pos = bounds.size.w / 2 - BATTERY_ICON_SIZE / 2;
+  int y_pos = bounds.size.h / 2 - BATTERY_ICON_SIZE / 2;
 
   // Battery icon via PDC draw command
-  GRect icon_frame = GRect(x_pos, y_pos - 8, ICON_SIZE, ICON_SIZE);
+  GRect icon_frame = GRect(x_pos, y_pos - 8, BATTERY_ICON_SIZE, BATTERY_ICON_SIZE);
   info_layer->custom_layer = layer_create(icon_frame);
   layer_set_update_proc(info_layer->custom_layer, battery_icon_layer_update_proc);
 
   // Draw a background rectangle for the battery level
-  int full_width = ICON_SIZE - ICON_SIZE * 1/6;
-  int full_height = ICON_SIZE / 2 - 2;
+  int full_width = BATTERY_ICON_SIZE - BATTERY_ICON_SIZE * 1/6;
+  int full_height = BATTERY_ICON_SIZE / 2 - 2;
 
   bat_level_rect = GRect(x_pos, y_pos, full_width, full_height);
   info_layer->bitmap_layer_3 = bitmap_layer_create(bat_level_rect);

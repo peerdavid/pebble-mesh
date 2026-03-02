@@ -19,12 +19,11 @@ static void step_icon_layer_update_proc(Layer *layer, GContext *ctx) {
 }
 
 void load_step_icon() {
-  load_pdc_icon(&s_step_icon, RESOURCE_ID_IMAGE_STEP);
+  load_pdc_icon(&s_step_icon, RESOURCE_ID_IMAGE_STEP, ORIG_STEP_ICON_SIZE, STEP_ICON_SIZE);
 }
 
 void update_step_count() {
   step_count = (int)health_service_sum_today(HealthMetricStepCount);
-  step_count = 5000;
   if (step_count < 1000) {
     snprintf(s_step_buffer, sizeof(s_step_buffer), "%d", step_count);
   } else {
@@ -41,8 +40,8 @@ void draw_steps_info(InfoLayer* info_layer) {
   GRect step_count_rect;
 
   int y_pos = bounds.size.h / 4 + 1;
-  int x_pos = bounds.size.w / 2 - ICON_SIZE / 2;
-  icon_frame = GRect(x_pos, y_pos-ICON_SIZE / 2 + 1, ICON_SIZE, ICON_SIZE);
+  int x_pos = bounds.size.w / 2 - STEP_ICON_SIZE / 2;
+  icon_frame = GRect(x_pos, y_pos-STEP_ICON_SIZE / 2 + 1, STEP_ICON_SIZE, STEP_ICON_SIZE);
   text_frame = GRect(0, y_pos+6, bounds.size.w, 28);
   
   // Create step icon layer via PDC draw command
@@ -56,18 +55,18 @@ void draw_steps_info(InfoLayer* info_layer) {
   text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
   text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
   
-  int full_width = ICON_SIZE-1;
-  int full_height = ICON_SIZE / 2;
+  int full_width = STEP_ICON_SIZE-1;
+  int full_height = STEP_ICON_SIZE / 2;
 
   // Full background rectangle layer
-  step_count_rect = GRect(x_pos, y_pos-ICON_SIZE / 6, full_width, full_height);
+  step_count_rect = GRect(x_pos, y_pos-STEP_ICON_SIZE / 6, full_width, full_height);
   info_layer->bitmap_layer_3 = bitmap_layer_create(step_count_rect);
   bitmap_layer_set_background_color(info_layer->bitmap_layer_3, get_background_color());
 
   // Create small rectangle layer with text color background
   int steps = step_count > s_step_goal ? s_step_goal : step_count;
   int real_width = (steps * full_width) / s_step_goal;
-  step_count_rect = GRect(x_pos, y_pos-ICON_SIZE / 6, real_width, full_height);
+  step_count_rect = GRect(x_pos, y_pos-STEP_ICON_SIZE / 6, real_width, full_height);
   info_layer->bitmap_layer_2 = bitmap_layer_create(step_count_rect);
   bitmap_layer_set_background_color(info_layer->bitmap_layer_2, GColorLightGray);
   
