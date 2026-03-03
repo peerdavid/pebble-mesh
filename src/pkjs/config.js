@@ -1,11 +1,11 @@
 module.exports = [
   {
     "type": "heading",
-    "defaultValue": "Pebble Mesh Settings"
+    "defaultValue": "Pebble Mesh"
   },
   {
     "type": "text",
-    "defaultValue": "Made by David Peer, 2026"
+    "defaultValue": "<span>David Peer, 2026 | <a href='https://www.paypal.com/donate/?hosted_button_id=Y4PDJU84LC3N2'>Buy me a coffee</a> &#9749; </span>"
   },
   {
     "type": "section",
@@ -171,5 +171,5 @@ module.exports = [
   {
     "type": "submit",
     "defaultValue": "Save Settings"
-  }
+  },
 ];
