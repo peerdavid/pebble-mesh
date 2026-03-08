@@ -108,6 +108,20 @@ module.exports = [
           { "label": "Calendar", "value": "6" },
           { "label": "None", "value": "5" }
         ]
+      },
+      {
+        "type": "select",
+        "messageKey": "DISCONNECT_POSITION",
+        "label": "Disconnect Icon",
+        "defaultValue": "0",
+        "description": "Show disconnect icon when the watch loses connection.",
+        "options": [
+          { "label": "Disabled", "value": "0" },
+          { "label": "Upper Left", "value": "1" },
+          { "label": "Upper Right", "value": "2" },
+          { "label": "Lower Left", "value": "3" },
+          { "label": "Lower Right", "value": "4" }
+        ]
       }
     ]
   },

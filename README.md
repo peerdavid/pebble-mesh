@@ -8,6 +8,8 @@ A simple Pebble watchface displaying time, date, steps, temperature, and locatio
 <img src="screenshots/screenshot_2.png" alt="Pebble Mesh Preview" width="200"/>
 
 
+## Thanks to
+Thanks to [Pebble Dev Iconography](https://github.com/pebble-dev/iconography) for the great icons.
 
 ## Donate
 If you like it and want to buy me a coffee:

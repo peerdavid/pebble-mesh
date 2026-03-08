@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.41",
+  "version": "1.42",
   "keywords": [
     "clock",
     "minimal",
@@ -42,7 +42,8 @@
       "LAYOUT_UPPER_LEFT",
       "LAYOUT_UPPER_RIGHT",
       "LAYOUT_LOWER_LEFT",
-      "LAYOUT_LOWER_RIGHT"
+      "LAYOUT_LOWER_RIGHT",
+      "DISCONNECT_POSITION"
     ],
     "resources": {
       "media": [
@@ -105,6 +106,11 @@
           "type": "raw",
           "name": "IMAGE_THUNDERSTORM",
           "file": "images/weather/thunderstorm.pdc"
+        },
+        {
+          "type": "raw",
+          "name": "IMAGE_DISCONNECT",
+          "file": "images/disconnect.pdc"
         },
         {
           "type": "raw",

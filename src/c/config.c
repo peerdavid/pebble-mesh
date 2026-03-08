@@ -6,6 +6,7 @@ int s_step_goal = 10000;
 int s_temperature_unit = 0;  // 0 = celsius, 1 = fahrenheit
 int s_is_day = 1; // 1 = day, 0 = night
 int s_enable_animations = 0; // 1 = enabled, 0 = disabled
+int s_disconnect_position = 0; // 0 = disabled, 1-4 = UL/UR/LL/LR
 
 InfoLayer s_info_layers[NUM_INFO_LAYERS];
 InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
@@ -124,5 +125,20 @@ void load_layout_from_storage() {
     s_layer_assignments[LAYER_LOWER_LEFT] = persist_read_int(PERSIST_KEY_LAYOUT_LOWER_LEFT);
     s_layer_assignments[LAYER_LOWER_RIGHT] = persist_read_int(PERSIST_KEY_LAYOUT_LOWER_RIGHT);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded layout from storage");
+  }
+}
+
+void save_disconnect_position_to_storage() {
+  persist_write_int(PERSIST_KEY_DISCONNECT_POSITION, s_disconnect_position);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved disconnect position to storage: %d", s_disconnect_position);
+}
+
+void load_disconnect_position_from_storage() {
+  if (persist_exists(PERSIST_KEY_DISCONNECT_POSITION)) {
+    s_disconnect_position = persist_read_int(PERSIST_KEY_DISCONNECT_POSITION);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded disconnect position from storage: %d", s_disconnect_position);
+  } else {
+    s_disconnect_position = 0;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No disconnect position preference found, using default disabled");
   }
 }

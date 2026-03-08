@@ -12,7 +12,8 @@ var config = {
   layoutUpperLeft: 0,   // INFO_TYPE_WEATHER
   layoutUpperRight: 1,  // INFO_TYPE_TEMPERATURE
   layoutLowerLeft: 2,   // INFO_TYPE_STEPS
-  layoutLowerRight: 3   // INFO_TYPE_BATTERY
+  layoutLowerRight: 3,  // INFO_TYPE_BATTERY
+  disconnectPosition: 0 // 0 = disabled, 1-4 = UL/UR/LL/LR
 };
 
 // Load saved configuration
@@ -42,6 +43,9 @@ if (localStorage.getItem('LAYOUT_LOWER_LEFT') !== null) {
 }
 if (localStorage.getItem('LAYOUT_LOWER_RIGHT') !== null) {
   config.layoutLowerRight = parseInt(localStorage.getItem('LAYOUT_LOWER_RIGHT'));
+}
+if (localStorage.getItem('DISCONNECT_POSITION') !== null) {
+  config.disconnectPosition = parseInt(localStorage.getItem('DISCONNECT_POSITION'));
 }
 
 // Variables to store weather data
@@ -85,21 +89,18 @@ function getCoordinatesForCityAndFetchWeather(cityName) {
             weatherData.location = config.location + ' Not Found';
             weatherData.temperature = 'N/A';
             weatherData.condition = -1;
-            sendDataToPebble();
           }
         } catch (e) {
           console.log('Geocoding JSON parse error: ' + e.message);
           weatherData.location = 'Parse Error';
           weatherData.temperature = 'N/A';
           weatherData.condition = -1;
-          sendDataToPebble();
         }
       } else {
         console.log('Geocoding request failed with status: ' + xhr.status);
         weatherData.location = 'Geocode Error';
         weatherData.temperature = 'N/A';
         weatherData.condition = -1;
-        sendDataToPebble();
       }
     }
   };
@@ -111,14 +112,12 @@ function getCoordinatesForCityAndFetchWeather(cityName) {
     weatherData.location = 'Timeout';
     weatherData.temperature = 'N/A';
     weatherData.condition = -1;
-    sendDataToPebble();
   };
   xhr.onerror = function() {
     console.log('Geocoding request network error');
     weatherData.location = 'Net Error';
     weatherData.temperature = 'N/A';
     weatherData.condition = -1;
-    sendDataToPebble();
   };
   xhr.send();
 }
@@ -157,7 +156,6 @@ function getLocationAndFetchWeather() {
       weatherData.location = 'GPS Error';
       weatherData.temperature = 'N/A';
       weatherData.condition = -1;
-      sendDataToPebble();
     },
     {
       timeout: 15000,
@@ -281,21 +279,18 @@ function getWeatherData(latitude, longitude) {
             weatherData.temperature = 'N/A';
             weatherData.condition = -1;
             weatherData.is_day = true;
-            sendDataToPebble();
           }
         } catch (e) {
           console.log('Weather JSON parse error: ' + e.message);
           weatherData.temperature = 'Error';
           weatherData.condition = -1;
           weatherData.is_day = true;
-          sendDataToPebble();
         }
       } else {
         console.log('Weather request failed with status: ' + xhr.status + ', response: ' + xhr.responseText);
         weatherData.temperature = 'Error';
         weatherData.condition = -1;
         weatherData.is_day = true;
-        sendDataToPebble();
       }
     }
   };
@@ -307,14 +302,12 @@ function getWeatherData(latitude, longitude) {
     weatherData.temperature = 'Timeout';
     weatherData.condition = -1;
     weatherData.is_day = true;
-    sendDataToPebble();
   };
   xhr.onerror = function() {
     console.log('Weather request network error');
     weatherData.temperature = 'Net Error';
     weatherData.condition = -1;
     weatherData.is_day = true;
-    sendDataToPebble();
   };
   xhr.send();
 }
@@ -349,7 +342,8 @@ function sendDataToPebble() {
     'LAYOUT_UPPER_LEFT': config.layoutUpperLeft,
     'LAYOUT_UPPER_RIGHT': config.layoutUpperRight,
     'LAYOUT_LOWER_LEFT': config.layoutLowerLeft,
-    'LAYOUT_LOWER_RIGHT': config.layoutLowerRight
+    'LAYOUT_LOWER_RIGHT': config.layoutLowerRight,
+    'DISCONNECT_POSITION': config.disconnectPosition
   };
 
   Pebble.sendAppMessage(message,
@@ -390,7 +384,16 @@ Pebble.addEventListener('webviewclosed', function(e) {
   // Get the keys and values from each config item
   var dict = clay.getSettings(e.response, false);
   console.log('Configuration received: ' + JSON.stringify(dict));
-  
+  var layoutChanged = false;
+
+  // Update all config values first before any sendDataToPebble() calls,
+  // since AppMessage can only handle one in-flight message at a time.
+  if (dict.DISCONNECT_POSITION) {
+    config.disconnectPosition = parseInt(dict.DISCONNECT_POSITION.value);
+    localStorage.setItem('DISCONNECT_POSITION', config.disconnectPosition);
+    console.log('Disconnect position saved to: ' + config.disconnectPosition);
+  }
+
   if (dict.WEATHER_LOCATION_CONFIG !== undefined) {
     config.location = dict.WEATHER_LOCATION_CONFIG.value || ''; // Empty string for GPS
     localStorage.setItem('WEATHER_LOCATION_CONFIG', config.location);
@@ -402,14 +405,14 @@ Pebble.addEventListener('webviewclosed', function(e) {
     config.colorTheme = dict.COLOR_THEME.value;
     localStorage.setItem('COLOR_THEME', config.colorTheme);
     console.log('Color theme saved to: ' + config.colorTheme);
-    sendDataToPebble(); // Send immediately to update colors
+    layoutChanged = true;
   }
   
   if (dict.STEP_GOAL) {
     config.stepGoal = parseInt(dict.STEP_GOAL.value);
     localStorage.setItem('STEP_GOAL', config.stepGoal);
     console.log('Step goal saved to: ' + config.stepGoal);
-    sendDataToPebble(); // Send immediately to update step goal display
+    layoutChanged = true;
   }
   
   if (dict.TEMPERATURE_UNIT) {
@@ -423,10 +426,10 @@ Pebble.addEventListener('webviewclosed', function(e) {
     config.enableAnimations = dict.ENABLE_ANIMATIONS.value;
     localStorage.setItem('ENABLE_ANIMATIONS', config.enableAnimations);
     console.log('Enable animations saved to: ' + config.enableAnimations);
-    sendDataToPebble(); // Send immediately to update animation setting
+    layoutChanged = true;
   }
 
-  var layoutChanged = false;
+  
   if (dict.LAYOUT_UPPER_LEFT) {
     config.layoutUpperLeft = parseInt(dict.LAYOUT_UPPER_LEFT.value);
     localStorage.setItem('LAYOUT_UPPER_LEFT', config.layoutUpperLeft);
@@ -451,6 +454,7 @@ Pebble.addEventListener('webviewclosed', function(e) {
     console.log('Layout saved: ' + config.layoutUpperLeft + ',' + config.layoutUpperRight + ',' + config.layoutLowerLeft + ',' + config.layoutLowerRight);
     sendDataToPebble();
   }
+
 });
 
 // Update weather every 30 minutes

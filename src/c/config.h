@@ -17,6 +17,7 @@
 #define PERSIST_KEY_LAYOUT_UPPER_RIGHT 10
 #define PERSIST_KEY_LAYOUT_LOWER_LEFT 11
 #define PERSIST_KEY_LAYOUT_LOWER_RIGHT 12
+#define PERSIST_KEY_DISCONNECT_POSITION 13
 
 // Layer position and alignment enums
 typedef enum {
@@ -54,7 +55,8 @@ typedef enum {
   INFO_TYPE_BATTERY = 3,
   INFO_TYPE_COLORED_BOX = 4,
   INFO_TYPE_NONE = 5,
-  INFO_TYPE_CALENDAR = 6
+  INFO_TYPE_CALENDAR = 6,
+  INFO_TYPE_DISCONNECT = 7
 } InfoType;
 
 // Current layer assignments (can be changed dynamically)
@@ -71,6 +73,7 @@ extern int s_step_goal;
 extern int s_temperature_unit;  // 0 = celsius, 1 = fahrenheit
 extern int s_is_day; // 1 = day, 0 = night
 extern int s_enable_animations; // 1 = enabled, 0 = disabled
+extern int s_disconnect_position; // 0 = disabled, 1-4 = UL/UR/LL/LR
 
 /*
  * Function Declarations
@@ -85,6 +88,8 @@ void save_enable_animations_to_storage();
 void load_enable_animations_from_storage();
 void save_layout_to_storage();
 void load_layout_from_storage();
+void save_disconnect_position_to_storage();
+void load_disconnect_position_from_storage();
 bool is_dark_theme();
 bool is_light_theme();
 GColor get_background_color();

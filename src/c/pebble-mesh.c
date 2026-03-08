@@ -5,6 +5,7 @@
 #include "steps.h"
 #include "battery.h"
 #include "calendar.h"
+#include "disconnect.h"
 
 
 
@@ -53,6 +54,7 @@ static void init_info_layers(GRect bounds);
 static void update_all_info_layers();
 static void draw_info_for_type(InfoType info_type, InfoLayer* info_layer);
 static void clear_info_layer(InfoLayer* info_layer);
+static void bluetooth_connection_handler(bool connected);
 
 
 // Function to update all colors based on current theme
@@ -67,6 +69,7 @@ static void update_colors() {
   load_step_icon();
   load_calendar_icon();
   load_battery_icon();
+  load_disconnect_icon();
 
   // Update all info layers to refresh the display
   update_all_info_layers();
@@ -171,6 +174,18 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       s_enable_animations = new_enable_animations;
       save_enable_animations_to_storage();
       try_start_animation_timer();
+    }
+  }
+
+  // Read disconnect position
+  Tuple *disconnect_pos_tuple = dict_find(iterator, MESSAGE_KEY_DISCONNECT_POSITION);
+  if (disconnect_pos_tuple) {
+    int new_disconnect_position = (int)disconnect_pos_tuple->value->int32;
+    if (new_disconnect_position != s_disconnect_position) {
+      s_disconnect_position = new_disconnect_position;
+      save_disconnect_position_to_storage();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Disconnect position changed to: %d", s_disconnect_position);
+      update_all_info_layers();
     }
   }
 
@@ -580,8 +595,12 @@ static void draw_info_for_type(InfoType info_type, InfoLayer* info_layer) {
     case INFO_TYPE_CALENDAR:
       draw_calendar_info(info_layer);
       break;
+    case INFO_TYPE_DISCONNECT:
+      draw_disconnect_info(info_layer);
+      break;
     case INFO_TYPE_COLORED_BOX:
       draw_colored_box_info(info_layer);
+      break;
     case INFO_TYPE_NONE:
       // Do nothing for empty layers
       break;
@@ -618,11 +637,26 @@ static void clear_info_layer(InfoLayer* info_layer) {
 
 // Update all info layers according to current assignments
 static void update_all_info_layers() {
+  bool connected = connection_service_peek_pebble_app_connection();
   for (int i = 0; i < NUM_INFO_LAYERS; i++) {
     // Clear existing content first
     clear_info_layer(&s_info_layers[i]);
-    // Redraw with current assignment
-    draw_info_for_type(s_layer_assignments[i], &s_info_layers[i]);
+
+    // Override with disconnect icon if disconnected and this is the configured position
+    // s_disconnect_position: 1=UL, 2=UR, 3=LL, 4=LR (maps to i+1)
+    if (!connected && s_disconnect_position > 0 && s_disconnect_position == i + 1) {
+      draw_info_for_type(INFO_TYPE_DISCONNECT, &s_info_layers[i]);
+    } else {
+      draw_info_for_type(s_layer_assignments[i], &s_info_layers[i]);
+    }
+  }
+}
+
+// Bluetooth connection handler
+static void bluetooth_connection_handler(bool connected) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Bluetooth connection: %s", connected ? "connected" : "disconnected");
+  if (s_disconnect_position > 0) {
+    update_colors();
   }
 }
 
@@ -739,6 +773,7 @@ static void main_window_load(Window *window) {
   load_step_icon();
   load_battery_icon();
   load_calendar_icon();
+  load_disconnect_icon();
   update_day();
 
   // Initialize the display with current layer assignments
@@ -776,6 +811,9 @@ static void main_window_unload(Window *window) {
   if (s_calendar_icon) {
     gdraw_command_image_destroy(s_calendar_icon);
   }
+  if (s_disconnect_icon) {
+    gdraw_command_image_destroy(s_disconnect_icon);
+  }
 }
 
 // --- Initialization and Deinitialization ---
@@ -801,6 +839,9 @@ static void init() {
   // Load saved layout assignments
   load_layout_from_storage();
 
+  // Load saved disconnect position
+  load_disconnect_position_from_storage();
+
   s_main_window = window_create();
   window_set_background_color(s_main_window, get_background_color());
 
@@ -811,13 +852,18 @@ static void init() {
 
   // Initialize App Message
   app_message_register_inbox_received(inbox_received_callback);
-  app_message_open(256, 128); // Buffer size for weather + layout data
+  app_message_open(512, 128); // Buffer size for weather + layout + config data
 
   // Subscribe to MINUTE_UNIT (for time update/minute-start trigger) and SECOND_UNIT (for stop trigger)
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
 
   // Subscribe to battery state updates
   battery_state_service_subscribe(battery_handler);
+
+  // Subscribe to Bluetooth connection updates
+  connection_service_subscribe((ConnectionHandlers) {
+    .pebble_app_connection_handler = bluetooth_connection_handler
+  });
 
   window_stack_push(s_main_window, true);
 
@@ -829,6 +875,7 @@ static void deinit() {
   window_destroy(s_main_window);
   tick_timer_service_unsubscribe();
   battery_state_service_unsubscribe();
+  connection_service_unsubscribe();
 }
 
 // --- Main Program Loop ---
