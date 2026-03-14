@@ -1,5 +1,7 @@
 # Pebble Mesh
 
+<img src="screenshots/flint_screenshot_1.png" alt="Pebble Mesh Preview" width="200"/> <img src="screenshots/flint_screenshot_2.png" alt="Pebble Mesh Preview" width="200"/>
+
 Pebble Mesh is an open-source, retro-digital watch face designed for maximum clarity and essential stats. This face features a signature dot-matrix grid background that gives it a crisp, monochrome, and classic aesthetic including a retro typewriter animation.
 
 ## FEATURES
@@ -15,14 +17,10 @@ Pebble Mesh is an open-source, retro-digital watch face designed for maximum cla
 - Step Goal: 10k per default
 - Layout: You can select what info to display where.
 
-## HANKS TO
+## THANKS TO
 - Weather provided by https://open-meteo.com/
 - Reverse GeoCoding provided by https://bigdatacloud.net/
 - Pebble Dev Iconography https://github.com/pebble-dev/iconography
-
-
-<img src="screenshots/flint_screenshot_1.png" alt="Pebble Mesh Preview" width="200"/> <img src="screenshots/flint_screenshot_2.png" alt="Pebble Mesh Preview" width="200"/>
-
 
 
 ## Donate
