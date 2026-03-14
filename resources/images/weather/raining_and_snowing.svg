@@ -26,8 +26,8 @@
    inkscape:deskcolor="#d1d1d1"
    showgrid="false"
    inkscape:zoom="11.101576"
-   inkscape:cx="27.788846"
-   inkscape:cy="19.771967"
+   inkscape:cx="28.059079"
+   inkscape:cy="20.042199"
    inkscape:window-width="1854"
    inkscape:window-height="1011"
    inkscape:window-x="0"
@@ -83,7 +83,8 @@
    stroke-linejoin="round"
    stroke-miterlimit="10"
    points="  43.5,25.5 47.5,21.5 47.5,15.5 43.5,11.5 31.5,11.5 27.5,7.5 14.5,7.5 9.5,12.5 5.5,12.5 1.5,16.5 1.5,21.5 5.5,25.5 43.5,25.5 "
-   id="polygon10" />
+   id="polygon10"
+   style="stroke-width:2;stroke-dasharray:none" />
 <polyline
    display="inline"
    fill="none"
@@ -93,7 +94,8 @@
    stroke-linejoin="round"
    stroke-miterlimit="10"
    points="  10,13 16,13 21,16 "
-   id="polyline12" />
+   id="polyline12"
+   transform="translate(-1.0337778,-0.4940177)" />
 <line
    display="inline"
    fill="#ffffff"

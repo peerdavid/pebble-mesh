@@ -26,8 +26,8 @@
    inkscape:deskcolor="#d1d1d1"
    showgrid="false"
    inkscape:zoom="11.101576"
-   inkscape:cx="22.0239"
-   inkscape:cy="22.294132"
+   inkscape:cx="22.113977"
+   inkscape:cy="22.474287"
    inkscape:window-width="1854"
    inkscape:window-height="1011"
    inkscape:window-x="0"
@@ -54,7 +54,8 @@
    stroke-linejoin="round"
    stroke-miterlimit="10"
    points="  12,32 19,32 22,35 "
-   id="polyline4" />
+   id="polyline4"
+   transform="matrix(1.0823333,0,0,0.98005114,-3.8412563,0.19186253)" />
 
 
 

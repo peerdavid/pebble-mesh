@@ -26,8 +26,8 @@
    inkscape:deskcolor="#d1d1d1"
    showgrid="false"
    inkscape:zoom="15.7"
-   inkscape:cx="25.063694"
-   inkscape:cy="25.063694"
+   inkscape:cx="25.127389"
+   inkscape:cy="25.127389"
    inkscape:window-width="1854"
    inkscape:window-height="1011"
    inkscape:window-x="0"
@@ -54,7 +54,8 @@
    stroke-linejoin="round"
    stroke-miterlimit="10"
    points="  12,32 19,32 22,35 "
-   id="polyline5009" />
+   id="polyline5009"
+   transform="translate(-2.9595442,-0.48741043)" />
 <polygon
    display="inline"
    fill="#FFFFFF"

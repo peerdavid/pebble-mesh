@@ -27,8 +27,8 @@
    inkscape:deskcolor="#d1d1d1"
    showgrid="false"
    inkscape:zoom="5.5507882"
-   inkscape:cx="9.6382708"
-   inkscape:cy="28.194194"
+   inkscape:cx="9.8184254"
+   inkscape:cy="28.374349"
    inkscape:window-width="1854"
    inkscape:window-height="1011"
    inkscape:window-x="0"
@@ -38,7 +38,7 @@
 <g
    id="g14"
    transform="matrix(1.8507984,0,0,1.7292511,2.0655668,3.0697781)"
-   style="stroke-width:1.67692124;stroke-dasharray:none">
+   style="stroke-width:1.1179475;stroke-dasharray:none">
 	
 		<polygon
    fill="#ffffff"
@@ -49,7 +49,7 @@
    stroke-miterlimit="10"
    points="17.1,18.1 24,18 18,25 9,25 1,17 1,8 9,0 16,0 19,3 14,3 11,6 11,12 15,12 15,16 "
    id="polygon2"
-   style="stroke-width:1.67692124;stroke-dasharray:none" />
+   style="stroke-width:1.1179475;stroke-dasharray:none" />
 	
 		<polyline
    fill="none"
@@ -60,7 +60,7 @@
    stroke-miterlimit="10"
    points="   5,13 6.6,11.5 8.1,13.1  "
    id="polyline4"
-   style="stroke-width:1.67692124;stroke-dasharray:none" />
+   style="stroke-width:1.1179475;stroke-dasharray:none" />
 	
 		<line
    fill="none"
@@ -74,7 +74,7 @@
    x2="1.5"
    y2="8.1000004"
    id="line6"
-   style="stroke-width:1.67692124;stroke-dasharray:none" />
+   style="stroke-width:1.1179475;stroke-dasharray:none" />
 	
 		<line
    fill="none"
@@ -88,7 +88,7 @@
    x2="20"
    y2="4"
    id="line8"
-   style="stroke-width:1.67692124;stroke-dasharray:none" />
+   style="stroke-width:1.1179475;stroke-dasharray:none" />
 	
 		<polygon
    fill="#ffffff"
@@ -99,7 +99,7 @@
    stroke-miterlimit="10"
    points="18,6 20,4 22,4 24,6 24,8 22,10 20,10 18,8 "
    id="polygon10"
-   style="stroke-width:1.67692124;stroke-dasharray:none" />
+   style="stroke-width:1.1179475;stroke-dasharray:none" />
 	
 		<polyline
    fill="none"
@@ -110,6 +110,6 @@
    stroke-miterlimit="10"
    points="   16.7,17.9 14.4,20.2 12,20.2  "
    id="polyline12"
-   style="stroke-width:1.67692124;stroke-dasharray:none" />
+   style="stroke-width:1.1179475;stroke-dasharray:none" />
 </g>
 </svg>
