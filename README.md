@@ -1,15 +1,29 @@
 # Pebble Mesh
 
-A simple Pebble watchface displaying time, date, steps, temperature, and location using Pebble Mesh.
+Pebble Mesh is an open-source, retro-digital watch face designed for maximum clarity and essential stats. This face features a signature dot-matrix grid background that gives it a crisp, monochrome, and classic aesthetic including a retro typewriter animation.
 
-<img src="screenshots/screenshot_1.png" alt="Pebble Mesh Preview" width="200"/>
+## FEATURES
+- Bold Time Display: Large, easy-to-read
+- Configurable Infos: Weather, sunrise / sunset, temperature, step count, battery level, date.
+- Minute Animation: Watch for a subtle, satisfying line animation every time the minute changes!
+
+## SETTINGS
+- Theme: Light, Dark, Dynamic (sunrise / sunset), Dynamic (quiet time)
+- Enable / Disable animations
+- Location: Current or Fixed Name
+- Temperature Unit: °C, °F
+- Step Goal: 10k per default
+- Layout: You can select what info to display where.
+
+## HANKS TO
+- Weather provided by https://open-meteo.com/
+- Reverse GeoCoding provided by https://bigdatacloud.net/
+- Pebble Dev Iconography https://github.com/pebble-dev/iconography
 
 
-<img src="screenshots/screenshot_2.png" alt="Pebble Mesh Preview" width="200"/>
+<img src="screenshots/flint_screenshot_1.png" alt="Pebble Mesh Preview" width="200"/> <img src="screenshots/flint_screenshot_2.png" alt="Pebble Mesh Preview" width="200"/>
 
 
-## Thanks to
-Thanks to [Pebble Dev Iconography](https://github.com/pebble-dev/iconography) for the great icons.
 
 ## Donate
 If you like it and want to buy me a coffee:
