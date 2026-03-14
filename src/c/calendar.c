@@ -40,12 +40,20 @@ void draw_calendar_info(InfoLayer* info_layer) {
   layer_set_update_proc(info_layer->custom_layer, calendar_layer_update_proc);
 
   // Day number text drawn over the icon
+#if defined(PBL_PLATFORM_EMERY)
+  GRect text_frame = GRect(x_pos + left_shift, y_pos+6, CAL_ICON_SIZE, CAL_ICON_SIZE);
+#else
   GRect text_frame = GRect(x_pos + left_shift, y_pos+2, CAL_ICON_SIZE, CAL_ICON_SIZE);
+#endif
   info_layer->text_layer1 = text_layer_create(text_frame);
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_day_buffer);
+#if defined(PBL_PLATFORM_EMERY)
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+#else
   text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+#endif
   text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
 
   layer_add_child(layer, info_layer->custom_layer);

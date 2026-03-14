@@ -42,7 +42,11 @@ void draw_steps_info(InfoLayer* info_layer) {
   int y_pos = bounds.size.h / 4 + 1;
   int x_pos = bounds.size.w / 2 - STEP_ICON_SIZE / 2;
   icon_frame = GRect(x_pos, y_pos-STEP_ICON_SIZE / 2 + 1, STEP_ICON_SIZE, STEP_ICON_SIZE);
+#if defined(PBL_PLATFORM_EMERY)
+  text_frame = GRect(0, y_pos+10, bounds.size.w, 32);
+#else
   text_frame = GRect(0, y_pos+6, bounds.size.w, 28);
+#endif
   
   // Create step icon layer via PDC draw command
   info_layer->custom_layer = layer_create(icon_frame);
@@ -52,7 +56,11 @@ void draw_steps_info(InfoLayer* info_layer) {
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_step_buffer);
+#if defined(PBL_PLATFORM_EMERY)
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+#else
   text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+#endif
   text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
   
   int full_width = STEP_ICON_SIZE-1;

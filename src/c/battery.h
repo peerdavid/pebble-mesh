@@ -6,7 +6,11 @@
 #include "utils.h"
 
 #define ORIG_BATTERY_ICON_SIZE 25
-#define BATTERY_ICON_SIZE 32
+#if defined(PBL_PLATFORM_EMERY)
+  #define BATTERY_ICON_SIZE 44
+#else
+  #define BATTERY_ICON_SIZE 32
+#endif
 
 extern GDrawCommandImage *s_battery_icon;
 extern char s_battery_buffer[5];

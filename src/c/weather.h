@@ -10,7 +10,11 @@
  */
 
 #define ORIG_WEATHER_ICON_SIZE 50
-#define WEATHER_ICON_SIZE 36
+#if defined(PBL_PLATFORM_EMERY)
+  #define WEATHER_ICON_SIZE 50
+#else
+  #define WEATHER_ICON_SIZE 36
+#endif
 
 extern int s_current_weather_code;
 extern GDrawCommandImage *s_weather_icon;

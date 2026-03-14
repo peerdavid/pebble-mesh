@@ -40,20 +40,37 @@ void draw_temperature_info(InfoLayer* info_layer) {
   int y_center = bounds.size.h / 2 - 10;
   
   // Create temperature text layer
+#if defined(PBL_PLATFORM_EMERY)
+  GRect temp_frame = GRect(0, y_center-16, bounds.size.w, 28);
+#else
   GRect temp_frame = GRect(0, y_center-14, bounds.size.w, 24);
+#endif
   info_layer->text_layer1 = text_layer_create(temp_frame);
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_temperature_buffer);
+
+#if defined(PBL_PLATFORM_EMERY)
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+#else
   text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-  
+#endif
+
   // Create location text layer
+#if defined(PBL_PLATFORM_EMERY)
+  GRect location_frame = GRect(0, y_center+12, bounds.size.w, 24);
+#else
   GRect location_frame = GRect(0, y_center+8, bounds.size.w, 18);
+#endif
   info_layer->text_layer2 = text_layer_create(location_frame);
   text_layer_set_background_color(info_layer->text_layer2, GColorClear);
   text_layer_set_text_color(info_layer->text_layer2, get_text_color());
   text_layer_set_text(info_layer->text_layer2, s_location_buffer);
+#if defined(PBL_PLATFORM_EMERY)
+  text_layer_set_font(info_layer->text_layer2, fonts_get_system_font(FONT_KEY_GOTHIC_18));
+#else
   text_layer_set_font(info_layer->text_layer2, fonts_get_system_font(FONT_KEY_GOTHIC_14));
+#endif
   
   // Set alignment based on layer alignment
   text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
@@ -152,7 +169,7 @@ void load_weather_from_storage() {
   } else {
     // Use the current temperature unit for the default display
     const char* unit_symbol = s_temperature_unit == 1 ? "°F" : "°C";
-    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "--%s", unit_symbol);
+    snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "---%s", unit_symbol);
   }
   
   // Load location

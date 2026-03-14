@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.43",
+  "version": "1.44",
   "keywords": [
     "clock",
     "minimal",
@@ -23,7 +23,8 @@
     "targetPlatforms": [
       "aplite",
       "basalt",
-      "diorite"
+      "diorite",
+      "emery"
     ],
     "watchapp": {
       "watchface": true

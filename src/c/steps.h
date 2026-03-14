@@ -6,7 +6,11 @@
 #include "utils.h"
 
 #define ORIG_STEP_ICON_SIZE 25
-#define STEP_ICON_SIZE 32
+#if defined(PBL_PLATFORM_EMERY)
+  #define STEP_ICON_SIZE 44
+#else
+  #define STEP_ICON_SIZE 32
+#endif
 
 extern GDrawCommandImage *s_step_icon;
 extern char s_step_buffer[20];

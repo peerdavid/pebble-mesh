@@ -23,9 +23,14 @@ void draw_battery_info(InfoLayer* info_layer) {
 
   int x_pos = bounds.size.w / 2 - BATTERY_ICON_SIZE / 2;
   int y_pos = bounds.size.h / 2 - BATTERY_ICON_SIZE / 2;
+  int y_offset = 0;
+  
+#if defined(PBL_PLATFORM_EMERY)
+  y_offset = 3;
+#endif
 
   // Battery icon via PDC draw command
-  GRect icon_frame = GRect(x_pos, y_pos - 8, BATTERY_ICON_SIZE, BATTERY_ICON_SIZE);
+  GRect icon_frame = GRect(x_pos, y_pos - 8 - y_offset, BATTERY_ICON_SIZE, BATTERY_ICON_SIZE);
   info_layer->custom_layer = layer_create(icon_frame);
   layer_set_update_proc(info_layer->custom_layer, battery_icon_layer_update_proc);
 
@@ -44,12 +49,20 @@ void draw_battery_info(InfoLayer* info_layer) {
   bitmap_layer_set_background_color(info_layer->bitmap_layer_2, GColorLightGray);
 
   // Battery percentage text
+#if defined(PBL_PLATFORM_EMERY)
+  GRect text_frame = GRect(0, y_pos + 16, bounds.size.w, 28);
+#else
   GRect text_frame = GRect(0, y_pos + 12, bounds.size.w, 24);
+#endif
   info_layer->text_layer1 = text_layer_create(text_frame);
   text_layer_set_background_color(info_layer->text_layer1, GColorClear);
   text_layer_set_text_color(info_layer->text_layer1, get_text_color());
   text_layer_set_text(info_layer->text_layer1, s_battery_buffer);
+#if defined(PBL_PLATFORM_EMERY)
+  text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+#else
   text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+#endif
   text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
 
   // Add to the info layer

@@ -1,7 +1,7 @@
 #include <pebble.h>
 #include "config.h"
 
-int s_color_theme = 1;
+int s_color_theme = 0; // 0 = dark, 1 = light, 2 = auto day/night, 3 = auto quiet time
 int s_step_goal = 10000;
 int s_temperature_unit = 0;  // 0 = celsius, 1 = fahrenheit
 int s_is_day = 1; // 1 = day, 0 = night
@@ -29,7 +29,6 @@ void load_theme_from_storage() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded theme from storage: %d", s_color_theme);
   } else {
     // Default to light theme if no preference exists
-    s_color_theme = 1;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No theme preference found, using default light theme");
   }
 }
@@ -73,7 +72,6 @@ void load_step_goal_from_storage() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded step goal from storage: %d", s_step_goal);
   } else {
     // Default to 10000 if no preference exists
-    s_step_goal = 10000;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No step goal preference found, using default 10000");
   }
 }
@@ -89,7 +87,6 @@ void load_temperature_unit_from_storage() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded temperature unit from storage: %d", s_temperature_unit);
   } else {
     // Default to celsius if no preference exists
-    s_temperature_unit = 0;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No temperature unit preference found, using default celsius");
   }
 }
@@ -105,7 +102,6 @@ void load_enable_animations_from_storage() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded enable animations from storage: %d", s_enable_animations);
   } else {
     // Default to enabled if no preference exists
-    s_enable_animations = 1;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No enable animations preference found, using default enabled");
   }
 }
@@ -138,7 +134,6 @@ void load_disconnect_position_from_storage() {
     s_disconnect_position = persist_read_int(PERSIST_KEY_DISCONNECT_POSITION);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded disconnect position from storage: %d", s_disconnect_position);
   } else {
-    s_disconnect_position = 0;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No disconnect position preference found, using default disabled");
   }
 }

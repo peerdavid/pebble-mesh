@@ -5,7 +5,11 @@
 #include "config.h"
 
 #define ORIG_DISCONNECT_ICON_SIZE 25
-#define DISCONNECT_ICON_SIZE 32
+#if defined(PBL_PLATFORM_EMERY)
+  #define DISCONNECT_ICON_SIZE 44
+#else
+  #define DISCONNECT_ICON_SIZE 32
+#endif
 
 extern GDrawCommandImage *s_disconnect_icon;
 

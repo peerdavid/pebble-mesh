@@ -6,7 +6,11 @@
 #include "utils.h"
 
 #define ORIG_CAL_ICON_SIZE 25
-#define CAL_ICON_SIZE 32
+#if defined(PBL_PLATFORM_EMERY)
+  #define CAL_ICON_SIZE 44
+#else
+  #define CAL_ICON_SIZE 32
+#endif
 
 extern GDrawCommandImage *s_calendar_icon;
 extern char s_day_buffer[3];
