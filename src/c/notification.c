@@ -257,6 +257,8 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
   if (temp_max == temp_min) { temp_max = temp_min + 1; }
 
   int col_w = graph_w / NUM_HOURLY_POINTS;
+  int graph_offset = (graph_w - col_w * NUM_HOURLY_POINTS) / 2;
+  const int gx = graph_x + graph_offset;
 
   // Get current hour for positioning markers
   time_t now = time(NULL);
@@ -269,7 +271,7 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
     if (s_hourly_precip[i] <= 0) continue;
     int bar_h = (s_hourly_precip[i] * graph_h) / 100;
     if (bar_h < 1) bar_h = 1;
-    int bar_x = graph_x + i * col_w;
+    int bar_x = gx + i * col_w;
     int bar_y = graph_y + graph_h - bar_h;
 
     // Use gray for precipitation bars
@@ -282,16 +284,16 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
   graphics_context_set_stroke_width(ctx, 2);
 
   for (int i = 0; i < NUM_HOURLY_POINTS - 1; i++) {
-    int x1 = graph_x + i * col_w + col_w / 2;
+    int x1 = gx + i * col_w + col_w / 2;
     int y1 = graph_y + graph_h - ((s_hourly_temps[i] - temp_min) * graph_h / (temp_max - temp_min));
-    int x2 = graph_x + (i + 1) * col_w + col_w / 2;
+    int x2 = gx + (i + 1) * col_w + col_w / 2;
     int y2 = graph_y + graph_h - ((s_hourly_temps[i + 1] - temp_min) * graph_h / (temp_max - temp_min));
     graphics_draw_line(ctx, GPoint(x1, y1), GPoint(x2, y2));
   }
 
   // Draw "now" dashed line at current hour position (on top of everything)
   {
-    int now_x = graph_x + current_hour * col_w + col_w / 2;
+    int now_x = gx + current_hour * col_w + col_w / 2;
     graphics_context_set_stroke_color(ctx, text_color);
     graphics_context_set_stroke_width(ctx, 1);
     for (int dy = graph_y; dy < graph_y + graph_h; dy += 4) {
