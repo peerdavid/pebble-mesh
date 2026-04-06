@@ -28,8 +28,8 @@ static GDrawCommandImage *s_forecast_icons[NUM_FORECAST_SLOTS] = { NULL, NULL, N
 // Temperature label buffers
 static char s_forecast_temp_buffers[NUM_FORECAST_SLOTS][10];
 
-// Hour offset labels
-static const char *s_hour_labels[NUM_FORECAST_SLOTS] = { "+3h", "+6h", "+9h" };
+// Forecast labels: now, tomorrow, day after
+static const char *s_hour_labels[NUM_FORECAST_SLOTS] = { "Now", "+1d", "+2d" };
 
 // Hourly graph data (12 hours)
 int s_hourly_temps[NUM_HOURLY_POINTS] = {0};
@@ -152,8 +152,8 @@ static void draw_notification_top(Layer *layer, GContext *ctx) {
   GFont temp_font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
   GFont label_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
 #else
-  int label_y = -2;
-  int icon_y = 16;
+  int label_y = -4;
+  int icon_y = 14;
   int temp_y = icon_y + FORECAST_ICON_SIZE;
   GFont temp_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
   GFont label_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);

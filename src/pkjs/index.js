@@ -61,9 +61,9 @@ var weatherData = {
   hourlyTemps: '',   // Comma-separated 12h hourly temperatures
   hourlyPrecip: '',  // Comma-separated 12h hourly precipitation probabilities
   forecast: [
-    { temp: 0, condition: -1 },  // +3h
-    { temp: 0, condition: -1 },  // +6h
-    { temp: 0, condition: -1 }   // +9h
+    { temp: 0, condition: -1 },  // now
+    { temp: 0, condition: -1 },  // +1d (tomorrow)
+    { temp: 0, condition: -1 }   // +2d (day after)
   ]
 };
 
@@ -245,18 +245,18 @@ function getWeatherData(latitude, longitude) {
   var mm = String(now.getUTCMonth() + 1).padStart(2, '0');
   var dd = String(now.getUTCDate()).padStart(2, '0');
   var today = yyyy + '-' + mm + '-' + dd;
-  // Also get tomorrow in case +9h crosses midnight
-  var tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  var yyyy2 = tomorrow.getUTCFullYear();
-  var mm2 = String(tomorrow.getUTCMonth() + 1).padStart(2, '0');
-  var dd2 = String(tomorrow.getUTCDate()).padStart(2, '0');
+  // Get day after tomorrow for daily forecast (now, +1d, +2d)
+  var dayAfterTomorrow = new Date(now);
+  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+  var yyyy2 = dayAfterTomorrow.getUTCFullYear();
+  var mm2 = String(dayAfterTomorrow.getUTCMonth() + 1).padStart(2, '0');
+  var dd2 = String(dayAfterTomorrow.getUTCDate()).padStart(2, '0');
   var endDate = yyyy2 + '-' + mm2 + '-' + dd2;
   var url = 'https://api.open-meteo.com/v1/forecast?latitude=' +
             latitude + '&longitude=' + longitude +
             '&current_weather=true&temperature_unit=' + config.temperatureUnit + '&windspeed_unit=kmh' +
             '&hourly=temperature_2m,weather_code,precipitation_probability' +
-            '&daily=sunrise,sunset&timezone=auto&start_date=' + today + '&end_date=' + endDate;
+            '&daily=sunrise,sunset,weather_code,temperature_2m_max&timezone=auto&start_date=' + today + '&end_date=' + endDate;
 
   console.log('Fetching weather from: ' + url);
 
@@ -292,30 +292,29 @@ function getWeatherData(latitude, longitude) {
             
             weatherData.is_day = isDay;
 
-            // Extract hourly forecast for +3h, +6h, +9h
+            // Extract forecast: now (current), tomorrow (daily), day after (daily)
             try {
               if (response.hourly && response.hourly.time && response.hourly.temperature_2m && response.hourly.weather_code) {
                 var nowLocal = new Date();
-                var offsets = [3, 6, 9];
-                for (var fi = 0; fi < offsets.length; fi++) {
-                  var targetTime = new Date(nowLocal.getTime() + offsets[fi] * 3600 * 1000);
-                  // Find the closest hourly slot
-                  var bestIdx = 0;
-                  var bestDiff = Infinity;
-                  for (var hi = 0; hi < response.hourly.time.length; hi++) {
-                    var hourTime = new Date(response.hourly.time[hi]);
-                    var diff = Math.abs(hourTime.getTime() - targetTime.getTime());
-                    if (diff < bestDiff) {
-                      bestDiff = diff;
-                      bestIdx = hi;
+
+                // Slot 0: Current weather (now)
+                weatherData.forecast[0].temp = Math.round(response.current_weather.temperature);
+                weatherData.forecast[0].condition = response.current_weather.weathercode || 0;
+
+                // Slots 1 & 2: Tomorrow and day after from daily forecast
+                if (response.daily && response.daily.weather_code && response.daily.temperature_2m_max) {
+                  // daily arrays: index 0 = today, 1 = tomorrow, 2 = day after
+                  for (var di = 1; di <= 2; di++) {
+                    if (di < response.daily.weather_code.length) {
+                      weatherData.forecast[di].temp = Math.round(response.daily.temperature_2m_max[di]);
+                      weatherData.forecast[di].condition = response.daily.weather_code[di];
                     }
                   }
-                  weatherData.forecast[fi].temp = Math.round(response.hourly.temperature_2m[bestIdx]);
-                  weatherData.forecast[fi].condition = response.hourly.weather_code[bestIdx];
                 }
-                console.log('Forecast: +3h=' + weatherData.forecast[0].temp + '/' + weatherData.forecast[0].condition +
-                            ' +6h=' + weatherData.forecast[1].temp + '/' + weatherData.forecast[1].condition +
-                            ' +9h=' + weatherData.forecast[2].temp + '/' + weatherData.forecast[2].condition);
+
+                console.log('Forecast: now=' + weatherData.forecast[0].temp + '/' + weatherData.forecast[0].condition +
+                            ' +1d=' + weatherData.forecast[1].temp + '/' + weatherData.forecast[1].condition +
+                            ' +2d=' + weatherData.forecast[2].temp + '/' + weatherData.forecast[2].condition);
 
                 // Extract 24 hours of today's data for the bottom bar graph (hours 0-23)
                 var hourlyTemps = [];

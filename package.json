@@ -1,12 +1,13 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.45",
+  "version": "1.46",
   "keywords": [
     "clock",
     "minimal",
     "mesh",
-    "dark"
+    "dark",
+    "weather"
   ],
   "private": true,
   "dependencies": {

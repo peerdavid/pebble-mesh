@@ -168,7 +168,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     update_all_info_layers();
   }
 
-  // Read forecast data (+3h, +6h, +9h)
+  // Read forecast data (now, +1d, +2d)
   Tuple *fc_temp1 = dict_find(iterator, MESSAGE_KEY_FORECAST_TEMP_1);
   Tuple *fc_temp2 = dict_find(iterator, MESSAGE_KEY_FORECAST_TEMP_2);
   Tuple *fc_temp3 = dict_find(iterator, MESSAGE_KEY_FORECAST_TEMP_3);

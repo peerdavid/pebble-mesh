@@ -18,7 +18,7 @@
 #define NUM_FORECAST_SLOTS 3
 #define NUM_HOURLY_POINTS 24
 
-// Forecast data for +3h, +6h, +9h
+// Forecast data for now, +1d, +2d
 typedef struct {
   int temperature;
   int condition_code;
