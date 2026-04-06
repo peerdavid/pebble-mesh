@@ -135,7 +135,14 @@ static void draw_notification_top(Layer *layer, GContext *ctx) {
   GColor text_color = get_text_color();
   graphics_context_set_stroke_color(ctx, text_color);
   graphics_context_set_stroke_width(ctx, 3);
-  graphics_draw_line(ctx, GPoint(0, visible_height - 2), GPoint(bounds.size.w, visible_height - 2));
+  int line_x_start = 0;
+  int line_x_end = bounds.size.w;
+  if (is_light_theme()) {
+    int max_line_length = (int)(bounds.size.w * 0.8f);
+    line_x_start = (bounds.size.w - max_line_length) / 2;
+    line_x_end = line_x_start + max_line_length;
+  }
+  graphics_draw_line(ctx, GPoint(line_x_start, visible_height - 2), GPoint(line_x_end, visible_height - 2));
 
   // Only draw content once fully visible
   if (s_fade_progress < NOTIFICATION_FADE_FRAMES) {
@@ -205,7 +212,14 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
   GColor text_color = get_text_color();
   graphics_context_set_stroke_color(ctx, text_color);
   graphics_context_set_stroke_width(ctx, 3);
-  graphics_draw_line(ctx, GPoint(0, y_start+1), GPoint(bounds.size.w, y_start+1));
+  int line_x_start = 0;
+  int line_x_end = bounds.size.w;
+  if (is_light_theme()) {
+    int max_line_length = (int)(bounds.size.w * 0.8f);
+    line_x_start = (bounds.size.w - max_line_length) / 2;
+    line_x_end = line_x_start + max_line_length;
+  }
+  graphics_draw_line(ctx, GPoint(line_x_start, y_start+1), GPoint(line_x_end, y_start+1));
 
   if (s_fade_progress < NOTIFICATION_FADE_FRAMES) {
     return;
@@ -259,11 +273,7 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
     int bar_y = graph_y + graph_h - bar_h;
 
     // Use gray for precipitation bars
-#if defined(PBL_COLOR)
-    graphics_context_set_fill_color(ctx, GColorDarkGray);
-#else
     graphics_context_set_fill_color(ctx, GColorLightGray);
-#endif
     graphics_fill_rect(ctx, GRect(bar_x + 1, bar_y, col_w - 2, bar_h), 0, GCornerNone);
   }
 
