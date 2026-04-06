@@ -6,7 +6,7 @@
 
 // Weather detail bar height extends from top of screen to the upper horizontal line
 #if defined(PBL_PLATFORM_EMERY)
-  #define NOTIFICATION_BAR_HEIGHT 63  // bounds.size.h/2 - 38 on emery (200/2 - 38 = 62)
+  #define NOTIFICATION_BAR_HEIGHT 77  // bounds.size.h/2 - 38 on emery (228/2 - 38 = 76)
 #else
   #define NOTIFICATION_BAR_HEIGHT 55  // bounds.size.h/2 - 30 on standard (168/2 - 30 = 54)
 #endif
