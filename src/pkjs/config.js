@@ -43,6 +43,19 @@ module.exports = [
         "messageKey": "ENABLE_ANIMATIONS",
         "label": "Enable Animations",
         "defaultValue": true
+      },
+      {
+        "type": "select",
+        "messageKey": "NOTIFICATION_DURATION",
+        "label": "Weather Details on Flick",
+        "description": "Double flick to show detailed weather forecast.",
+        "defaultValue": "0",
+        "options": [
+          { "label": "Disabled", "value": "3" },
+          { "label": "5 seconds", "value": "0" },
+          { "label": "10 seconds", "value": "1" },
+          { "label": "Until dismissed", "value": "2" }
+        ]
       }
     ]
   },

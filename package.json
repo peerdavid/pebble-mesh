@@ -44,7 +44,17 @@
       "LAYOUT_UPPER_RIGHT",
       "LAYOUT_LOWER_LEFT",
       "LAYOUT_LOWER_RIGHT",
-      "DISCONNECT_POSITION"
+      "DISCONNECT_POSITION",
+      "FORECAST_TEMP_1",
+      "FORECAST_TEMP_2",
+      "FORECAST_TEMP_3",
+      "FORECAST_CONDITION_1",
+      "FORECAST_CONDITION_2",
+      "FORECAST_CONDITION_3",
+      "HOURLY_TEMPS",
+      "HOURLY_PRECIP",
+      "ENABLE_NOTIFICATIONS",
+      "NOTIFICATION_DURATION"
     ],
     "resources": {
       "media": [

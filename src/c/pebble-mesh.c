@@ -6,6 +6,7 @@
 #include "battery.h"
 #include "calendar.h"
 #include "disconnect.h"
+#include "notification.h"
 
 
 
@@ -55,6 +56,7 @@ static void update_all_info_layers();
 static void draw_info_for_type(InfoType info_type, InfoLayer* info_layer);
 static void clear_info_layer(InfoLayer* info_layer);
 static void bluetooth_connection_handler(bool connected);
+static void tap_handler(AccelAxisType axis, int32_t direction);
 
 
 // Function to update all colors based on current theme
@@ -166,6 +168,39 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     update_all_info_layers();
   }
 
+  // Read forecast data (+3h, +6h, +9h)
+  Tuple *fc_temp1 = dict_find(iterator, MESSAGE_KEY_FORECAST_TEMP_1);
+  Tuple *fc_temp2 = dict_find(iterator, MESSAGE_KEY_FORECAST_TEMP_2);
+  Tuple *fc_temp3 = dict_find(iterator, MESSAGE_KEY_FORECAST_TEMP_3);
+  Tuple *fc_cond1 = dict_find(iterator, MESSAGE_KEY_FORECAST_CONDITION_1);
+  Tuple *fc_cond2 = dict_find(iterator, MESSAGE_KEY_FORECAST_CONDITION_2);
+  Tuple *fc_cond3 = dict_find(iterator, MESSAGE_KEY_FORECAST_CONDITION_3);
+  if (fc_temp1) s_forecast[0].temperature = (int)fc_temp1->value->int32;
+  if (fc_temp2) s_forecast[1].temperature = (int)fc_temp2->value->int32;
+  if (fc_temp3) s_forecast[2].temperature = (int)fc_temp3->value->int32;
+  if (fc_cond1) s_forecast[0].condition_code = (int)fc_cond1->value->int32;
+  if (fc_cond2) s_forecast[1].condition_code = (int)fc_cond2->value->int32;
+  if (fc_cond3) s_forecast[2].condition_code = (int)fc_cond3->value->int32;
+  if (fc_temp1 || fc_cond1) {
+    notification_update_forecast_icons();
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Forecast updated: %d/%d %d/%d %d/%d",
+            s_forecast[0].temperature, s_forecast[0].condition_code,
+            s_forecast[1].temperature, s_forecast[1].condition_code,
+            s_forecast[2].temperature, s_forecast[2].condition_code);
+  }
+
+  // Read hourly forecast data for bottom bar graph
+  Tuple *hourly_temps_tuple = dict_find(iterator, MESSAGE_KEY_HOURLY_TEMPS);
+  if (hourly_temps_tuple) {
+    notification_parse_hourly_temps(hourly_temps_tuple->value->cstring);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Hourly temps received: %s", hourly_temps_tuple->value->cstring);
+  }
+  Tuple *hourly_precip_tuple = dict_find(iterator, MESSAGE_KEY_HOURLY_PRECIP);
+  if (hourly_precip_tuple) {
+    notification_parse_hourly_precip(hourly_precip_tuple->value->cstring);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Hourly precip received: %s", hourly_precip_tuple->value->cstring);
+  }
+
   // Read enable animations
   Tuple *enable_animations_tuple = dict_find(iterator, MESSAGE_KEY_ENABLE_ANIMATIONS);
   if (enable_animations_tuple) {
@@ -174,6 +209,17 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       s_enable_animations = new_enable_animations;
       save_enable_animations_to_storage();
       try_start_animation_timer();
+    }
+  }
+
+  // Read weather detail duration
+  Tuple *notification_duration_tuple = dict_find(iterator, MESSAGE_KEY_NOTIFICATION_DURATION);
+  if (notification_duration_tuple) {
+    int new_duration = (int)notification_duration_tuple->value->int32;
+    if (new_duration != s_notification_duration) {
+      s_notification_duration = new_duration;
+      save_notification_duration_to_storage();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Notification duration changed to: %d", s_notification_duration);
     }
   }
 
@@ -672,6 +718,35 @@ static void bluetooth_connection_handler(bool connected) {
   }
 }
 
+// Double-flick detection for weather detail screen
+#define DOUBLE_FLICK_WINDOW_MS 600
+static uint32_t s_last_tap_time = 0;
+
+// Tap/flick handler - double flick to open, single flick to close
+static void tap_handler(AccelAxisType axis, int32_t direction) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Tap detected on axis %d", axis);
+
+  // If weather details are disabled (duration == 3), ignore flicks entirely
+  if (s_notification_duration == 3) {
+    return;
+  }
+
+  // Require double flick to open / close
+  uint32_t now = 0;
+  time_t t = time(NULL);
+  uint16_t ms = time_ms(NULL, &ms);
+  now = (uint32_t)t * 1000 + ms;
+
+  if (s_last_tap_time > 0 && (now - s_last_tap_time) < DOUBLE_FLICK_WINDOW_MS) {
+    // Double flick detected
+    notification_show();
+    s_last_tap_time = 0;
+  } else {
+    // First flick — record time
+    s_last_tap_time = now;
+  }
+}
+
 // Timer callback to request weather after UI is loaded
 static void delayed_weather_request(void *data) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting weather update (delayed)");
@@ -793,6 +868,9 @@ static void main_window_load(Window *window) {
     layer_add_child(window_layer, s_info_layers[i].layer);
   }
 
+  // Initialize notification bar (on top of info layers)
+  notification_init(window_layer, bounds);
+
   // Initialize PDC icons for use in info drawing functions
   load_weather_icon();
   load_step_icon();
@@ -814,6 +892,9 @@ static void main_window_unload(Window *window) {
   layer_destroy(s_date_layer);
   layer_destroy(s_frame_layer);
   layer_destroy(s_animation_layer);
+
+  // Destroy notification layer
+  notification_deinit();
 
   // Destroy info layers (this will also destroy all their children via clear_info_layer)
   for (int i = 0; i < NUM_INFO_LAYERS; i++) {
@@ -867,6 +948,9 @@ static void init() {
   // Load saved disconnect position
   load_disconnect_position_from_storage();
 
+  // Load saved weather detail duration preference
+  load_notification_duration_from_storage();
+
   s_main_window = window_create();
   window_set_background_color(s_main_window, get_background_color());
 
@@ -877,7 +961,7 @@ static void init() {
 
   // Initialize App Message
   app_message_register_inbox_received(inbox_received_callback);
-  app_message_open(512, 128); // Buffer size for weather + layout + config data
+  app_message_open(768, 128); // Buffer size for weather + forecast + layout + config data
 
   // Subscribe to MINUTE_UNIT (for time update/minute-start trigger) and SECOND_UNIT (for stop trigger)
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
@@ -890,6 +974,9 @@ static void init() {
     .pebble_app_connection_handler = bluetooth_connection_handler
   });
 
+  // Subscribe to tap/flick events for notification bar
+  accel_tap_service_subscribe(tap_handler);
+
   window_stack_push(s_main_window, true);
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Finished init");
@@ -901,6 +988,7 @@ static void deinit() {
   tick_timer_service_unsubscribe();
   battery_state_service_unsubscribe();
   connection_service_unsubscribe();
+  accel_tap_service_unsubscribe();
 }
 
 // --- Main Program Loop ---

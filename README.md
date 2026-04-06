@@ -1,6 +1,7 @@
 # Pebble Mesh
 
-<img src="screenshots/flint_screenshot_1.png" alt="Pebble Mesh Preview" width="200"/> <img src="screenshots/flint_screenshot_2.png" alt="Pebble Mesh Preview" width="200"/>
+<img src="screenshots/flint_screenshot_1.png" alt="Pebble Mesh Preview" width="200"/> <img src="screenshots/flint_screenshot_2.png" alt="Pebble Mesh Preview" width="200"/> <img src="screenshots/flint_screenshot_3.png" alt="Pebble Mesh Preview" width="200"/>
+
 
 Pebble Mesh is an open-source, retro-digital watch face designed for maximum clarity and essential stats. This face features a signature dot-matrix grid background that gives it a crisp, monochrome, and classic aesthetic including a retro typewriter animation.
 

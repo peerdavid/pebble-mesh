@@ -13,7 +13,8 @@ var config = {
   layoutUpperRight: 1,  // INFO_TYPE_TEMPERATURE
   layoutLowerLeft: 2,   // INFO_TYPE_STEPS
   layoutLowerRight: 3,  // INFO_TYPE_BATTERY
-  disconnectPosition: 0 // 0 = disabled, 1-4 = UL/UR/LL/LR
+  disconnectPosition: 0, // 0 = disabled, 1-4 = UL/UR/LL/LR
+  notificationDuration: 0 // 0=5s, 1=10s, 2=forever, 3=disabled
 };
 
 // Load saved configuration
@@ -47,13 +48,23 @@ if (localStorage.getItem('LAYOUT_LOWER_RIGHT') !== null) {
 if (localStorage.getItem('DISCONNECT_POSITION') !== null) {
   config.disconnectPosition = parseInt(localStorage.getItem('DISCONNECT_POSITION'));
 }
+if (localStorage.getItem('NOTIFICATION_DURATION') !== null) {
+  config.notificationDuration = parseInt(localStorage.getItem('NOTIFICATION_DURATION'));
+}
 
 // Variables to store weather data
 var weatherData = {
   temperature: '--',
   location: 'Loading...',
   condition: -1,  // Weather code for condition
-  is_day: true    // Default to true (day)
+  is_day: true,   // Default to true (day)
+  hourlyTemps: '',   // Comma-separated 12h hourly temperatures
+  hourlyPrecip: '',  // Comma-separated 12h hourly precipitation probabilities
+  forecast: [
+    { temp: 0, condition: -1 },  // +3h
+    { temp: 0, condition: -1 },  // +6h
+    { temp: 0, condition: -1 }   // +9h
+  ]
 };
 
 // Function to get coordinates for a city name
@@ -228,16 +239,24 @@ function getReverseGeocodingAndFetchWeather(latitude, longitude) {
 
 // Function to get weather data from Open-Meteo API
 function getWeatherData(latitude, longitude) {
-  // Request sunrise and sunset for today, along with current weather
+  // Request sunrise and sunset for today, along with current weather and hourly forecast
   var now = new Date();
   var yyyy = now.getUTCFullYear();
   var mm = String(now.getUTCMonth() + 1).padStart(2, '0');
   var dd = String(now.getUTCDate()).padStart(2, '0');
   var today = yyyy + '-' + mm + '-' + dd;
-  var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + 
-            latitude + '&longitude=' + longitude + 
+  // Also get tomorrow in case +9h crosses midnight
+  var tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  var yyyy2 = tomorrow.getUTCFullYear();
+  var mm2 = String(tomorrow.getUTCMonth() + 1).padStart(2, '0');
+  var dd2 = String(tomorrow.getUTCDate()).padStart(2, '0');
+  var endDate = yyyy2 + '-' + mm2 + '-' + dd2;
+  var url = 'https://api.open-meteo.com/v1/forecast?latitude=' +
+            latitude + '&longitude=' + longitude +
             '&current_weather=true&temperature_unit=' + config.temperatureUnit + '&windspeed_unit=kmh' +
-            '&daily=sunrise,sunset&timezone=auto&start_date=' + today + '&end_date=' + today;
+            '&hourly=temperature_2m,weather_code,precipitation_probability' +
+            '&daily=sunrise,sunset&timezone=auto&start_date=' + today + '&end_date=' + endDate;
 
   console.log('Fetching weather from: ' + url);
 
@@ -272,6 +291,62 @@ function getWeatherData(latitude, longitude) {
             }
             
             weatherData.is_day = isDay;
+
+            // Extract hourly forecast for +3h, +6h, +9h
+            try {
+              if (response.hourly && response.hourly.time && response.hourly.temperature_2m && response.hourly.weather_code) {
+                var nowLocal = new Date();
+                var offsets = [3, 6, 9];
+                for (var fi = 0; fi < offsets.length; fi++) {
+                  var targetTime = new Date(nowLocal.getTime() + offsets[fi] * 3600 * 1000);
+                  // Find the closest hourly slot
+                  var bestIdx = 0;
+                  var bestDiff = Infinity;
+                  for (var hi = 0; hi < response.hourly.time.length; hi++) {
+                    var hourTime = new Date(response.hourly.time[hi]);
+                    var diff = Math.abs(hourTime.getTime() - targetTime.getTime());
+                    if (diff < bestDiff) {
+                      bestDiff = diff;
+                      bestIdx = hi;
+                    }
+                  }
+                  weatherData.forecast[fi].temp = Math.round(response.hourly.temperature_2m[bestIdx]);
+                  weatherData.forecast[fi].condition = response.hourly.weather_code[bestIdx];
+                }
+                console.log('Forecast: +3h=' + weatherData.forecast[0].temp + '/' + weatherData.forecast[0].condition +
+                            ' +6h=' + weatherData.forecast[1].temp + '/' + weatherData.forecast[1].condition +
+                            ' +9h=' + weatherData.forecast[2].temp + '/' + weatherData.forecast[2].condition);
+
+                // Extract 24 hours of today's data for the bottom bar graph (hours 0-23)
+                var hourlyTemps = [];
+                var hourlyPrecip = [];
+                // Today's midnight
+                var todayMidnight = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate(), 0, 0, 0);
+                for (var h = 0; h < 24; h++) {
+                  var hTarget = new Date(todayMidnight.getTime() + h * 3600 * 1000);
+                  var hBestIdx = 0;
+                  var hBestDiff = Infinity;
+                  for (var hi2 = 0; hi2 < response.hourly.time.length; hi2++) {
+                    var ht = new Date(response.hourly.time[hi2]);
+                    var hd = Math.abs(ht.getTime() - hTarget.getTime());
+                    if (hd < hBestDiff) {
+                      hBestDiff = hd;
+                      hBestIdx = hi2;
+                    }
+                  }
+                  hourlyTemps.push(Math.round(response.hourly.temperature_2m[hBestIdx]));
+                  var precip = (response.hourly.precipitation_probability && response.hourly.precipitation_probability[hBestIdx]) || 0;
+                  hourlyPrecip.push(Math.round(precip));
+                }
+                weatherData.hourlyTemps = hourlyTemps.join(',');
+                weatherData.hourlyPrecip = hourlyPrecip.join(',');
+                console.log('Hourly temps: ' + weatherData.hourlyTemps);
+                console.log('Hourly precip: ' + weatherData.hourlyPrecip);
+              }
+            } catch (fe) {
+              console.log('Forecast parse error: ' + fe.message);
+            }
+
             console.log('Temperature: ' + weatherData.temperature + ', Weather code: ' + weatherData.condition + ', is_day: ' + isDay);
             sendDataToPebble();
           } else {
@@ -343,7 +418,16 @@ function sendDataToPebble() {
     'LAYOUT_UPPER_RIGHT': config.layoutUpperRight,
     'LAYOUT_LOWER_LEFT': config.layoutLowerLeft,
     'LAYOUT_LOWER_RIGHT': config.layoutLowerRight,
-    'DISCONNECT_POSITION': config.disconnectPosition
+    'DISCONNECT_POSITION': config.disconnectPosition,
+    'FORECAST_TEMP_1': weatherData.forecast[0].temp,
+    'FORECAST_TEMP_2': weatherData.forecast[1].temp,
+    'FORECAST_TEMP_3': weatherData.forecast[2].temp,
+    'FORECAST_CONDITION_1': weatherData.forecast[0].condition,
+    'FORECAST_CONDITION_2': weatherData.forecast[1].condition,
+    'FORECAST_CONDITION_3': weatherData.forecast[2].condition,
+    'HOURLY_TEMPS': weatherData.hourlyTemps,
+    'HOURLY_PRECIP': weatherData.hourlyPrecip,
+    'NOTIFICATION_DURATION': config.notificationDuration
   };
 
   Pebble.sendAppMessage(message,
@@ -429,7 +513,13 @@ Pebble.addEventListener('webviewclosed', function(e) {
     layoutChanged = true;
   }
 
-  
+  if (dict.NOTIFICATION_DURATION) {
+    config.notificationDuration = parseInt(dict.NOTIFICATION_DURATION.value);
+    localStorage.setItem('NOTIFICATION_DURATION', config.notificationDuration);
+    console.log('Notification duration saved to: ' + config.notificationDuration);
+    layoutChanged = true;
+  }
+
   if (dict.LAYOUT_UPPER_LEFT) {
     config.layoutUpperLeft = parseInt(dict.LAYOUT_UPPER_LEFT.value);
     localStorage.setItem('LAYOUT_UPPER_LEFT', config.layoutUpperLeft);

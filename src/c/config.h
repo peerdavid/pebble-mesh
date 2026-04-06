@@ -18,6 +18,9 @@
 #define PERSIST_KEY_LAYOUT_LOWER_LEFT 11
 #define PERSIST_KEY_LAYOUT_LOWER_RIGHT 12
 #define PERSIST_KEY_DISCONNECT_POSITION 13
+#define PERSIST_KEY_ENABLE_NOTIFICATIONS 14
+#define PERSIST_KEY_NOTIFICATION_DURATION 15
+#define PERSIST_KEY_NOTIFICATION_VISIBLE 16
 
 // Layer position and alignment enums
 typedef enum {
@@ -74,6 +77,8 @@ extern int s_temperature_unit;  // 0 = celsius, 1 = fahrenheit
 extern int s_is_day; // 1 = day, 0 = night
 extern int s_enable_animations; // 1 = enabled, 0 = disabled
 extern int s_disconnect_position; // 0 = disabled, 1-4 = UL/UR/LL/LR
+extern int s_enable_notifications; // 1 = enabled, 0 = disabled
+extern int s_notification_duration; // 0 = 5s, 1 = 10s, 2 = forever
 
 /*
  * Function Declarations
@@ -90,6 +95,10 @@ void save_layout_to_storage();
 void load_layout_from_storage();
 void save_disconnect_position_to_storage();
 void load_disconnect_position_from_storage();
+void save_enable_notifications_to_storage();
+void load_enable_notifications_from_storage();
+void save_notification_duration_to_storage();
+void load_notification_duration_from_storage();
 bool is_dark_theme();
 bool is_light_theme();
 GColor get_background_color();
