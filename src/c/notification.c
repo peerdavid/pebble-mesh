@@ -225,7 +225,7 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
   // Graph area with margins
   const int margin_left = 4;
   const int margin_right = 4;
-  const int margin_top = 5;
+  const int margin_top = 8;
   const int margin_bottom = 2;
   const int graph_x = margin_left;
   const int graph_w = bounds.size.w - margin_left - margin_right;
