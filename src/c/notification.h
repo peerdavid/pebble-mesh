@@ -50,4 +50,8 @@ void notification_update_forecast_icons();
 void notification_parse_hourly_temps(const char *csv);
 void notification_parse_hourly_precip(const char *csv);
 
+// Storage
+void notification_save_forecast_data();
+void notification_load_forecast_data();
+
 #endif // NOTIFICATION_H

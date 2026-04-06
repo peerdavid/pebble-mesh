@@ -21,6 +21,10 @@
 #define PERSIST_KEY_ENABLE_NOTIFICATIONS 14
 #define PERSIST_KEY_NOTIFICATION_DURATION 15
 #define PERSIST_KEY_NOTIFICATION_VISIBLE 16
+#define PERSIST_KEY_FORECAST_DATA 17
+#define PERSIST_KEY_HOURLY_TEMPS 18
+#define PERSIST_KEY_HOURLY_PRECIP 19
+#define PERSIST_KEY_HOURLY_DATA_AVAILABLE 20
 
 // Layer position and alignment enums
 typedef enum {
@@ -95,8 +99,6 @@ void save_layout_to_storage();
 void load_layout_from_storage();
 void save_disconnect_position_to_storage();
 void load_disconnect_position_from_storage();
-void save_enable_notifications_to_storage();
-void load_enable_notifications_from_storage();
 void save_notification_duration_to_storage();
 void load_notification_duration_from_storage();
 bool is_dark_theme();

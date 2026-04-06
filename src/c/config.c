@@ -140,20 +140,6 @@ void load_disconnect_position_from_storage() {
   }
 }
 
-void save_enable_notifications_to_storage() {
-  persist_write_int(PERSIST_KEY_ENABLE_NOTIFICATIONS, s_enable_notifications);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved enable notifications to storage: %d", s_enable_notifications);
-}
-
-void load_enable_notifications_from_storage() {
-  if (persist_exists(PERSIST_KEY_ENABLE_NOTIFICATIONS)) {
-    s_enable_notifications = persist_read_int(PERSIST_KEY_ENABLE_NOTIFICATIONS);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded enable notifications from storage: %d", s_enable_notifications);
-  } else {
-    s_enable_notifications = 1; // Default to enabled
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "No enable notifications preference found, using default enabled");
-  }
-}
 
 void save_notification_duration_to_storage() {
   persist_write_int(PERSIST_KEY_NOTIFICATION_DURATION, s_notification_duration);

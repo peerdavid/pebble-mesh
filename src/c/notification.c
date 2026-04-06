@@ -1,4 +1,3 @@
-
 #include <pebble.h>
 #include "notification.h"
 #include "config.h"
@@ -78,12 +77,42 @@ void notification_parse_hourly_temps(const char *csv) {
     parse_csv_ints(csv, s_hourly_temps, NUM_HOURLY_POINTS);
     s_hourly_data_available = true;
   }
+  notification_save_forecast_data();
 }
 
 void notification_parse_hourly_precip(const char *csv) {
   if (csv && csv[0]) {
     parse_csv_ints(csv, s_hourly_precip, NUM_HOURLY_POINTS);
   }
+  notification_save_forecast_data();
+}
+
+void notification_save_forecast_data() {
+  persist_write_data(PERSIST_KEY_FORECAST_DATA, s_forecast, sizeof(s_forecast));
+  persist_write_data(PERSIST_KEY_HOURLY_TEMPS, s_hourly_temps, sizeof(s_hourly_temps));
+  persist_write_data(PERSIST_KEY_HOURLY_PRECIP, s_hourly_precip, sizeof(s_hourly_precip));
+  persist_write_bool(PERSIST_KEY_HOURLY_DATA_AVAILABLE, s_hourly_data_available);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved forecast data to storage");
+}
+
+void notification_load_forecast_data() {
+  if (persist_exists(PERSIST_KEY_FORECAST_DATA)) {
+    persist_read_data(PERSIST_KEY_FORECAST_DATA, s_forecast, sizeof(s_forecast));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded forecast data from storage");
+  }
+  if (persist_exists(PERSIST_KEY_HOURLY_TEMPS)) {
+    persist_read_data(PERSIST_KEY_HOURLY_TEMPS, s_hourly_temps, sizeof(s_hourly_temps));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded hourly temps from storage");
+  }
+  if (persist_exists(PERSIST_KEY_HOURLY_PRECIP)) {
+    persist_read_data(PERSIST_KEY_HOURLY_PRECIP, s_hourly_precip, sizeof(s_hourly_precip));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded hourly precip from storage");
+  }
+  if (persist_exists(PERSIST_KEY_HOURLY_DATA_AVAILABLE)) {
+    s_hourly_data_available = persist_read_bool(PERSIST_KEY_HOURLY_DATA_AVAILABLE);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded hourly data available from storage");
+  }
+  notification_update_forecast_icons();
 }
 
 // Draw text with a 1px outline (background color border, then foreground in center)
@@ -384,6 +413,8 @@ void notification_init(Layer *window_layer, GRect bounds) {
   s_notification_bottom_layer = layer_create(GRect(0, bottom_y, bounds.size.w, NOTIFICATION_BAR_HEIGHT));
   layer_set_update_proc(s_notification_bottom_layer, draw_notification_bottom);
   layer_add_child(window_layer, s_notification_bottom_layer);
+
+  notification_load_forecast_data();
 
   // Restore previous visible state (not if disabled)
   if (s_notification_duration != 3 && persist_exists(PERSIST_KEY_NOTIFICATION_VISIBLE)
