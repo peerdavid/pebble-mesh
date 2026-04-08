@@ -14,7 +14,8 @@ var config = {
   layoutLowerLeft: 2,   // INFO_TYPE_STEPS
   layoutLowerRight: 3,  // INFO_TYPE_BATTERY
   disconnectPosition: 0, // 0 = disabled, 1-4 = UL/UR/LL/LR
-  notificationDuration: 0 // 0=5s, 1=10s, 2=forever, 3=disabled
+  notificationDuration: 0, // 0=5s, 1=10s, 2=forever
+  notificationFlickMode: 2 // 0=disabled, 1=single flick, 2=double flick
 };
 
 // Load saved configuration
@@ -50,6 +51,9 @@ if (localStorage.getItem('DISCONNECT_POSITION') !== null) {
 }
 if (localStorage.getItem('NOTIFICATION_DURATION') !== null) {
   config.notificationDuration = parseInt(localStorage.getItem('NOTIFICATION_DURATION'));
+}
+if (localStorage.getItem('NOTIFICATION_FLICK_MODE') !== null) {
+  config.notificationFlickMode = parseInt(localStorage.getItem('NOTIFICATION_FLICK_MODE'));
 }
 
 // Variables to store weather data
@@ -426,7 +430,8 @@ function sendDataToPebble() {
     'FORECAST_CONDITION_3': weatherData.forecast[2].condition,
     'HOURLY_TEMPS': weatherData.hourlyTemps,
     'HOURLY_PRECIP': weatherData.hourlyPrecip,
-    'NOTIFICATION_DURATION': config.notificationDuration
+    'NOTIFICATION_DURATION': config.notificationDuration,
+    'NOTIFICATION_FLICK_MODE': config.notificationFlickMode
   };
 
   Pebble.sendAppMessage(message,
@@ -516,6 +521,13 @@ Pebble.addEventListener('webviewclosed', function(e) {
     config.notificationDuration = parseInt(dict.NOTIFICATION_DURATION.value);
     localStorage.setItem('NOTIFICATION_DURATION', config.notificationDuration);
     console.log('Notification duration saved to: ' + config.notificationDuration);
+    layoutChanged = true;
+  }
+
+  if (dict.NOTIFICATION_FLICK_MODE) {
+    config.notificationFlickMode = parseInt(dict.NOTIFICATION_FLICK_MODE.value);
+    localStorage.setItem('NOTIFICATION_FLICK_MODE', config.notificationFlickMode);
+    console.log('Notification flick mode saved to: ' + config.notificationFlickMode);
     layoutChanged = true;
   }
 

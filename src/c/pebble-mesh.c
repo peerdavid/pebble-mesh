@@ -29,6 +29,11 @@ static Layer *s_animation_layer;
 
 #define BORDER_THICKNESS 3
 
+// Double-flick detection for weather detail screen
+#define DOUBLE_FLICK_WINDOW_MS 1500
+
+static uint32_t s_last_tap_time = 0;
+
 // Animation
 static AppTimer *s_animation_timer = NULL;
 static int current_animation_frame = 0; // Ranges from NUM_ANIMATION_FRAMES down to 0
@@ -220,6 +225,17 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       s_notification_duration = new_duration;
       save_notification_duration_to_storage();
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Notification duration changed to: %d", s_notification_duration);
+    }
+  }
+
+  // Read weather detail flick mode
+  Tuple *flick_mode_tuple = dict_find(iterator, MESSAGE_KEY_NOTIFICATION_FLICK_MODE);
+  if (flick_mode_tuple) {
+    int new_flick_mode = (int)flick_mode_tuple->value->int32;
+    if (new_flick_mode != s_notification_flick_mode) {
+      s_notification_flick_mode = new_flick_mode;
+      save_notification_flick_mode_to_storage();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Notification flick mode changed to: %d", s_notification_flick_mode);
     }
   }
 
@@ -718,20 +734,22 @@ static void bluetooth_connection_handler(bool connected) {
   }
 }
 
-// Double-flick detection for weather detail screen
-#define DOUBLE_FLICK_WINDOW_MS 600
-static uint32_t s_last_tap_time = 0;
-
-// Tap/flick handler - double flick to open, single flick to close
+// Tap/flick handler - configurable: off, single flick, or double flick
 static void tap_handler(AccelAxisType axis, int32_t direction) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Tap detected on axis %d", axis);
 
-  // If weather details are disabled (duration == 3), ignore flicks entirely
-  if (s_notification_duration == 3) {
+  // If flick mode is disabled, ignore flicks entirely
+  if (s_notification_flick_mode == 0) {
     return;
   }
 
-  // Require double flick to open / close
+  // Single flick mode
+  if (s_notification_flick_mode == 1) {
+    notification_show();
+    return;
+  }
+
+  // Double flick mode
   uint32_t now = 0;
   time_t t = time(NULL);
   uint16_t ms = time_ms(NULL, &ms);
@@ -948,7 +966,8 @@ static void init() {
   // Load saved disconnect position
   load_disconnect_position_from_storage();
 
-  // Load saved weather detail duration preference
+  // Load saved weather detail preferences
+  load_notification_flick_mode_from_storage();
   load_notification_duration_from_storage();
 
   s_main_window = window_create();

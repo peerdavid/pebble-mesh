@@ -8,7 +8,8 @@ int s_is_day = 1; // 1 = day, 0 = night
 int s_enable_animations = 0; // 1 = enabled, 0 = disabled
 int s_disconnect_position = 0; // 0 = disabled, 1-4 = UL/UR/LL/LR
 int s_enable_notifications = 1; // 1 = enabled, 0 = disabled (default enabled)
-int s_notification_duration = 0; // 0 = 5s, 1 = 10s, 2 = forever, 3 = disabled
+int s_notification_duration = 0; // 0 = 5s, 1 = 10s, 2 = forever
+int s_notification_flick_mode = 2; // 0 = disabled, 1 = single flick, 2 = double flick
 
 InfoLayer s_info_layers[NUM_INFO_LAYERS];
 InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
@@ -149,9 +150,31 @@ void save_notification_duration_to_storage() {
 void load_notification_duration_from_storage() {
   if (persist_exists(PERSIST_KEY_NOTIFICATION_DURATION)) {
     s_notification_duration = persist_read_int(PERSIST_KEY_NOTIFICATION_DURATION);
+    // Migrate old "disabled" value 3 to the new flick mode setting
+    if (s_notification_duration == 3) {
+      s_notification_duration = 0;
+      s_notification_flick_mode = 0;
+      save_notification_duration_to_storage();
+      save_notification_flick_mode_to_storage();
+    }
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded notification duration from storage: %d", s_notification_duration);
   } else {
     s_notification_duration = 0; // Default to 5s
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "No notification duration preference found, using default 10s");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No notification duration preference found, using default 5s");
+  }
+}
+
+void save_notification_flick_mode_to_storage() {
+  persist_write_int(PERSIST_KEY_NOTIFICATION_FLICK_MODE, s_notification_flick_mode);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved notification flick mode to storage: %d", s_notification_flick_mode);
+}
+
+void load_notification_flick_mode_from_storage() {
+  if (persist_exists(PERSIST_KEY_NOTIFICATION_FLICK_MODE)) {
+    s_notification_flick_mode = persist_read_int(PERSIST_KEY_NOTIFICATION_FLICK_MODE);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded notification flick mode from storage: %d", s_notification_flick_mode);
+  } else {
+    s_notification_flick_mode = 2; // Default to double flick
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No notification flick mode preference found, using default double flick");
   }
 }

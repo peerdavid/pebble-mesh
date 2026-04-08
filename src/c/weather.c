@@ -81,22 +81,24 @@ void draw_temperature_info(InfoLayer* info_layer) {
   layer_add_child(layer, text_layer_get_layer(info_layer->text_layer2));
 }
 
-uint32_t get_weather_image_resource(int weather_code) {
+uint32_t get_weather_image_resource(int weather_code, bool force_day) {
 
   // Handle error case with question mark icon
   if (weather_code == -1) {
     return RESOURCE_ID_IMAGE_QUESTION; // Error/No data
   }
 
+  bool is_day = force_day || (s_is_day == 1);
+
   // Based on WMO Weather interpretation codes
   if (weather_code == 0) {
-    if (s_is_day == 1) {
+    if (is_day) {
       return RESOURCE_ID_IMAGE_SUNNY; // Clear sky day
     } else {
       return RESOURCE_ID_IMAGE_CLEAR_NIGHT; // Clear sky night
     }
   } else if (weather_code <= 3) { // FAIL
-    if (s_is_day == 1) {
+    if (is_day) {
       return RESOURCE_ID_IMAGE_PARTLY_CLOUDY; // Mostly cloudy day
     } else {
       return RESOURCE_ID_IMAGE_PARTLY_CLOUDY_NIGHT; // Mostly cloudy night
@@ -121,7 +123,7 @@ uint32_t get_weather_image_resource(int weather_code) {
 }
 
 void load_weather_icon() {
-  uint32_t resource_id = get_weather_image_resource(s_current_weather_code);
+  uint32_t resource_id = get_weather_image_resource(s_current_weather_code, false);
   load_pdc_icon(&s_weather_icon, resource_id, ORIG_WEATHER_ICON_SIZE, WEATHER_ICON_SIZE);
 }
 

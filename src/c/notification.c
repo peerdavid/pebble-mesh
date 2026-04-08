@@ -44,7 +44,8 @@ bool s_hourly_data_available = false;
 
 void notification_update_forecast_icons() {
   for (int i = 0; i < NUM_FORECAST_SLOTS; i++) {
-    uint32_t resource_id = get_weather_image_resource(s_forecast[i].condition_code);
+    bool force_day = (i > 0); // +1d and +2d are always day icons
+    uint32_t resource_id = get_weather_image_resource(s_forecast[i].condition_code, force_day);
     load_pdc_icon(&s_forecast_icons[i], resource_id, FORECAST_ICON_ORIG_SIZE, FORECAST_ICON_SIZE);
 
     const char *unit = s_temperature_unit == 1 ? "F" : "C";
@@ -145,12 +146,15 @@ static void draw_mesh_pattern(GContext *ctx, GRect area) {
 }
 
 static void draw_notification_top(Layer *layer, GContext *ctx) {
+
+  // Log draw notifications message
   if (s_fade_progress <= 0) {
     return;
   }
 
   GRect bounds = layer_get_bounds(layer);
-  float alpha = (float)s_fade_progress / NOTIFICATION_FADE_FRAMES;
+  float t = (float)s_fade_progress / NOTIFICATION_FADE_FRAMES;
+  float alpha = 1.0f - (1.0f - t) * (1.0f - t); // ease-out quadratic
 
   // Background: grows down from top
   graphics_context_set_fill_color(ctx, get_background_color());
@@ -173,23 +177,21 @@ static void draw_notification_top(Layer *layer, GContext *ctx) {
   }
   graphics_draw_line(ctx, GPoint(line_x_start, visible_height - 2), GPoint(line_x_end, visible_height - 2));
 
-  // Only draw content once fully visible
-  if (s_fade_progress < NOTIFICATION_FADE_FRAMES) {
-    return;
-  }
+  // Content slides down with the panel
+  int y_offset = visible_height - bounds.size.h;
 
   // Layout: 3 columns, each with hour label + icon on top + temperature below
   int col_width = bounds.size.w / NUM_FORECAST_SLOTS;
 
 #if defined(PBL_PLATFORM_EMERY)
-  int label_y = 2;
-  int icon_y = 18;
+  int label_y = 2 + y_offset;
+  int icon_y = 18 + y_offset;
   int temp_y = icon_y + FORECAST_ICON_SIZE + 1;
   GFont temp_font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
   GFont label_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
 #else
-  int label_y = -4;
-  int icon_y = 14;
+  int label_y = -4 + y_offset;
+  int icon_y = 14 + y_offset;
   int temp_y = icon_y + FORECAST_ICON_SIZE;
   GFont temp_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
   GFont label_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
@@ -226,7 +228,8 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
   }
 
   GRect bounds = layer_get_bounds(layer);
-  float alpha = (float)s_fade_progress / NOTIFICATION_FADE_FRAMES;
+  float t = (float)s_fade_progress / NOTIFICATION_FADE_FRAMES;
+  float alpha = 1.0f - (1.0f - t) * (1.0f - t); // ease-out quadratic
 
   // Background: grows up from bottom
   graphics_context_set_fill_color(ctx, get_background_color());
@@ -250,16 +253,15 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
   }
   graphics_draw_line(ctx, GPoint(line_x_start, y_start+1), GPoint(line_x_end, y_start+1));
 
-  if (s_fade_progress < NOTIFICATION_FADE_FRAMES) {
-    return;
-  }
+  // Content slides up with the panel
+  int y_offset = bounds.size.h - visible_height;
 
   if (!s_hourly_data_available) {
     graphics_context_set_text_color(ctx, text_color);
     GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
     graphics_draw_text(ctx, "No forecast data",
                        font,
-                       GRect(4, bounds.size.h / 2 - 10, bounds.size.w - 8, 20),
+                       GRect(4, bounds.size.h / 2 - 10 + y_offset, bounds.size.w - 8, 20),
                        GTextOverflowModeTrailingEllipsis,
                        GTextAlignmentCenter, NULL);
     return;
@@ -272,7 +274,7 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
   const int margin_bottom = 2;
   const int graph_x = margin_left;
   const int graph_w = bounds.size.w - margin_left - margin_right;
-  const int graph_y = margin_top;
+  const int graph_y = margin_top + y_offset;
   const int graph_h = bounds.size.h - margin_top - margin_bottom;
 
   // Find temp min/max for scaling
@@ -417,7 +419,7 @@ void notification_init(Layer *window_layer, GRect bounds) {
   notification_load_forecast_data();
 
   // Restore previous visible state (not if disabled)
-  if (s_notification_duration != 3 && persist_exists(PERSIST_KEY_NOTIFICATION_VISIBLE)
+  if (s_notification_flick_mode != 0 && persist_exists(PERSIST_KEY_NOTIFICATION_VISIBLE)
       && persist_read_bool(PERSIST_KEY_NOTIFICATION_VISIBLE)) {
     // Show immediately without animation
     s_fade_progress = NOTIFICATION_FADE_FRAMES;

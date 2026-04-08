@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.48",
+  "version": "1.49",
   "keywords": [
     "clock",
     "minimal",
@@ -55,7 +55,8 @@
       "HOURLY_TEMPS",
       "HOURLY_PRECIP",
       "ENABLE_NOTIFICATIONS",
-      "NOTIFICATION_DURATION"
+      "NOTIFICATION_DURATION",
+      "NOTIFICATION_FLICK_MODE"
     ],
     "resources": {
       "media": [

@@ -26,7 +26,7 @@ extern char s_location_buffer[20];
  */
 void draw_weather_info(InfoLayer* info_layer);
 void draw_temperature_info(InfoLayer* info_layer);
-uint32_t get_weather_image_resource(int weather_code);
+uint32_t get_weather_image_resource(int weather_code, bool force_day);
 void load_weather_icon();
 void request_weather_update();
 void save_weather_to_storage();

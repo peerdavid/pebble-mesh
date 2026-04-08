@@ -25,6 +25,7 @@
 #define PERSIST_KEY_HOURLY_TEMPS 18
 #define PERSIST_KEY_HOURLY_PRECIP 19
 #define PERSIST_KEY_HOURLY_DATA_AVAILABLE 20
+#define PERSIST_KEY_NOTIFICATION_FLICK_MODE 21
 
 // Layer position and alignment enums
 typedef enum {
@@ -83,6 +84,7 @@ extern int s_enable_animations; // 1 = enabled, 0 = disabled
 extern int s_disconnect_position; // 0 = disabled, 1-4 = UL/UR/LL/LR
 extern int s_enable_notifications; // 1 = enabled, 0 = disabled
 extern int s_notification_duration; // 0 = 5s, 1 = 10s, 2 = forever
+extern int s_notification_flick_mode; // 0 = disabled, 1 = single flick, 2 = double flick
 
 /*
  * Function Declarations
@@ -101,6 +103,8 @@ void save_disconnect_position_to_storage();
 void load_disconnect_position_from_storage();
 void save_notification_duration_to_storage();
 void load_notification_duration_from_storage();
+void save_notification_flick_mode_to_storage();
+void load_notification_flick_mode_from_storage();
 bool is_dark_theme();
 bool is_light_theme();
 GColor get_background_color();

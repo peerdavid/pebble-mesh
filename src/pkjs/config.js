@@ -46,12 +46,23 @@ module.exports = [
       },
       {
         "type": "select",
+        "messageKey": "NOTIFICATION_FLICK_MODE",
+        "label": "Weather Trigger",
+        "description": "How to open the weather forecast.",
+        "defaultValue": "2",
+        "options": [
+          { "label": "Disabled", "value": "0" },
+          { "label": "Single Flick", "value": "1" },
+          { "label": "Double Flick", "value": "2" }
+        ]
+      },
+      {
+        "type": "select",
         "messageKey": "NOTIFICATION_DURATION",
-        "label": "Weather Details on Flick",
-        "description": "Double flick to show detailed weather forecast.",
+        "label": "Weather Duration",
+        "description": "How long to show the weather forecast.",
         "defaultValue": "0",
         "options": [
-          { "label": "Disabled", "value": "3" },
           { "label": "5 seconds", "value": "0" },
           { "label": "10 seconds", "value": "1" },
           { "label": "Until dismissed", "value": "2" }
