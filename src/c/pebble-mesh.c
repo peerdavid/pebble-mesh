@@ -37,7 +37,7 @@ static uint32_t s_last_tap_time = 0;
 // Animation
 static AppTimer *s_animation_timer = NULL;
 static int current_animation_frame = 0; // Ranges from NUM_ANIMATION_FRAMES down to 0
-static int old_background_color = -1;
+static bool s_last_was_dark = false;
 
 // Buffer to hold the time string (e.g., "12:34" or "23:59")
 static char s_time_buffer[9];
@@ -636,6 +636,13 @@ static void draw_date(Layer *layer, GContext *ctx) {
 
 // --- Tick Handler ---
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  // Detect dynamic theme changes (e.g., quiet time toggling)
+  bool current_dark = is_dark_theme();
+  if (current_dark != s_last_was_dark) {
+    s_last_was_dark = current_dark;
+    update_colors();
+  }
+
   try_start_animation_timer();
   update_time();
 }
@@ -969,6 +976,8 @@ static void init() {
   // Load saved weather detail preferences
   load_notification_flick_mode_from_storage();
   load_notification_duration_from_storage();
+
+  s_last_was_dark = is_dark_theme();
 
   s_main_window = window_create();
   window_set_background_color(s_main_window, get_background_color());
