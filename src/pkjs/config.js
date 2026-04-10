@@ -43,30 +43,6 @@ module.exports = [
         "messageKey": "ENABLE_ANIMATIONS",
         "label": "Enable Animations",
         "defaultValue": true
-      },
-      {
-        "type": "select",
-        "messageKey": "NOTIFICATION_FLICK_MODE",
-        "label": "Weather Trigger",
-        "description": "How to open the weather forecast.",
-        "defaultValue": "2",
-        "options": [
-          { "label": "Disabled", "value": "0" },
-          { "label": "Single Flick", "value": "1" },
-          { "label": "Double Flick", "value": "2" }
-        ]
-      },
-      {
-        "type": "select",
-        "messageKey": "NOTIFICATION_DURATION",
-        "label": "Weather Duration",
-        "description": "How long to show the weather forecast.",
-        "defaultValue": "0",
-        "options": [
-          { "label": "5 seconds", "value": "0" },
-          { "label": "10 seconds", "value": "1" },
-          { "label": "Until dismissed", "value": "2" }
-        ]
       }
     ]
   },
@@ -202,6 +178,30 @@ module.exports = [
             "label": "Fahrenheit",
             "value": "fahrenheit"
           }
+        ]
+      },
+      {
+        "type": "select",
+        "messageKey": "NOTIFICATION_FLICK_MODE",
+        "label": "Forecast Trigger",
+        "description": "How to open the weather forecast.",
+        "defaultValue": "2",
+        "options": [
+          { "label": "Disabled", "value": "0" },
+          { "label": "Single Flick", "value": "1" },
+          { "label": "Double Flick", "value": "2" }
+        ]
+      },
+      {
+        "type": "select",
+        "messageKey": "NOTIFICATION_DURATION",
+        "label": "Forecast Duration",
+        "description": "How long to show the weather forecast.",
+        "defaultValue": "0",
+        "options": [
+          { "label": "5 seconds", "value": "0" },
+          { "label": "10 seconds", "value": "1" },
+          { "label": "Until dismissed", "value": "2" }
         ]
       }
     ]
