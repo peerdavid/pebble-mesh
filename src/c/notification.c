@@ -6,13 +6,14 @@
 
 static Layer *s_notification_top_layer = NULL;
 static Layer *s_notification_bottom_layer = NULL;
-static AppTimer *s_fade_timer = NULL;
 static AppTimer *s_hide_timer = NULL;
 
-// Fade state: 0 = hidden, NOTIFICATION_FADE_FRAMES = fully visible
-static int s_fade_progress = 0;
-static bool s_fading_in = false;
-static bool s_fading_out = false;
+// Slide animation state
+static PropertyAnimation *s_top_anim = NULL;
+static PropertyAnimation *s_bottom_anim = NULL;
+static bool s_is_visible = false;
+static bool s_is_animating = false;
+static GRect s_screen_bounds;
 
 // Forecast data
 ForecastSlot s_forecast[NUM_FORECAST_SLOTS] = {
@@ -146,25 +147,16 @@ static void draw_mesh_pattern(GContext *ctx, GRect area) {
 }
 
 static void draw_notification_top(Layer *layer, GContext *ctx) {
-
-  // Log draw notifications message
-  if (s_fade_progress <= 0) {
-    return;
-  }
-
   GRect bounds = layer_get_bounds(layer);
-  float t = (float)s_fade_progress / NOTIFICATION_FADE_FRAMES;
-  float alpha = 1.0f - (1.0f - t) * (1.0f - t); // ease-out quadratic
 
-  // Background: grows down from top
+  // Background
   graphics_context_set_fill_color(ctx, get_background_color());
-  int visible_height = (int)(bounds.size.h * alpha);
-  graphics_fill_rect(ctx, GRect(0, 0, bounds.size.w, visible_height), 0, GCornerNone);
+  graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
-  // Draw mesh grid pattern over the visible area
-  draw_mesh_pattern(ctx, GRect(0, 0, bounds.size.w, visible_height));
+  // Draw mesh grid pattern
+  draw_mesh_pattern(ctx, bounds);
 
-  // Draw separator line at the bottom edge of the visible area
+  // Draw separator line at the bottom edge
   GColor text_color = get_text_color();
   graphics_context_set_stroke_color(ctx, text_color);
   graphics_context_set_stroke_width(ctx, 3);
@@ -175,23 +167,20 @@ static void draw_notification_top(Layer *layer, GContext *ctx) {
     line_x_start = (bounds.size.w - max_line_length) / 2;
     line_x_end = line_x_start + max_line_length;
   }
-  graphics_draw_line(ctx, GPoint(line_x_start, visible_height - 2), GPoint(line_x_end, visible_height - 2));
-
-  // Content slides down with the panel
-  int y_offset = visible_height - bounds.size.h;
+  graphics_draw_line(ctx, GPoint(line_x_start, bounds.size.h - 2), GPoint(line_x_end, bounds.size.h - 2));
 
   // Layout: 3 columns, each with hour label + icon on top + temperature below
   int col_width = bounds.size.w / NUM_FORECAST_SLOTS;
 
 #if defined(PBL_PLATFORM_EMERY)
-  int label_y = 2 + y_offset;
-  int icon_y = 18 + y_offset;
+  int label_y = 2;
+  int icon_y = 18;
   int temp_y = icon_y + FORECAST_ICON_SIZE + 1;
   GFont temp_font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
   GFont label_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
 #else
-  int label_y = -4 + y_offset;
-  int icon_y = 14 + y_offset;
+  int label_y = -4;
+  int icon_y = 14;
   int temp_y = icon_y + FORECAST_ICON_SIZE;
   GFont temp_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
   GFont label_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
@@ -223,24 +212,16 @@ static void draw_notification_top(Layer *layer, GContext *ctx) {
 }
 
 static void draw_notification_bottom(Layer *layer, GContext *ctx) {
-  if (s_fade_progress <= 0) {
-    return;
-  }
-
   GRect bounds = layer_get_bounds(layer);
-  float t = (float)s_fade_progress / NOTIFICATION_FADE_FRAMES;
-  float alpha = 1.0f - (1.0f - t) * (1.0f - t); // ease-out quadratic
 
-  // Background: grows up from bottom
+  // Background
   graphics_context_set_fill_color(ctx, get_background_color());
-  int visible_height = (int)(bounds.size.h * alpha);
-  int y_start = bounds.size.h - visible_height;
-  graphics_fill_rect(ctx, GRect(0, y_start, bounds.size.w, visible_height), 0, GCornerNone);
+  graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
-  // Draw mesh grid pattern over the visible area
-  draw_mesh_pattern(ctx, GRect(0, y_start, bounds.size.w, visible_height));
+  // Draw mesh grid pattern
+  draw_mesh_pattern(ctx, bounds);
 
-  // Draw separator line at the top edge of the visible area
+  // Draw separator line at the top edge
   GColor text_color = get_text_color();
   graphics_context_set_stroke_color(ctx, text_color);
   graphics_context_set_stroke_width(ctx, 3);
@@ -251,17 +232,14 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
     line_x_start = (bounds.size.w - max_line_length) / 2;
     line_x_end = line_x_start + max_line_length;
   }
-  graphics_draw_line(ctx, GPoint(line_x_start, y_start+1), GPoint(line_x_end, y_start+1));
-
-  // Content slides up with the panel
-  int y_offset = bounds.size.h - visible_height;
+  graphics_draw_line(ctx, GPoint(line_x_start, 1), GPoint(line_x_end, 1));
 
   if (!s_hourly_data_available) {
     graphics_context_set_text_color(ctx, text_color);
     GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
     graphics_draw_text(ctx, "No forecast data",
                        font,
-                       GRect(4, bounds.size.h / 2 - 10 + y_offset, bounds.size.w - 8, 20),
+                       GRect(4, bounds.size.h / 2 - 10, bounds.size.w - 8, 20),
                        GTextOverflowModeTrailingEllipsis,
                        GTextAlignmentCenter, NULL);
     return;
@@ -274,7 +252,7 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
   const int margin_bottom = 2;
   const int graph_x = margin_left;
   const int graph_w = bounds.size.w - margin_left - margin_right;
-  const int graph_y = margin_top + y_offset;
+  const int graph_y = margin_top;
   const int graph_h = bounds.size.h - margin_top - margin_bottom;
 
   // Find temp min/max for scaling
@@ -362,57 +340,100 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
                      GTextAlignmentLeft, text_color);
 }
 
-static void fade_timer_callback(void *data);
 static void hide_timer_callback(void *data);
 static void save_notification_visible(bool visible);
 
-static void fade_timer_callback(void *data) {
-  s_fade_timer = NULL;
-
-  if (s_fading_in) {
-    s_fade_progress++;
-    if (s_fade_progress >= NOTIFICATION_FADE_FRAMES) {
-      s_fade_progress = NOTIFICATION_FADE_FRAMES;
-      s_fading_in = false;
-      // Schedule auto-hide after display duration (unless "forever")
-      if (s_notification_duration != 2) {
-        int display_ms = (s_notification_duration == 0) ? 5000 : 10000;
-        s_hide_timer = app_timer_register(display_ms, hide_timer_callback, NULL);
-      }
-    } else {
-      s_fade_timer = app_timer_register(NOTIFICATION_FADE_RATE_MS, fade_timer_callback, NULL);
-    }
-  } else if (s_fading_out) {
-    s_fade_progress--;
-    if (s_fade_progress <= 0) {
-      s_fade_progress = 0;
-      s_fading_out = false;
-    } else {
-      s_fade_timer = app_timer_register(NOTIFICATION_FADE_RATE_MS, fade_timer_callback, NULL);
-    }
+// Helper to cancel running animations
+static void cancel_animations() {
+  if (s_top_anim) {
+    animation_unschedule((Animation *)s_top_anim);
+    property_animation_destroy(s_top_anim);
+    s_top_anim = NULL;
   }
+  if (s_bottom_anim) {
+    animation_unschedule((Animation *)s_bottom_anim);
+    property_animation_destroy(s_bottom_anim);
+    s_bottom_anim = NULL;
+  }
+  s_is_animating = false;
+}
 
-  layer_mark_dirty(s_notification_top_layer);
-  layer_mark_dirty(s_notification_bottom_layer);
+// Get the hidden/visible frame positions for each layer
+static GRect top_hidden_frame() {
+  return GRect(0, -(NOTIFICATION_BAR_HEIGHT + 1), s_screen_bounds.size.w, NOTIFICATION_BAR_HEIGHT + 1);
+}
+static GRect top_visible_frame() {
+  return GRect(0, 0, s_screen_bounds.size.w, NOTIFICATION_BAR_HEIGHT + 1);
+}
+static GRect bottom_hidden_frame() {
+  return GRect(0, s_screen_bounds.size.h, s_screen_bounds.size.w, NOTIFICATION_BAR_HEIGHT);
+}
+static GRect bottom_visible_frame() {
+  int bottom_y = s_screen_bounds.size.h - NOTIFICATION_BAR_HEIGHT;
+  return GRect(0, bottom_y, s_screen_bounds.size.w, NOTIFICATION_BAR_HEIGHT);
+}
+
+static void anim_show_stopped(Animation *animation, bool finished, void *context) {
+  s_is_animating = false;
+  s_top_anim = NULL;
+  s_bottom_anim = NULL;
+  // Schedule auto-hide after display duration (unless "forever")
+  if (s_notification_duration != 2) {
+    int display_ms = (s_notification_duration == 0) ? 5000 : 10000;
+    s_hide_timer = app_timer_register(display_ms, hide_timer_callback, NULL);
+  }
+}
+
+static void anim_hide_stopped(Animation *animation, bool finished, void *context) {
+  s_is_animating = false;
+  s_is_visible = false;
+  s_top_anim = NULL;
+  s_bottom_anim = NULL;
+}
+
+static void animate_slide(bool show) {
+  cancel_animations();
+
+  GRect top_from = show ? top_hidden_frame() : top_visible_frame();
+  GRect top_to = show ? top_visible_frame() : top_hidden_frame();
+  GRect bot_from = show ? bottom_hidden_frame() : bottom_visible_frame();
+  GRect bot_to = show ? bottom_visible_frame() : bottom_hidden_frame();
+
+  s_top_anim = property_animation_create_layer_frame(s_notification_top_layer, &top_from, &top_to);
+  s_bottom_anim = property_animation_create_layer_frame(s_notification_bottom_layer, &bot_from, &bot_to);
+
+  animation_set_duration((Animation *)s_top_anim, NOTIFICATION_ANIM_DURATION_MS);
+  animation_set_duration((Animation *)s_bottom_anim, NOTIFICATION_ANIM_DURATION_MS);
+  animation_set_curve((Animation *)s_top_anim, AnimationCurveEaseInOut);
+  animation_set_curve((Animation *)s_bottom_anim, AnimationCurveEaseInOut);
+
+  AnimationHandlers handlers = {
+    .stopped = show ? anim_show_stopped : anim_hide_stopped
+  };
+  // Only set handler on one animation (they run in parallel)
+  animation_set_handlers((Animation *)s_top_anim, handlers, NULL);
+
+  s_is_animating = true;
+  animation_schedule((Animation *)s_top_anim);
+  animation_schedule((Animation *)s_bottom_anim);
 }
 
 static void hide_timer_callback(void *data) {
   s_hide_timer = NULL;
-  s_fading_out = true;
-  s_fading_in = false;
-  s_fade_timer = app_timer_register(NOTIFICATION_FADE_RATE_MS, fade_timer_callback, NULL);
+  animate_slide(false);
   save_notification_visible(false);
 }
 
 void notification_init(Layer *window_layer, GRect bounds) {
-  // Top bar: from top of screen down to the upper horizontal line
-  s_notification_top_layer = layer_create(GRect(0, 0, bounds.size.w, NOTIFICATION_BAR_HEIGHT+1));
+  s_screen_bounds = bounds;
+
+  // Top bar: start off-screen above
+  s_notification_top_layer = layer_create(top_hidden_frame());
   layer_set_update_proc(s_notification_top_layer, draw_notification_top);
   layer_add_child(window_layer, s_notification_top_layer);
 
-  // Bottom bar: from lower horizontal line down to bottom of screen
-  int bottom_y = bounds.size.h - NOTIFICATION_BAR_HEIGHT;
-  s_notification_bottom_layer = layer_create(GRect(0, bottom_y, bounds.size.w, NOTIFICATION_BAR_HEIGHT));
+  // Bottom bar: start off-screen below
+  s_notification_bottom_layer = layer_create(bottom_hidden_frame());
   layer_set_update_proc(s_notification_bottom_layer, draw_notification_bottom);
   layer_add_child(window_layer, s_notification_bottom_layer);
 
@@ -422,11 +443,9 @@ void notification_init(Layer *window_layer, GRect bounds) {
   if (s_notification_flick_mode != 0 && persist_exists(PERSIST_KEY_NOTIFICATION_VISIBLE)
       && persist_read_bool(PERSIST_KEY_NOTIFICATION_VISIBLE)) {
     // Show immediately without animation
-    s_fade_progress = NOTIFICATION_FADE_FRAMES;
-    s_fading_in = false;
-    s_fading_out = false;
-    layer_mark_dirty(s_notification_top_layer);
-    layer_mark_dirty(s_notification_bottom_layer);
+    layer_set_frame(s_notification_top_layer, top_visible_frame());
+    layer_set_frame(s_notification_bottom_layer, bottom_visible_frame());
+    s_is_visible = true;
 
     // Schedule auto-hide if not "forever"
     if (s_notification_duration != 2) {
@@ -437,10 +456,7 @@ void notification_init(Layer *window_layer, GRect bounds) {
 }
 
 void notification_deinit() {
-  if (s_fade_timer) {
-    app_timer_cancel(s_fade_timer);
-    s_fade_timer = NULL;
-  }
+  cancel_animations();
   if (s_hide_timer) {
     app_timer_cancel(s_hide_timer);
     s_hide_timer = NULL;
@@ -466,39 +482,28 @@ static void save_notification_visible(bool visible) {
 }
 
 void notification_show() {
-  // If fully visible (not still fading in), dismiss
-  if (s_fade_progress > 0 && !s_fading_in) {
-    if (s_fade_timer) {
-      app_timer_cancel(s_fade_timer);
-      s_fade_timer = NULL;
-    }
+  // If visible (and not mid-animation), dismiss
+  if (s_is_visible && !s_is_animating) {
     if (s_hide_timer) {
       app_timer_cancel(s_hide_timer);
       s_hide_timer = NULL;
     }
-    s_fading_in = false;
-    s_fading_out = true;
-    s_fade_timer = app_timer_register(NOTIFICATION_FADE_RATE_MS, fade_timer_callback, NULL);
+    animate_slide(false);
     save_notification_visible(false);
     return;
   }
 
-  // Cancel any ongoing timers
-  if (s_fade_timer) {
-    app_timer_cancel(s_fade_timer);
-    s_fade_timer = NULL;
-  }
+  // Cancel any ongoing hide timer
   if (s_hide_timer) {
     app_timer_cancel(s_hide_timer);
     s_hide_timer = NULL;
   }
 
-  s_fading_out = false;
-  s_fading_in = true;
-  s_fade_timer = app_timer_register(NOTIFICATION_FADE_RATE_MS, fade_timer_callback, NULL);
+  s_is_visible = true;
+  animate_slide(true);
   save_notification_visible(true);
 }
 
 bool notification_is_visible() {
-  return s_fade_progress > 0;
+  return s_is_visible;
 }
