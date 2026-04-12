@@ -15,7 +15,8 @@ var config = {
   layoutLowerRight: 3,  // INFO_TYPE_BATTERY
   disconnectPosition: 0, // 0 = disabled, 1-4 = UL/UR/LL/LR
   forecastDuration: 0, // 0=5s, 1=10s, 2=forever
-  forecastFlickMode: 2 // 0=disabled, 1=single flick, 2=double flick
+  forecastFlickMode: 2, // 0=disabled, 1=single flick, 2=double flick
+  enableMesh: true // Show mesh dot pattern
 };
 
 // Load saved configuration
@@ -54,6 +55,9 @@ if (localStorage.getItem('WEATHER_FORECAST_DURATION') !== null) {
 }
 if (localStorage.getItem('WEATHER_FORECAST_FLICK_MODE') !== null) {
   config.forecastFlickMode = parseInt(localStorage.getItem('WEATHER_FORECAST_FLICK_MODE'));
+}
+if (localStorage.getItem('ENABLE_MESH') !== null) {
+  config.enableMesh = (localStorage.getItem('ENABLE_MESH') === 'true');
 }
 
 // Variables to store weather data
@@ -140,9 +144,7 @@ function getCoordinatesForCityAndFetchWeather(cityName) {
 // Main function to fetch weather for configured location
 function fetchWeatherForLocation() {
   console.log('Fetching weather for configured location: ' + config.location);
-  weatherData.location = 'Loading...';
-  weatherData.temperature = '--';
-  
+
   // If location is empty or not set, use GPS
   if (!config.location || config.location.trim() === '') {
     console.log('No static location configured, using GPS');
@@ -156,7 +158,6 @@ function fetchWeatherForLocation() {
 // Function to get current GPS location and fetch weather
 function getLocationAndFetchWeather() {
   console.log('Getting GPS location...');
-  weatherData.location = 'Getting GPS...';
   
   navigator.geolocation.getCurrentPosition(
     function(pos) {
@@ -404,44 +405,88 @@ function colorThemeStrToInt(themeStr) {
 }
 
 
-// Function to send weather data to Pebble
-function sendDataToPebble() {
-  console.log('Sending data to pebble.');
+// Message queue - Pebble can only handle one AppMessage in-flight at a time
+var messageQueue = [];
+var isSending = false;
 
-  var message = {
-    'WEATHER_TEMPERATURE': weatherData.temperature,
-    'WEATHER_LOCATION': weatherData.location,
-    'WEATHER_CONDITION': weatherData.condition,
-    'COLOR_THEME': colorThemeStrToInt(config.colorTheme),  // 0 = dark, 1 = light, 2 = dynamic
+function sendNextInQueue() {
+  if (messageQueue.length === 0) {
+    isSending = false;
+    return;
+  }
+
+  isSending = true;
+  var entry = messageQueue.shift();
+  console.log('Sending message: ' + entry.label);
+
+  Pebble.sendAppMessage(entry.message,
+    function() {
+      console.log('Sent successfully: ' + entry.label);
+      sendNextInQueue();
+    },
+    function(e) {
+      console.log('Failed to send ' + entry.label + ': ' + JSON.stringify(e));
+      // Retry once after a short delay
+      if (!entry.retried) {
+        entry.retried = true;
+        messageQueue.unshift(entry);
+        setTimeout(sendNextInQueue, 200);
+      } else {
+        console.log('Giving up on: ' + entry.label);
+        sendNextInQueue();
+      }
+    }
+  );
+}
+
+function enqueueMessage(label, message) {
+  messageQueue.push({ label: label, message: message, retried: false });
+  if (!isSending) {
+    sendNextInQueue();
+  }
+}
+
+// Function to send data to Pebble in smaller chunks
+function sendDataToPebble() {
+  console.log('Queueing data for pebble.');
+
+  // Message 1: Config settings (all small integers)
+  enqueueMessage('config', {
+    'COLOR_THEME': colorThemeStrToInt(config.colorTheme),
     'STEP_GOAL': config.stepGoal,
-    'TEMPERATURE_UNIT': config.temperatureUnit === 'fahrenheit' ? 1 : 0,  // 0 = celsius, 1 = fahrenheit
-    'WEATHER_IS_DAY': weatherData.is_day ? 1 : 0,
+    'TEMPERATURE_UNIT': config.temperatureUnit === 'fahrenheit' ? 1 : 0,
     'ENABLE_ANIMATIONS': config.enableAnimations ? 1 : 0,
+    'ENABLE_MESH': config.enableMesh ? 1 : 0,
     'LAYOUT_UPPER_LEFT': config.layoutUpperLeft,
     'LAYOUT_UPPER_RIGHT': config.layoutUpperRight,
     'LAYOUT_LOWER_LEFT': config.layoutLowerLeft,
     'LAYOUT_LOWER_RIGHT': config.layoutLowerRight,
     'DISCONNECT_POSITION': config.disconnectPosition,
+    'WEATHER_FORECAST_DURATION': config.forecastDuration,
+    'WEATHER_FORECAST_FLICK_MODE': config.forecastFlickMode
+  });
+
+  // Message 2: Weather data + forecast
+  enqueueMessage('weather', {
+    'WEATHER_TEMPERATURE': weatherData.temperature,
+    'WEATHER_LOCATION': weatherData.location,
+    'WEATHER_CONDITION': weatherData.condition,
+    'WEATHER_IS_DAY': weatherData.is_day ? 1 : 0,
     'FORECAST_TEMP_1': weatherData.forecast[0].temp,
     'FORECAST_TEMP_2': weatherData.forecast[1].temp,
     'FORECAST_TEMP_3': weatherData.forecast[2].temp,
     'FORECAST_CONDITION_1': weatherData.forecast[0].condition,
     'FORECAST_CONDITION_2': weatherData.forecast[1].condition,
-    'FORECAST_CONDITION_3': weatherData.forecast[2].condition,
-    'HOURLY_TEMPS': weatherData.hourlyTemps,
-    'HOURLY_PRECIP': weatherData.hourlyPrecip,
-    'WEATHER_FORECAST_DURATION': config.forecastDuration,
-    'WEATHER_FORECAST_FLICK_MODE': config.forecastFlickMode
-  };
+    'FORECAST_CONDITION_3': weatherData.forecast[2].condition
+  });
 
-  Pebble.sendAppMessage(message,
-    function(e) {
-      console.log('Data sent successfully');
-    },
-    function(e) {
-      console.log('Failed to send data: ' + e.error.message);
-    }
-  );
+  // Message 3: Hourly data (the two big strings)
+  if (weatherData.hourlyTemps && weatherData.hourlyPrecip) {
+    enqueueMessage('hourly', {
+      'HOURLY_TEMPS': weatherData.hourlyTemps,
+      'HOURLY_PRECIP': weatherData.hourlyPrecip
+    });
+  }
 }
 
 // Event listeners from app
@@ -514,6 +559,13 @@ Pebble.addEventListener('webviewclosed', function(e) {
     config.enableAnimations = dict.ENABLE_ANIMATIONS.value;
     localStorage.setItem('ENABLE_ANIMATIONS', config.enableAnimations);
     console.log('Enable animations saved to: ' + config.enableAnimations);
+    layoutChanged = true;
+  }
+
+  if (dict.ENABLE_MESH) {
+    config.enableMesh = dict.ENABLE_MESH.value;
+    localStorage.setItem('ENABLE_MESH', config.enableMesh);
+    console.log('Enable mesh saved to: ' + config.enableMesh);
     layoutChanged = true;
   }
 

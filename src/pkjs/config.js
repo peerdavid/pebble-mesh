@@ -43,6 +43,13 @@ module.exports = [
         "messageKey": "ENABLE_ANIMATIONS",
         "label": "Enable Animations",
         "defaultValue": true
+      },
+      {
+        "type": "toggle",
+        "messageKey": "ENABLE_MESH",
+        "label": "Enable Mesh",
+        "description": "Wait... you're disabling the mesh on a watchface called Mesh? Bold move. Improves readability, destroys identity.",
+        "defaultValue": true
       }
     ]
   },

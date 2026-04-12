@@ -136,6 +136,7 @@ static void draw_outlined_text(GContext *ctx, const char *text, GFont font,
 // Draw the mesh dot grid pattern within a rect area
 #define MESH_GRID_SIZE 8
 static void draw_mesh_pattern(GContext *ctx, GRect area) {
+  if (!s_enable_mesh) return;
   GColor frame_color = get_text_color();
   graphics_context_set_stroke_color(ctx, frame_color);
   graphics_context_set_stroke_width(ctx, 1);

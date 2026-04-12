@@ -56,7 +56,8 @@
       "HOURLY_PRECIP",
       "ENABLE_WEATHER_FORECAST",
       "WEATHER_FORECAST_DURATION",
-      "WEATHER_FORECAST_FLICK_MODE"
+      "WEATHER_FORECAST_FLICK_MODE",
+      "ENABLE_MESH"
     ],
     "resources": {
       "media": [

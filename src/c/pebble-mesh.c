@@ -239,6 +239,18 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     }
   }
 
+  // Read enable mesh
+  Tuple *enable_mesh_tuple = dict_find(iterator, MESSAGE_KEY_ENABLE_MESH);
+  if (enable_mesh_tuple) {
+    int new_enable_mesh = (int)enable_mesh_tuple->value->int32;
+    if (new_enable_mesh != s_enable_mesh) {
+      s_enable_mesh = new_enable_mesh;
+      save_enable_mesh_to_storage();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Enable mesh changed to: %d", s_enable_mesh);
+      layer_mark_dirty(s_frame_layer);
+    }
+  }
+
   // Read disconnect position
   Tuple *disconnect_pos_tuple = dict_find(iterator, MESSAGE_KEY_DISCONNECT_POSITION);
   if (disconnect_pos_tuple) {
@@ -378,24 +390,26 @@ static void draw_frame(Layer *layer, GContext *ctx) {
     graphics_fill_rect(ctx, GRect(line_x_start_full, time_y - line_y_offset + 4, max_line_length, height-11), 0, GCornerNone);
   }
 
-  // Dots
-  graphics_context_set_stroke_color(ctx, frame_color);
-  graphics_context_set_stroke_width(ctx, 1);
-  for (int y = 0; y < bounds.size.h; y += GRID_SIZE) {
-    for (int x = 0; x < bounds.size.w; x += GRID_SIZE) {
-      // 1. Draw the horizontal part of the cross
-      // Starts at x - CROSS_SIZE and ends at x + CROSS_SIZE, centered on y
-      graphics_draw_line(
-          ctx,
-          GPoint(x - CROSS_SIZE, y),
-          GPoint(x + CROSS_SIZE, y));
+  // Dots (mesh pattern)
+  if (s_enable_mesh) {
+    graphics_context_set_stroke_color(ctx, frame_color);
+    graphics_context_set_stroke_width(ctx, 1);
+    for (int y = 0; y < bounds.size.h; y += GRID_SIZE) {
+      for (int x = 0; x < bounds.size.w; x += GRID_SIZE) {
+        // 1. Draw the horizontal part of the cross
+        // Starts at x - CROSS_SIZE and ends at x + CROSS_SIZE, centered on y
+        graphics_draw_line(
+            ctx,
+            GPoint(x - CROSS_SIZE, y),
+            GPoint(x + CROSS_SIZE, y));
 
-      // 2. Draw the vertical part of the cross
-      // Starts at y - CROSS_SIZE and ends at y + CROSS_SIZE, centered on x
-      graphics_draw_line(
-          ctx,
-          GPoint(x, y - CROSS_SIZE),
-          GPoint(x, y + CROSS_SIZE));
+        // 2. Draw the vertical part of the cross
+        // Starts at y - CROSS_SIZE and ends at y + CROSS_SIZE, centered on x
+        graphics_draw_line(
+            ctx,
+            GPoint(x, y - CROSS_SIZE),
+            GPoint(x, y + CROSS_SIZE));
+      }
     }
   }
 }
@@ -976,6 +990,9 @@ static void init() {
   // Load saved weather detail preferences
   load_weather_forecast_flick_mode_from_storage();
   load_weather_forecast_duration_from_storage();
+
+  // Load saved mesh preference
+  load_enable_mesh_from_storage();
 
   s_last_was_dark = is_dark_theme();
 

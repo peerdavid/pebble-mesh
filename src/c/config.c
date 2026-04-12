@@ -10,6 +10,7 @@ int s_disconnect_position = 0; // 0 = disabled, 1-4 = UL/UR/LL/LR
 int s_enable_weather_forecast = 1; // 1 = enabled, 0 = disabled (default enabled)
 int s_weather_forecast_duration = 0; // 0 = 5s, 1 = 10s, 2 = forever
 int s_weather_forecast_flick_mode = 2; // 0 = disabled, 1 = single flick, 2 = double flick
+int s_enable_mesh = 1; // 1 = enabled, 0 = disabled
 
 InfoLayer s_info_layers[NUM_INFO_LAYERS];
 InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
@@ -176,5 +177,20 @@ void load_weather_forecast_flick_mode_from_storage() {
   } else {
     s_weather_forecast_flick_mode = 2; // Default to double flick
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No weather forecast flick mode preference found, using default double flick");
+  }
+}
+
+void save_enable_mesh_to_storage() {
+  persist_write_int(PERSIST_KEY_ENABLE_MESH, s_enable_mesh);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved enable mesh to storage: %d", s_enable_mesh);
+}
+
+void load_enable_mesh_from_storage() {
+  if (persist_exists(PERSIST_KEY_ENABLE_MESH)) {
+    s_enable_mesh = persist_read_int(PERSIST_KEY_ENABLE_MESH);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded enable mesh from storage: %d", s_enable_mesh);
+  } else {
+    s_enable_mesh = 1; // Default to enabled
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No enable mesh preference found, using default enabled");
   }
 }
