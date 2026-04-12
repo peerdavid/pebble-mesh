@@ -14,8 +14,8 @@ var config = {
   layoutLowerLeft: 2,   // INFO_TYPE_STEPS
   layoutLowerRight: 3,  // INFO_TYPE_BATTERY
   disconnectPosition: 0, // 0 = disabled, 1-4 = UL/UR/LL/LR
-  notificationDuration: 0, // 0=5s, 1=10s, 2=forever
-  notificationFlickMode: 2 // 0=disabled, 1=single flick, 2=double flick
+  forecastDuration: 0, // 0=5s, 1=10s, 2=forever
+  forecastFlickMode: 2 // 0=disabled, 1=single flick, 2=double flick
 };
 
 // Load saved configuration
@@ -49,11 +49,11 @@ if (localStorage.getItem('LAYOUT_LOWER_RIGHT') !== null) {
 if (localStorage.getItem('DISCONNECT_POSITION') !== null) {
   config.disconnectPosition = parseInt(localStorage.getItem('DISCONNECT_POSITION'));
 }
-if (localStorage.getItem('NOTIFICATION_DURATION') !== null) {
-  config.notificationDuration = parseInt(localStorage.getItem('NOTIFICATION_DURATION'));
+if (localStorage.getItem('WEATHER_FORECAST_DURATION') !== null) {
+  config.forecastDuration = parseInt(localStorage.getItem('WEATHER_FORECAST_DURATION'));
 }
-if (localStorage.getItem('NOTIFICATION_FLICK_MODE') !== null) {
-  config.notificationFlickMode = parseInt(localStorage.getItem('NOTIFICATION_FLICK_MODE'));
+if (localStorage.getItem('WEATHER_FORECAST_FLICK_MODE') !== null) {
+  config.forecastFlickMode = parseInt(localStorage.getItem('WEATHER_FORECAST_FLICK_MODE'));
 }
 
 // Variables to store weather data
@@ -430,8 +430,8 @@ function sendDataToPebble() {
     'FORECAST_CONDITION_3': weatherData.forecast[2].condition,
     'HOURLY_TEMPS': weatherData.hourlyTemps,
     'HOURLY_PRECIP': weatherData.hourlyPrecip,
-    'NOTIFICATION_DURATION': config.notificationDuration,
-    'NOTIFICATION_FLICK_MODE': config.notificationFlickMode
+    'WEATHER_FORECAST_DURATION': config.forecastDuration,
+    'WEATHER_FORECAST_FLICK_MODE': config.forecastFlickMode
   };
 
   Pebble.sendAppMessage(message,
@@ -517,17 +517,17 @@ Pebble.addEventListener('webviewclosed', function(e) {
     layoutChanged = true;
   }
 
-  if (dict.NOTIFICATION_DURATION) {
-    config.notificationDuration = parseInt(dict.NOTIFICATION_DURATION.value);
-    localStorage.setItem('NOTIFICATION_DURATION', config.notificationDuration);
-    console.log('Notification duration saved to: ' + config.notificationDuration);
+  if (dict.WEATHER_FORECAST_DURATION) {
+    config.forecastDuration = parseInt(dict.WEATHER_FORECAST_DURATION.value);
+    localStorage.setItem('WEATHER_FORECAST_DURATION', config.forecastDuration);
+    console.log('Forecast duration saved to: ' + config.forecastDuration);
     layoutChanged = true;
   }
 
-  if (dict.NOTIFICATION_FLICK_MODE) {
-    config.notificationFlickMode = parseInt(dict.NOTIFICATION_FLICK_MODE.value);
-    localStorage.setItem('NOTIFICATION_FLICK_MODE', config.notificationFlickMode);
-    console.log('Notification flick mode saved to: ' + config.notificationFlickMode);
+  if (dict.WEATHER_FORECAST_FLICK_MODE) {
+    config.forecastFlickMode = parseInt(dict.WEATHER_FORECAST_FLICK_MODE.value);
+    localStorage.setItem('WEATHER_FORECAST_FLICK_MODE', config.forecastFlickMode);
+    console.log('Forecast flick mode saved to: ' + config.forecastFlickMode);
     layoutChanged = true;
   }
 

@@ -182,7 +182,7 @@ module.exports = [
       },
       {
         "type": "select",
-        "messageKey": "NOTIFICATION_FLICK_MODE",
+        "messageKey": "WEATHER_FORECAST_FLICK_MODE",
         "label": "Forecast Trigger",
         "description": "How to open the weather forecast.",
         "defaultValue": "2",
@@ -194,7 +194,7 @@ module.exports = [
       },
       {
         "type": "select",
-        "messageKey": "NOTIFICATION_DURATION",
+        "messageKey": "WEATHER_FORECAST_DURATION",
         "label": "Forecast Duration",
         "description": "How long to show the weather forecast.",
         "defaultValue": "0",

@@ -7,9 +7,9 @@ int s_temperature_unit = 0;  // 0 = celsius, 1 = fahrenheit
 int s_is_day = 1; // 1 = day, 0 = night
 int s_enable_animations = 0; // 1 = enabled, 0 = disabled
 int s_disconnect_position = 0; // 0 = disabled, 1-4 = UL/UR/LL/LR
-int s_enable_notifications = 1; // 1 = enabled, 0 = disabled (default enabled)
-int s_notification_duration = 0; // 0 = 5s, 1 = 10s, 2 = forever
-int s_notification_flick_mode = 2; // 0 = disabled, 1 = single flick, 2 = double flick
+int s_enable_weather_forecast = 1; // 1 = enabled, 0 = disabled (default enabled)
+int s_weather_forecast_duration = 0; // 0 = 5s, 1 = 10s, 2 = forever
+int s_weather_forecast_flick_mode = 2; // 0 = disabled, 1 = single flick, 2 = double flick
 
 InfoLayer s_info_layers[NUM_INFO_LAYERS];
 InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
@@ -142,39 +142,39 @@ void load_disconnect_position_from_storage() {
 }
 
 
-void save_notification_duration_to_storage() {
-  persist_write_int(PERSIST_KEY_NOTIFICATION_DURATION, s_notification_duration);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved notification duration to storage: %d", s_notification_duration);
+void save_weather_forecast_duration_to_storage() {
+  persist_write_int(PERSIST_KEY_WEATHER_FORECAST_DURATION, s_weather_forecast_duration);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved weather forecast duration to storage: %d", s_weather_forecast_duration);
 }
 
-void load_notification_duration_from_storage() {
-  if (persist_exists(PERSIST_KEY_NOTIFICATION_DURATION)) {
-    s_notification_duration = persist_read_int(PERSIST_KEY_NOTIFICATION_DURATION);
+void load_weather_forecast_duration_from_storage() {
+  if (persist_exists(PERSIST_KEY_WEATHER_FORECAST_DURATION)) {
+    s_weather_forecast_duration = persist_read_int(PERSIST_KEY_WEATHER_FORECAST_DURATION);
     // Migrate old "disabled" value 3 to the new flick mode setting
-    if (s_notification_duration == 3) {
-      s_notification_duration = 0;
-      s_notification_flick_mode = 0;
-      save_notification_duration_to_storage();
-      save_notification_flick_mode_to_storage();
+    if (s_weather_forecast_duration == 3) {
+      s_weather_forecast_duration = 0;
+      s_weather_forecast_flick_mode = 0;
+      save_weather_forecast_duration_to_storage();
+      save_weather_forecast_flick_mode_to_storage();
     }
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded notification duration from storage: %d", s_notification_duration);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded weather forecast duration from storage: %d", s_weather_forecast_duration);
   } else {
-    s_notification_duration = 0; // Default to 5s
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "No notification duration preference found, using default 5s");
+    s_weather_forecast_duration = 0; // Default to 5s
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No weather forecast duration preference found, using default 5s");
   }
 }
 
-void save_notification_flick_mode_to_storage() {
-  persist_write_int(PERSIST_KEY_NOTIFICATION_FLICK_MODE, s_notification_flick_mode);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved notification flick mode to storage: %d", s_notification_flick_mode);
+void save_weather_forecast_flick_mode_to_storage() {
+  persist_write_int(PERSIST_KEY_WEATHER_FORECAST_FLICK_MODE, s_weather_forecast_flick_mode);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved weather forecast flick mode to storage: %d", s_weather_forecast_flick_mode);
 }
 
-void load_notification_flick_mode_from_storage() {
-  if (persist_exists(PERSIST_KEY_NOTIFICATION_FLICK_MODE)) {
-    s_notification_flick_mode = persist_read_int(PERSIST_KEY_NOTIFICATION_FLICK_MODE);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded notification flick mode from storage: %d", s_notification_flick_mode);
+void load_weather_forecast_flick_mode_from_storage() {
+  if (persist_exists(PERSIST_KEY_WEATHER_FORECAST_FLICK_MODE)) {
+    s_weather_forecast_flick_mode = persist_read_int(PERSIST_KEY_WEATHER_FORECAST_FLICK_MODE);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded weather forecast flick mode from storage: %d", s_weather_forecast_flick_mode);
   } else {
-    s_notification_flick_mode = 2; // Default to double flick
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "No notification flick mode preference found, using default double flick");
+    s_weather_forecast_flick_mode = 2; // Default to double flick
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No weather forecast flick mode preference found, using default double flick");
   }
 }

@@ -6,7 +6,7 @@
 #include "battery.h"
 #include "calendar.h"
 #include "disconnect.h"
-#include "notification.h"
+#include "weather_forecast.h"
 
 
 
@@ -187,7 +187,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (fc_cond2) s_forecast[1].condition_code = (int)fc_cond2->value->int32;
   if (fc_cond3) s_forecast[2].condition_code = (int)fc_cond3->value->int32;
   if (fc_temp1 || fc_cond1) {
-    notification_update_forecast_icons();
+    weather_forecast_update_icons();
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Forecast updated: %d/%d %d/%d %d/%d",
             s_forecast[0].temperature, s_forecast[0].condition_code,
             s_forecast[1].temperature, s_forecast[1].condition_code,
@@ -197,12 +197,12 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   // Read hourly forecast data for bottom bar graph
   Tuple *hourly_temps_tuple = dict_find(iterator, MESSAGE_KEY_HOURLY_TEMPS);
   if (hourly_temps_tuple) {
-    notification_parse_hourly_temps(hourly_temps_tuple->value->cstring);
+    weather_forecast_parse_hourly_temps(hourly_temps_tuple->value->cstring);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Hourly temps received: %s", hourly_temps_tuple->value->cstring);
   }
   Tuple *hourly_precip_tuple = dict_find(iterator, MESSAGE_KEY_HOURLY_PRECIP);
   if (hourly_precip_tuple) {
-    notification_parse_hourly_precip(hourly_precip_tuple->value->cstring);
+    weather_forecast_parse_hourly_precip(hourly_precip_tuple->value->cstring);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Hourly precip received: %s", hourly_precip_tuple->value->cstring);
   }
 
@@ -218,24 +218,24 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   }
 
   // Read weather detail duration
-  Tuple *notification_duration_tuple = dict_find(iterator, MESSAGE_KEY_NOTIFICATION_DURATION);
-  if (notification_duration_tuple) {
-    int new_duration = (int)notification_duration_tuple->value->int32;
-    if (new_duration != s_notification_duration) {
-      s_notification_duration = new_duration;
-      save_notification_duration_to_storage();
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "Notification duration changed to: %d", s_notification_duration);
+  Tuple *forecast_duration_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_FORECAST_DURATION);
+  if (forecast_duration_tuple) {
+    int new_duration = (int)forecast_duration_tuple->value->int32;
+    if (new_duration != s_weather_forecast_duration) {
+      s_weather_forecast_duration = new_duration;
+      save_weather_forecast_duration_to_storage();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather forecast duration changed to: %d", s_weather_forecast_duration);
     }
   }
 
   // Read weather detail flick mode
-  Tuple *flick_mode_tuple = dict_find(iterator, MESSAGE_KEY_NOTIFICATION_FLICK_MODE);
+  Tuple *flick_mode_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_FORECAST_FLICK_MODE);
   if (flick_mode_tuple) {
     int new_flick_mode = (int)flick_mode_tuple->value->int32;
-    if (new_flick_mode != s_notification_flick_mode) {
-      s_notification_flick_mode = new_flick_mode;
-      save_notification_flick_mode_to_storage();
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "Notification flick mode changed to: %d", s_notification_flick_mode);
+    if (new_flick_mode != s_weather_forecast_flick_mode) {
+      s_weather_forecast_flick_mode = new_flick_mode;
+      save_weather_forecast_flick_mode_to_storage();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather forecast flick mode changed to: %d", s_weather_forecast_flick_mode);
     }
   }
 
@@ -746,13 +746,13 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Tap detected on axis %d", axis);
 
   // If flick mode is disabled, ignore flicks entirely
-  if (s_notification_flick_mode == 0) {
+  if (s_weather_forecast_flick_mode == 0) {
     return;
   }
 
   // Single flick mode
-  if (s_notification_flick_mode == 1) {
-    notification_show();
+  if (s_weather_forecast_flick_mode == 1) {
+    weather_forecast_show();
     return;
   }
 
@@ -764,7 +764,7 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
 
   if (s_last_tap_time > 0 && (now - s_last_tap_time) < DOUBLE_FLICK_WINDOW_MS) {
     // Double flick detected
-    notification_show();
+    weather_forecast_show();
     s_last_tap_time = 0;
   } else {
     // First flick — record time
@@ -893,8 +893,8 @@ static void main_window_load(Window *window) {
     layer_add_child(window_layer, s_info_layers[i].layer);
   }
 
-  // Initialize notification bar (on top of info layers)
-  notification_init(window_layer, bounds);
+  // Initialize weather forecast bar (on top of info layers)
+  weather_forecast_init(window_layer, bounds);
 
   // Initialize PDC icons for use in info drawing functions
   load_weather_icon();
@@ -918,8 +918,8 @@ static void main_window_unload(Window *window) {
   layer_destroy(s_frame_layer);
   layer_destroy(s_animation_layer);
 
-  // Destroy notification layer
-  notification_deinit();
+  // Destroy weather forecast layer
+  weather_forecast_deinit();
 
   // Destroy info layers (this will also destroy all their children via clear_info_layer)
   for (int i = 0; i < NUM_INFO_LAYERS; i++) {
@@ -974,8 +974,8 @@ static void init() {
   load_disconnect_position_from_storage();
 
   // Load saved weather detail preferences
-  load_notification_flick_mode_from_storage();
-  load_notification_duration_from_storage();
+  load_weather_forecast_flick_mode_from_storage();
+  load_weather_forecast_duration_from_storage();
 
   s_last_was_dark = is_dark_theme();
 
@@ -1002,7 +1002,7 @@ static void init() {
     .pebble_app_connection_handler = bluetooth_connection_handler
   });
 
-  // Subscribe to tap/flick events for notification bar
+  // Subscribe to tap/flick events for weather forecast bar
   accel_tap_service_subscribe(tap_handler);
 
   window_stack_push(s_main_window, true);

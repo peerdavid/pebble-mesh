@@ -1,11 +1,11 @@
 #include <pebble.h>
-#include "notification.h"
+#include "weather_forecast.h"
 #include "config.h"
 #include "weather.h"
 #include "utils.h"
 
-static Layer *s_notification_top_layer = NULL;
-static Layer *s_notification_bottom_layer = NULL;
+static Layer *s_forecast_top_layer = NULL;
+static Layer *s_forecast_bottom_layer = NULL;
 static AppTimer *s_hide_timer = NULL;
 
 // Slide animation state
@@ -43,7 +43,7 @@ bool s_hourly_data_available = false;
   #define FORECAST_ICON_SIZE 20
 #endif
 
-void notification_update_forecast_icons() {
+void weather_forecast_update_icons() {
   for (int i = 0; i < NUM_FORECAST_SLOTS; i++) {
     bool force_day = (i > 0); // +1d and +2d are always day icons
     uint32_t resource_id = get_weather_image_resource(s_forecast[i].condition_code, force_day);
@@ -74,22 +74,22 @@ static int parse_csv_ints(const char *csv, int *out, int max_count) {
   return count;
 }
 
-void notification_parse_hourly_temps(const char *csv) {
+void weather_forecast_parse_hourly_temps(const char *csv) {
   if (csv && csv[0]) {
     parse_csv_ints(csv, s_hourly_temps, NUM_HOURLY_POINTS);
     s_hourly_data_available = true;
   }
-  notification_save_forecast_data();
+  weather_forecast_save_data();
 }
 
-void notification_parse_hourly_precip(const char *csv) {
+void weather_forecast_parse_hourly_precip(const char *csv) {
   if (csv && csv[0]) {
     parse_csv_ints(csv, s_hourly_precip, NUM_HOURLY_POINTS);
   }
-  notification_save_forecast_data();
+  weather_forecast_save_data();
 }
 
-void notification_save_forecast_data() {
+void weather_forecast_save_data() {
   persist_write_data(PERSIST_KEY_FORECAST_DATA, s_forecast, sizeof(s_forecast));
   persist_write_data(PERSIST_KEY_HOURLY_TEMPS, s_hourly_temps, sizeof(s_hourly_temps));
   persist_write_data(PERSIST_KEY_HOURLY_PRECIP, s_hourly_precip, sizeof(s_hourly_precip));
@@ -97,7 +97,7 @@ void notification_save_forecast_data() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved forecast data to storage");
 }
 
-void notification_load_forecast_data() {
+void weather_forecast_load_data() {
   if (persist_exists(PERSIST_KEY_FORECAST_DATA)) {
     persist_read_data(PERSIST_KEY_FORECAST_DATA, s_forecast, sizeof(s_forecast));
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded forecast data from storage");
@@ -114,7 +114,7 @@ void notification_load_forecast_data() {
     s_hourly_data_available = persist_read_bool(PERSIST_KEY_HOURLY_DATA_AVAILABLE);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded hourly data available from storage");
   }
-  notification_update_forecast_icons();
+  weather_forecast_update_icons();
 }
 
 // Draw text with a 1px outline (background color border, then foreground in center)
@@ -146,7 +146,7 @@ static void draw_mesh_pattern(GContext *ctx, GRect area) {
   }
 }
 
-static void draw_notification_top(Layer *layer, GContext *ctx) {
+static void draw_forecast_top(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
 
   // Background
@@ -211,7 +211,7 @@ static void draw_notification_top(Layer *layer, GContext *ctx) {
   }
 }
 
-static void draw_notification_bottom(Layer *layer, GContext *ctx) {
+static void draw_forecast_bottom(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
 
   // Background
@@ -341,7 +341,7 @@ static void draw_notification_bottom(Layer *layer, GContext *ctx) {
 }
 
 static void hide_timer_callback(void *data);
-static void save_notification_visible(bool visible);
+static void save_forecast_visible(bool visible);
 
 // Helper to cancel running animations
 static void cancel_animations() {
@@ -360,17 +360,17 @@ static void cancel_animations() {
 
 // Get the hidden/visible frame positions for each layer
 static GRect top_hidden_frame() {
-  return GRect(0, -(NOTIFICATION_BAR_HEIGHT + 1), s_screen_bounds.size.w, NOTIFICATION_BAR_HEIGHT + 1);
+  return GRect(0, -(WEATHER_FORECAST_BAR_HEIGHT + 1), s_screen_bounds.size.w, WEATHER_FORECAST_BAR_HEIGHT + 1);
 }
 static GRect top_visible_frame() {
-  return GRect(0, 0, s_screen_bounds.size.w, NOTIFICATION_BAR_HEIGHT + 1);
+  return GRect(0, 0, s_screen_bounds.size.w, WEATHER_FORECAST_BAR_HEIGHT + 1);
 }
 static GRect bottom_hidden_frame() {
-  return GRect(0, s_screen_bounds.size.h, s_screen_bounds.size.w, NOTIFICATION_BAR_HEIGHT);
+  return GRect(0, s_screen_bounds.size.h, s_screen_bounds.size.w, WEATHER_FORECAST_BAR_HEIGHT);
 }
 static GRect bottom_visible_frame() {
-  int bottom_y = s_screen_bounds.size.h - NOTIFICATION_BAR_HEIGHT;
-  return GRect(0, bottom_y, s_screen_bounds.size.w, NOTIFICATION_BAR_HEIGHT);
+  int bottom_y = s_screen_bounds.size.h - WEATHER_FORECAST_BAR_HEIGHT;
+  return GRect(0, bottom_y, s_screen_bounds.size.w, WEATHER_FORECAST_BAR_HEIGHT);
 }
 
 static void anim_show_stopped(Animation *animation, bool finished, void *context) {
@@ -378,8 +378,8 @@ static void anim_show_stopped(Animation *animation, bool finished, void *context
   s_top_anim = NULL;
   s_bottom_anim = NULL;
   // Schedule auto-hide after display duration (unless "forever")
-  if (s_notification_duration != 2) {
-    int display_ms = (s_notification_duration == 0) ? 5000 : 10000;
+  if (s_weather_forecast_duration != 2) {
+    int display_ms = (s_weather_forecast_duration == 0) ? 5000 : 10000;
     s_hide_timer = app_timer_register(display_ms, hide_timer_callback, NULL);
   }
 }
@@ -399,11 +399,11 @@ static void animate_slide(bool show) {
   GRect bot_from = show ? bottom_hidden_frame() : bottom_visible_frame();
   GRect bot_to = show ? bottom_visible_frame() : bottom_hidden_frame();
 
-  s_top_anim = property_animation_create_layer_frame(s_notification_top_layer, &top_from, &top_to);
-  s_bottom_anim = property_animation_create_layer_frame(s_notification_bottom_layer, &bot_from, &bot_to);
+  s_top_anim = property_animation_create_layer_frame(s_forecast_top_layer, &top_from, &top_to);
+  s_bottom_anim = property_animation_create_layer_frame(s_forecast_bottom_layer, &bot_from, &bot_to);
 
-  animation_set_duration((Animation *)s_top_anim, NOTIFICATION_ANIM_DURATION_MS);
-  animation_set_duration((Animation *)s_bottom_anim, NOTIFICATION_ANIM_DURATION_MS);
+  animation_set_duration((Animation *)s_top_anim, WEATHER_FORECAST_ANIM_DURATION_MS);
+  animation_set_duration((Animation *)s_bottom_anim, WEATHER_FORECAST_ANIM_DURATION_MS);
   animation_set_curve((Animation *)s_top_anim, AnimationCurveEaseInOut);
   animation_set_curve((Animation *)s_bottom_anim, AnimationCurveEaseInOut);
 
@@ -421,53 +421,53 @@ static void animate_slide(bool show) {
 static void hide_timer_callback(void *data) {
   s_hide_timer = NULL;
   animate_slide(false);
-  save_notification_visible(false);
+  save_forecast_visible(false);
 }
 
-void notification_init(Layer *window_layer, GRect bounds) {
+void weather_forecast_init(Layer *window_layer, GRect bounds) {
   s_screen_bounds = bounds;
 
   // Top bar: start off-screen above
-  s_notification_top_layer = layer_create(top_hidden_frame());
-  layer_set_update_proc(s_notification_top_layer, draw_notification_top);
-  layer_add_child(window_layer, s_notification_top_layer);
+  s_forecast_top_layer = layer_create(top_hidden_frame());
+  layer_set_update_proc(s_forecast_top_layer, draw_forecast_top);
+  layer_add_child(window_layer, s_forecast_top_layer);
 
   // Bottom bar: start off-screen below
-  s_notification_bottom_layer = layer_create(bottom_hidden_frame());
-  layer_set_update_proc(s_notification_bottom_layer, draw_notification_bottom);
-  layer_add_child(window_layer, s_notification_bottom_layer);
+  s_forecast_bottom_layer = layer_create(bottom_hidden_frame());
+  layer_set_update_proc(s_forecast_bottom_layer, draw_forecast_bottom);
+  layer_add_child(window_layer, s_forecast_bottom_layer);
 
-  notification_load_forecast_data();
+  weather_forecast_load_data();
 
   // Restore previous visible state (not if disabled)
-  if (s_notification_flick_mode != 0 && persist_exists(PERSIST_KEY_NOTIFICATION_VISIBLE)
-      && persist_read_bool(PERSIST_KEY_NOTIFICATION_VISIBLE)) {
+  if (s_weather_forecast_flick_mode != 0 && persist_exists(PERSIST_KEY_WEATHER_FORECAST_VISIBLE)
+      && persist_read_bool(PERSIST_KEY_WEATHER_FORECAST_VISIBLE)) {
     // Show immediately without animation
-    layer_set_frame(s_notification_top_layer, top_visible_frame());
-    layer_set_frame(s_notification_bottom_layer, bottom_visible_frame());
+    layer_set_frame(s_forecast_top_layer, top_visible_frame());
+    layer_set_frame(s_forecast_bottom_layer, bottom_visible_frame());
     s_is_visible = true;
 
     // Schedule auto-hide if not "forever"
-    if (s_notification_duration != 2) {
-      int display_ms = (s_notification_duration == 0) ? 5000 : 10000;
+    if (s_weather_forecast_duration != 2) {
+      int display_ms = (s_weather_forecast_duration == 0) ? 5000 : 10000;
       s_hide_timer = app_timer_register(display_ms, hide_timer_callback, NULL);
     }
   }
 }
 
-void notification_deinit() {
+void weather_forecast_deinit() {
   cancel_animations();
   if (s_hide_timer) {
     app_timer_cancel(s_hide_timer);
     s_hide_timer = NULL;
   }
-  if (s_notification_top_layer) {
-    layer_destroy(s_notification_top_layer);
-    s_notification_top_layer = NULL;
+  if (s_forecast_top_layer) {
+    layer_destroy(s_forecast_top_layer);
+    s_forecast_top_layer = NULL;
   }
-  if (s_notification_bottom_layer) {
-    layer_destroy(s_notification_bottom_layer);
-    s_notification_bottom_layer = NULL;
+  if (s_forecast_bottom_layer) {
+    layer_destroy(s_forecast_bottom_layer);
+    s_forecast_bottom_layer = NULL;
   }
   for (int i = 0; i < NUM_FORECAST_SLOTS; i++) {
     if (s_forecast_icons[i]) {
@@ -477,11 +477,11 @@ void notification_deinit() {
   }
 }
 
-static void save_notification_visible(bool visible) {
-  persist_write_bool(PERSIST_KEY_NOTIFICATION_VISIBLE, visible);
+static void save_forecast_visible(bool visible) {
+  persist_write_bool(PERSIST_KEY_WEATHER_FORECAST_VISIBLE, visible);
 }
 
-void notification_show() {
+void weather_forecast_show() {
   // If visible (and not mid-animation), dismiss
   if (s_is_visible && !s_is_animating) {
     if (s_hide_timer) {
@@ -489,7 +489,7 @@ void notification_show() {
       s_hide_timer = NULL;
     }
     animate_slide(false);
-    save_notification_visible(false);
+    save_forecast_visible(false);
     return;
   }
 
@@ -501,9 +501,9 @@ void notification_show() {
 
   s_is_visible = true;
   animate_slide(true);
-  save_notification_visible(true);
+  save_forecast_visible(true);
 }
 
-bool notification_is_visible() {
+bool weather_forecast_is_visible() {
   return s_is_visible;
 }

@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.52",
+  "version": "1.53",
   "keywords": [
     "clock",
     "minimal",
@@ -54,9 +54,9 @@
       "FORECAST_CONDITION_3",
       "HOURLY_TEMPS",
       "HOURLY_PRECIP",
-      "ENABLE_NOTIFICATIONS",
-      "NOTIFICATION_DURATION",
-      "NOTIFICATION_FLICK_MODE"
+      "ENABLE_WEATHER_FORECAST",
+      "WEATHER_FORECAST_DURATION",
+      "WEATHER_FORECAST_FLICK_MODE"
     ],
     "resources": {
       "media": [
