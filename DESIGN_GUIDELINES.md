@@ -2,9 +2,12 @@
 
 Guidelines that shape how Pebble Mesh is designed and developed.
 
-## Date & Time is always first
+## Always On Watch with an Outstanding Battery Life
+For me the absolutely coolest feature of my pebble is its always on display paired with a fantastic battery life. And clearly the watch face needs to support this otherwise we can easily mess up things:
 
-The time (and date) is centered, large, and always visible. Whether a notification is showing, the weather forecast is open, or the user just glances at their wrist — the time must always be readable at a glance.
+(1) The time (and date) is centered, large, and always (!!) visible. Whether a notification is showing, the weather forecast is open, or the user just glances at their wrist — the date + time must always be readable at a glance.
+
+(2) The watch face prefers a long battery life over other settings. E.g. I made some measurements [here](https://github.com/peerdavid/pebble-mesh/issues/4) and found that disabling animations increases the battery life by 5 days! Therefore, animations are disabled per default. Its then the users decision which is totally fine but per default we follow the idea to have an always on watch with a long battery life.
 
 ## Readability Through Contrast
 
