@@ -15,7 +15,7 @@ All icons are pdc icons (convert from SVG with https://pdc-tool.heikobehrens.com
 
 ## 100% Community-Driven and Open Source
 
-When users request features, we try to make them happen — even if they go against the default look. For example, a user with aging eyes asked to disable the mesh to improve readability. To ensure everyone can enjoy their preferred version, features like these are always optional and configurable in the settings.
+When users request features, we try to make them happen (its not always possible but often I would say) — even if they go against the default look. For example, a user with aging eyes asked to disable the mesh to improve readability. To ensure everyone can enjoy their preferred version, features like these are always optional and configurable in the settings.
 
 ## Have Fun
 
