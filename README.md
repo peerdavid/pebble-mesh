@@ -10,6 +10,7 @@ Pebble Mesh is an open-source, retro-digital watch face designed for maximum cla
 - Configurable Infos: Weather, sunrise / sunset, temperature, step count, battery level, date.
 - Minute Animation: Watch for a subtle, satisfying line animation every time the minute changes!
 - Detailed Weather Screen: Double flickr to open the detailed weather screen.
+- Highly Customizable: Choose what info to show where and how to show it. Different themes, animations, and more.
 
 ## SETTINGS
 - Theme: Light, Dark, Dynamic (sunrise / sunset), Dynamic (quiet time)
