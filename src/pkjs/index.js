@@ -19,7 +19,8 @@ var config = {
   enableMesh: true, // Show mesh dot pattern
   dateFormat: ' %a %d', // strftime format pattern for date display
   lightShowBackground: true, // Show gray box in light theme
-  darkShowBorder: true // Show border in dark theme
+  darkShowBorder: true, // Show border in dark theme
+  vibrateOnDisconnect: false // Vibrate on connect/disconnect
 };
 
 // Load saved configuration
@@ -70,6 +71,9 @@ if (localStorage.getItem('LIGHT_SHOW_BACKGROUND') !== null) {
 }
 if (localStorage.getItem('DARK_SHOW_BORDER') !== null) {
   config.darkShowBorder = (localStorage.getItem('DARK_SHOW_BORDER') === 'true');
+}
+if (localStorage.getItem('VIBRATE_ON_DISCONNECT') !== null) {
+  config.vibrateOnDisconnect = (localStorage.getItem('VIBRATE_ON_DISCONNECT') === 'true');
 }
 
 // Variables to store weather data
@@ -478,7 +482,8 @@ function sendDataToPebble() {
     'WEATHER_FORECAST_FLICK_MODE': config.forecastFlickMode,
     'DATE_FORMAT': config.dateFormat,
     'LIGHT_SHOW_BACKGROUND': config.lightShowBackground ? 1 : 0,
-    'DARK_SHOW_BORDER': config.darkShowBorder ? 1 : 0
+    'DARK_SHOW_BORDER': config.darkShowBorder ? 1 : 0,
+    'VIBRATE_ON_DISCONNECT': config.vibrateOnDisconnect ? 1 : 0
   });
 
   // Message 2: Weather data + forecast
@@ -595,6 +600,13 @@ Pebble.addEventListener('webviewclosed', function(e) {
     config.darkShowBorder = dict.DARK_SHOW_BORDER.value;
     localStorage.setItem('DARK_SHOW_BORDER', config.darkShowBorder);
     console.log('Dark show border saved to: ' + config.darkShowBorder);
+    layoutChanged = true;
+  }
+
+  if (dict.VIBRATE_ON_DISCONNECT !== undefined) {
+    config.vibrateOnDisconnect = dict.VIBRATE_ON_DISCONNECT.value;
+    localStorage.setItem('VIBRATE_ON_DISCONNECT', config.vibrateOnDisconnect);
+    console.log('Vibrate on disconnect saved to: ' + config.vibrateOnDisconnect);
     layoutChanged = true;
   }
 

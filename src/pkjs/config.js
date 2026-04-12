@@ -12,7 +12,7 @@ module.exports = [
     "items": [
       {
         "type": "heading",
-        "defaultValue": "Appearance"
+        "defaultValue": "General"
       },
       {
         "type": "select",
@@ -43,6 +43,13 @@ module.exports = [
         "messageKey": "ENABLE_ANIMATIONS",
         "label": "Enable Animations",
         "defaultValue": true
+      },
+      {
+        "type": "toggle",
+        "messageKey": "VIBRATE_ON_DISCONNECT",
+        "label": "Vibrate on Connect/Disconnect",
+        "description": "Vibrate 3 times when the watch connects or disconnects from the phone.",
+        "defaultValue": false
       },
       {
         "type": "toggle",

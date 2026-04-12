@@ -30,6 +30,7 @@
 #define PERSIST_KEY_DATE_FORMAT 23
 #define PERSIST_KEY_LIGHT_SHOW_BACKGROUND 24
 #define PERSIST_KEY_DARK_SHOW_BORDER 25
+#define PERSIST_KEY_VIBRATE_ON_DISCONNECT 26
 
 // Layer position and alignment enums
 typedef enum {
@@ -93,6 +94,7 @@ extern int s_enable_mesh; // 1 = enabled, 0 = disabled
 extern char s_date_format[16]; // strftime format string for date display
 extern int s_light_show_background; // 1 = show gray box in light theme, 0 = hide
 extern int s_dark_show_border; // 1 = show border in dark theme, 0 = hide
+extern int s_vibrate_on_disconnect; // 1 = vibrate on connect/disconnect, 0 = disabled
 
 /*
  * Function Declarations
@@ -121,6 +123,8 @@ void save_light_show_background_to_storage();
 void load_light_show_background_from_storage();
 void save_dark_show_border_to_storage();
 void load_dark_show_border_from_storage();
+void save_vibrate_on_disconnect_to_storage();
+void load_vibrate_on_disconnect_from_storage();
 bool is_dark_theme();
 bool is_light_theme();
 GColor get_background_color();

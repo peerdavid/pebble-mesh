@@ -38,6 +38,8 @@ static uint32_t s_last_tap_time = 0;
 static AppTimer *s_animation_timer = NULL;
 static int current_animation_frame = 0; // Ranges from NUM_ANIMATION_FRAMES down to 0
 static bool s_last_was_dark = false;
+static int s_last_connected = -1; // -1 = unknown (init), 0 = disconnected, 1 = connected
+static bool s_is_vibrating = false;
 
 // Buffer to hold the time string (e.g., "12:34" or "23:59")
 static char s_time_buffer[9];
@@ -284,6 +286,17 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       save_dark_show_border_to_storage();
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Dark show border changed to: %d", s_dark_show_border);
       layer_mark_dirty(s_frame_layer);
+    }
+  }
+
+  // Read vibrate on disconnect
+  Tuple *vibrate_tuple = dict_find(iterator, MESSAGE_KEY_VIBRATE_ON_DISCONNECT);
+  if (vibrate_tuple) {
+    int new_val = (int)vibrate_tuple->value->int32;
+    if (new_val != s_vibrate_on_disconnect) {
+      s_vibrate_on_disconnect = new_val;
+      save_vibrate_on_disconnect_to_storage();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Vibrate on disconnect changed to: %d", s_vibrate_on_disconnect);
     }
   }
 
@@ -769,9 +782,38 @@ static void clear_info_layer(InfoLayer* info_layer) {
   }
 }
 
+static void vibrate_done_callback(void *data) {
+  s_is_vibrating = false;
+}
+
+// Vibrate when connection state changes (3 pulses)
+static void vibrate_connection_changed() {
+  if (!s_vibrate_on_disconnect) {
+    return;
+  }
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Vibrate on connection change");
+  static const uint32_t segments[] = {100, 200, 100, 200, 100};
+  VibePattern pattern = {
+    .durations = segments,
+    .num_segments = ARRAY_LENGTH(segments),
+  };
+  s_is_vibrating = true;
+  vibes_enqueue_custom_pattern(pattern);
+  // 100+200+100+200+100 = 700ms + buffer
+  app_timer_register(900, vibrate_done_callback, NULL);
+}
+
 // Update all info layers according to current assignments
 static void update_all_info_layers() {
   bool connected = connection_service_peek_pebble_app_connection();
+  
+  // Detect connection state change and vibrate
+  if (s_last_connected != -1 && (int)connected != s_last_connected) {
+    vibrate_connection_changed();
+  }
+  s_last_connected = (int)connected;
+
   for (int i = 0; i < NUM_INFO_LAYERS; i++) {
     // Clear existing content first
     clear_info_layer(&s_info_layers[i]);
@@ -789,14 +831,18 @@ static void update_all_info_layers() {
 // Bluetooth connection handler
 static void bluetooth_connection_handler(bool connected) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Bluetooth connection: %s", connected ? "connected" : "disconnected");
-  if (s_disconnect_position > 0) {
-    update_colors();
-  }
+  update_all_info_layers();
 }
 
 // Tap/flick handler - configurable: off, single flick, or double flick
 static void tap_handler(AccelAxisType axis, int32_t direction) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Tap detected on axis %d", axis);
+
+  // Ignore flicks caused by vibration motor
+  if (s_is_vibrating) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Ignoring tap during vibration");
+    return;
+  }
 
   // If flick mode is disabled, ignore flicks entirely
   if (s_weather_forecast_flick_mode == 0) {
@@ -1037,6 +1083,7 @@ static void init() {
   load_date_format_from_storage();
   load_light_show_background_from_storage();
   load_dark_show_border_from_storage();
+  load_vibrate_on_disconnect_from_storage();
 
   s_last_was_dark = is_dark_theme();
 

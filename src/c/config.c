@@ -14,6 +14,7 @@ int s_enable_mesh = 1; // 1 = enabled, 0 = disabled
 char s_date_format[16] = " %a %d"; // strftime format string for date display
 int s_light_show_background = 1; // 1 = show gray box in light theme, 0 = hide
 int s_dark_show_border = 1; // 1 = show border in dark theme, 0 = hide
+int s_vibrate_on_disconnect = 0; // 0 = disabled, 1 = vibrate on connect/disconnect
 
 InfoLayer s_info_layers[NUM_INFO_LAYERS];
 InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
@@ -239,5 +240,20 @@ void load_dark_show_border_from_storage() {
   } else {
     s_dark_show_border = 1; // Default to enabled
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No dark show border preference found, using default enabled");
+  }
+}
+
+void save_vibrate_on_disconnect_to_storage() {
+  persist_write_int(PERSIST_KEY_VIBRATE_ON_DISCONNECT, s_vibrate_on_disconnect);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved vibrate on disconnect to storage: %d", s_vibrate_on_disconnect);
+}
+
+void load_vibrate_on_disconnect_from_storage() {
+  if (persist_exists(PERSIST_KEY_VIBRATE_ON_DISCONNECT)) {
+    s_vibrate_on_disconnect = persist_read_int(PERSIST_KEY_VIBRATE_ON_DISCONNECT);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded vibrate on disconnect from storage: %d", s_vibrate_on_disconnect);
+  } else {
+    s_vibrate_on_disconnect = 0; // Default to disabled
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No vibrate on disconnect preference found, using default disabled");
   }
 }

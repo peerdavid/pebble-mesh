@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.53",
+  "version": "1.54",
   "keywords": [
     "clock",
     "minimal",
@@ -60,7 +60,8 @@
       "ENABLE_MESH",
       "DATE_FORMAT",
       "LIGHT_SHOW_BACKGROUND",
-      "DARK_SHOW_BORDER"
+      "DARK_SHOW_BORDER",
+      "VIBRATE_ON_DISCONNECT"
     ],
     "resources": {
       "media": [
