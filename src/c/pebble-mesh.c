@@ -41,7 +41,7 @@ static bool s_last_was_dark = false;
 
 // Buffer to hold the time string (e.g., "12:34" or "23:59")
 static char s_time_buffer[9];
-static char s_date_buffer[8];
+static char s_date_buffer[20];
 
 // Forward declarations
 static void update_time();
@@ -239,6 +239,18 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     }
   }
 
+  // Read date format
+  Tuple *date_format_tuple = dict_find(iterator, MESSAGE_KEY_DATE_FORMAT);
+  if (date_format_tuple) {
+    const char *new_fmt = date_format_tuple->value->cstring;
+    if (strcmp(new_fmt, s_date_format) != 0) {
+      snprintf(s_date_format, sizeof(s_date_format), "%s", new_fmt);
+      save_date_format_to_storage();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Date format changed to: %s", s_date_format);
+      update_time();
+    }
+  }
+
   // Read enable mesh
   Tuple *enable_mesh_tuple = dict_find(iterator, MESSAGE_KEY_ENABLE_MESH);
   if (enable_mesh_tuple) {
@@ -297,7 +309,10 @@ static void update_time() {
 
   layer_mark_dirty(s_time_layer);
 
-  strftime(s_date_buffer, sizeof(s_date_buffer), " %a %d", tick_time);
+  if (strftime(s_date_buffer, sizeof(s_date_buffer), s_date_format, tick_time) == 0) {
+    // Directly show the text of the date format -- e.g. its just a text
+    snprintf(s_date_buffer, sizeof(s_date_buffer), "%s", s_date_format);
+  }
   layer_mark_dirty(s_date_layer);
 
   update_step_count();
@@ -596,7 +611,7 @@ static void draw_date(Layer *layer, GContext *ctx) {
   float animation_factor = 1.0f - ((float)current_animation_frame / NUM_ANIMATION_FRAMES);
   
   // Typewriter effect: only show characters progressively during second phase (0.25 - 0.40)
-  char display_buffer[8];
+  char display_buffer[20];
   if (animation_factor < 0.25f) {
     // Time still typing - don't show date yet
     display_buffer[0] = '\0';
@@ -993,6 +1008,9 @@ static void init() {
 
   // Load saved mesh preference
   load_enable_mesh_from_storage();
+
+  // Load saved date format preference
+  load_date_format_from_storage();
 
   s_last_was_dark = is_dark_theme();
 

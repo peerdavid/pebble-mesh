@@ -57,7 +57,8 @@
       "ENABLE_WEATHER_FORECAST",
       "WEATHER_FORECAST_DURATION",
       "WEATHER_FORECAST_FLICK_MODE",
-      "ENABLE_MESH"
+      "ENABLE_MESH",
+      "DATE_FORMAT"
     ],
     "resources": {
       "media": [

@@ -50,6 +50,16 @@ module.exports = [
         "label": "Enable Mesh",
         "description": "Wait... you're disabling the mesh on a watchface called Mesh? Bold move. Improves readability, destroys identity.",
         "defaultValue": true
+      },
+      {
+        "type": "input",
+        "messageKey": "DATE_FORMAT",
+        "label": "Date Format or Static Text",
+        "defaultValue": " %a %d",
+        "description": "Default: ' %a %d'. Patterns: %a = day name, %b = month name, %d = day, %m = month number. Examples: ' %d %b' = 12 Apr, ' %d/%m' = 12/04, ' %m/%d' = 04/12",
+        "attributes": {
+          "placeholder": " %a %d"
+        }
       }
     ]
   },

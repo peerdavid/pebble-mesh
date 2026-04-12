@@ -11,6 +11,7 @@ int s_enable_weather_forecast = 1; // 1 = enabled, 0 = disabled (default enabled
 int s_weather_forecast_duration = 0; // 0 = 5s, 1 = 10s, 2 = forever
 int s_weather_forecast_flick_mode = 2; // 0 = disabled, 1 = single flick, 2 = double flick
 int s_enable_mesh = 1; // 1 = enabled, 0 = disabled
+char s_date_format[16] = " %a %d"; // strftime format string for date display
 
 InfoLayer s_info_layers[NUM_INFO_LAYERS];
 InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
@@ -192,5 +193,19 @@ void load_enable_mesh_from_storage() {
   } else {
     s_enable_mesh = 1; // Default to enabled
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No enable mesh preference found, using default enabled");
+  }
+}
+
+void save_date_format_to_storage() {
+  persist_write_string(PERSIST_KEY_DATE_FORMAT, s_date_format);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved date format to storage: %s", s_date_format);
+}
+
+void load_date_format_from_storage() {
+  if (persist_exists(PERSIST_KEY_DATE_FORMAT)) {
+    persist_read_string(PERSIST_KEY_DATE_FORMAT, s_date_format, sizeof(s_date_format));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded date format from storage: %s", s_date_format);
+  } else {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No date format preference found, using default");
   }
 }

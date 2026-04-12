@@ -27,6 +27,7 @@
 #define PERSIST_KEY_HOURLY_DATA_AVAILABLE 20
 #define PERSIST_KEY_WEATHER_FORECAST_FLICK_MODE 21
 #define PERSIST_KEY_ENABLE_MESH 22
+#define PERSIST_KEY_DATE_FORMAT 23
 
 // Layer position and alignment enums
 typedef enum {
@@ -87,6 +88,7 @@ extern int s_enable_weather_forecast; // 1 = enabled, 0 = disabled
 extern int s_weather_forecast_duration; // 0 = 5s, 1 = 10s, 2 = forever
 extern int s_weather_forecast_flick_mode; // 0 = disabled, 1 = single flick, 2 = double flick
 extern int s_enable_mesh; // 1 = enabled, 0 = disabled
+extern char s_date_format[16]; // strftime format string for date display
 
 /*
  * Function Declarations
@@ -109,6 +111,8 @@ void save_weather_forecast_flick_mode_to_storage();
 void load_weather_forecast_flick_mode_from_storage();
 void save_enable_mesh_to_storage();
 void load_enable_mesh_from_storage();
+void save_date_format_to_storage();
+void load_date_format_from_storage();
 bool is_dark_theme();
 bool is_light_theme();
 GColor get_background_color();

@@ -16,7 +16,8 @@ var config = {
   disconnectPosition: 0, // 0 = disabled, 1-4 = UL/UR/LL/LR
   forecastDuration: 0, // 0=5s, 1=10s, 2=forever
   forecastFlickMode: 2, // 0=disabled, 1=single flick, 2=double flick
-  enableMesh: true // Show mesh dot pattern
+  enableMesh: true, // Show mesh dot pattern
+  dateFormat: ' %a %d' // strftime format pattern for date display
 };
 
 // Load saved configuration
@@ -58,6 +59,9 @@ if (localStorage.getItem('WEATHER_FORECAST_FLICK_MODE') !== null) {
 }
 if (localStorage.getItem('ENABLE_MESH') !== null) {
   config.enableMesh = (localStorage.getItem('ENABLE_MESH') === 'true');
+}
+if (localStorage.getItem('DATE_FORMAT') !== null) {
+  config.dateFormat = localStorage.getItem('DATE_FORMAT');
 }
 
 // Variables to store weather data
@@ -463,7 +467,8 @@ function sendDataToPebble() {
     'LAYOUT_LOWER_RIGHT': config.layoutLowerRight,
     'DISCONNECT_POSITION': config.disconnectPosition,
     'WEATHER_FORECAST_DURATION': config.forecastDuration,
-    'WEATHER_FORECAST_FLICK_MODE': config.forecastFlickMode
+    'WEATHER_FORECAST_FLICK_MODE': config.forecastFlickMode,
+    'DATE_FORMAT': config.dateFormat
   });
 
   // Message 2: Weather data + forecast
@@ -566,6 +571,13 @@ Pebble.addEventListener('webviewclosed', function(e) {
     config.enableMesh = dict.ENABLE_MESH.value;
     localStorage.setItem('ENABLE_MESH', config.enableMesh);
     console.log('Enable mesh saved to: ' + config.enableMesh);
+    layoutChanged = true;
+  }
+
+  if (dict.DATE_FORMAT !== undefined) {
+    config.dateFormat = dict.DATE_FORMAT.value || ' %a %d';
+    localStorage.setItem('DATE_FORMAT', config.dateFormat);
+    console.log('Date format saved to: ' + config.dateFormat);
     layoutChanged = true;
   }
 
