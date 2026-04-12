@@ -12,6 +12,8 @@ int s_weather_forecast_duration = 0; // 0 = 5s, 1 = 10s, 2 = forever
 int s_weather_forecast_flick_mode = 2; // 0 = disabled, 1 = single flick, 2 = double flick
 int s_enable_mesh = 1; // 1 = enabled, 0 = disabled
 char s_date_format[16] = " %a %d"; // strftime format string for date display
+int s_light_show_background = 1; // 1 = show gray box in light theme, 0 = hide
+int s_dark_show_border = 1; // 1 = show border in dark theme, 0 = hide
 
 InfoLayer s_info_layers[NUM_INFO_LAYERS];
 InfoType s_layer_assignments[NUM_INFO_LAYERS] = {
@@ -207,5 +209,35 @@ void load_date_format_from_storage() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded date format from storage: %s", s_date_format);
   } else {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No date format preference found, using default");
+  }
+}
+
+void save_light_show_background_to_storage() {
+  persist_write_int(PERSIST_KEY_LIGHT_SHOW_BACKGROUND, s_light_show_background);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved light show background to storage: %d", s_light_show_background);
+}
+
+void load_light_show_background_from_storage() {
+  if (persist_exists(PERSIST_KEY_LIGHT_SHOW_BACKGROUND)) {
+    s_light_show_background = persist_read_int(PERSIST_KEY_LIGHT_SHOW_BACKGROUND);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded light show background from storage: %d", s_light_show_background);
+  } else {
+    s_light_show_background = 1; // Default to enabled
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No light show background preference found, using default enabled");
+  }
+}
+
+void save_dark_show_border_to_storage() {
+  persist_write_int(PERSIST_KEY_DARK_SHOW_BORDER, s_dark_show_border);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved dark show border to storage: %d", s_dark_show_border);
+}
+
+void load_dark_show_border_from_storage() {
+  if (persist_exists(PERSIST_KEY_DARK_SHOW_BORDER)) {
+    s_dark_show_border = persist_read_int(PERSIST_KEY_DARK_SHOW_BORDER);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded dark show border from storage: %d", s_dark_show_border);
+  } else {
+    s_dark_show_border = 1; // Default to enabled
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No dark show border preference found, using default enabled");
   }
 }

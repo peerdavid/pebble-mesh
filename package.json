@@ -58,7 +58,9 @@
       "WEATHER_FORECAST_DURATION",
       "WEATHER_FORECAST_FLICK_MODE",
       "ENABLE_MESH",
-      "DATE_FORMAT"
+      "DATE_FORMAT",
+      "LIGHT_SHOW_BACKGROUND",
+      "DARK_SHOW_BORDER"
     ],
     "resources": {
       "media": [

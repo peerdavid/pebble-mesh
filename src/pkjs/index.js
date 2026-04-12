@@ -17,7 +17,9 @@ var config = {
   forecastDuration: 0, // 0=5s, 1=10s, 2=forever
   forecastFlickMode: 2, // 0=disabled, 1=single flick, 2=double flick
   enableMesh: true, // Show mesh dot pattern
-  dateFormat: ' %a %d' // strftime format pattern for date display
+  dateFormat: ' %a %d', // strftime format pattern for date display
+  lightShowBackground: true, // Show gray box in light theme
+  darkShowBorder: true // Show border in dark theme
 };
 
 // Load saved configuration
@@ -62,6 +64,12 @@ if (localStorage.getItem('ENABLE_MESH') !== null) {
 }
 if (localStorage.getItem('DATE_FORMAT') !== null) {
   config.dateFormat = localStorage.getItem('DATE_FORMAT');
+}
+if (localStorage.getItem('LIGHT_SHOW_BACKGROUND') !== null) {
+  config.lightShowBackground = (localStorage.getItem('LIGHT_SHOW_BACKGROUND') === 'true');
+}
+if (localStorage.getItem('DARK_SHOW_BORDER') !== null) {
+  config.darkShowBorder = (localStorage.getItem('DARK_SHOW_BORDER') === 'true');
 }
 
 // Variables to store weather data
@@ -468,7 +476,9 @@ function sendDataToPebble() {
     'DISCONNECT_POSITION': config.disconnectPosition,
     'WEATHER_FORECAST_DURATION': config.forecastDuration,
     'WEATHER_FORECAST_FLICK_MODE': config.forecastFlickMode,
-    'DATE_FORMAT': config.dateFormat
+    'DATE_FORMAT': config.dateFormat,
+    'LIGHT_SHOW_BACKGROUND': config.lightShowBackground ? 1 : 0,
+    'DARK_SHOW_BORDER': config.darkShowBorder ? 1 : 0
   });
 
   // Message 2: Weather data + forecast
@@ -571,6 +581,20 @@ Pebble.addEventListener('webviewclosed', function(e) {
     config.enableMesh = dict.ENABLE_MESH.value;
     localStorage.setItem('ENABLE_MESH', config.enableMesh);
     console.log('Enable mesh saved to: ' + config.enableMesh);
+    layoutChanged = true;
+  }
+
+  if (dict.LIGHT_SHOW_BACKGROUND) {
+    config.lightShowBackground = dict.LIGHT_SHOW_BACKGROUND.value;
+    localStorage.setItem('LIGHT_SHOW_BACKGROUND', config.lightShowBackground);
+    console.log('Light show background saved to: ' + config.lightShowBackground);
+    layoutChanged = true;
+  }
+
+  if (dict.DARK_SHOW_BORDER) {
+    config.darkShowBorder = dict.DARK_SHOW_BORDER.value;
+    localStorage.setItem('DARK_SHOW_BORDER', config.darkShowBorder);
+    console.log('Dark show border saved to: ' + config.darkShowBorder);
     layoutChanged = true;
   }
 

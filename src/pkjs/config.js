@@ -60,6 +60,28 @@ module.exports = [
         "attributes": {
           "placeholder": " %a %d"
         }
+      },
+      {
+        "type": "heading",
+        "defaultValue": "Light Theme",
+        "size": 4
+      },
+      {
+        "type": "toggle",
+        "messageKey": "LIGHT_SHOW_BACKGROUND",
+        "label": "Show Background Box",
+        "defaultValue": true
+      },
+      {
+        "type": "heading",
+        "defaultValue": "Dark Theme",
+        "size": 4
+      },
+      {
+        "type": "toggle",
+        "messageKey": "DARK_SHOW_BORDER",
+        "label": "Show Border",
+        "defaultValue": true
       }
     ]
   },

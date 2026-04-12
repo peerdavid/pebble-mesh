@@ -263,6 +263,30 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     }
   }
 
+  // Read light theme show background
+  Tuple *light_bg_tuple = dict_find(iterator, MESSAGE_KEY_LIGHT_SHOW_BACKGROUND);
+  if (light_bg_tuple) {
+    int new_val = (int)light_bg_tuple->value->int32;
+    if (new_val != s_light_show_background) {
+      s_light_show_background = new_val;
+      save_light_show_background_to_storage();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Light show background changed to: %d", s_light_show_background);
+      layer_mark_dirty(s_frame_layer);
+    }
+  }
+
+  // Read dark theme show border
+  Tuple *dark_border_tuple = dict_find(iterator, MESSAGE_KEY_DARK_SHOW_BORDER);
+  if (dark_border_tuple) {
+    int new_val = (int)dark_border_tuple->value->int32;
+    if (new_val != s_dark_show_border) {
+      s_dark_show_border = new_val;
+      save_dark_show_border_to_storage();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Dark show border changed to: %d", s_dark_show_border);
+      layer_mark_dirty(s_frame_layer);
+    }
+  }
+
   // Read disconnect position
   Tuple *disconnect_pos_tuple = dict_find(iterator, MESSAGE_KEY_DISCONNECT_POSITION);
   if (disconnect_pos_tuple) {
@@ -380,15 +404,15 @@ static void draw_frame(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GColor frame_color = get_text_color(); // Use theme-appropriate color
 
-  // In case we have light theme, we don't draw a frame
-  if(BORDER_THICKNESS > 0 && is_dark_theme()) {
+  // In case we have dark theme, we draw a border frame
+  if(BORDER_THICKNESS > 0 && is_dark_theme() && s_dark_show_border) {
     graphics_context_set_stroke_color(ctx, frame_color);
     graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
     graphics_draw_rect(ctx, GRect(1, 1, bounds.size.w - 2, bounds.size.h - 2));
   }
 
-  // IN case we have light theme, we draw a gray rectangle in the middle
-  if(is_light_theme()) {
+  // In case we have light theme, we draw a gray rectangle in the middle
+  if(is_light_theme() && s_light_show_background) {
     graphics_context_set_fill_color(ctx, GColorLightGray);
     
     // We draw the rectange exactly from the upper to the lower animated line in  the same length
@@ -810,7 +834,7 @@ static void delayed_weather_request(void *data) {
 // Initialize the 4 info layers with proper positioning
 static void init_info_layers(GRect bounds) {
 
-  int theme_offset = is_dark_theme() ? 2 : 0;
+  int theme_offset = (is_dark_theme() && s_dark_show_border) ? 2 : 0;
   const int info_layer_width = bounds.size.w / 2 - BORDER_THICKNESS - 2 - theme_offset;
 #if defined(PBL_PLATFORM_EMERY)
   const int info_layer_height = 60;
@@ -1011,6 +1035,8 @@ static void init() {
 
   // Load saved date format preference
   load_date_format_from_storage();
+  load_light_show_background_from_storage();
+  load_dark_show_border_from_storage();
 
   s_last_was_dark = is_dark_theme();
 
