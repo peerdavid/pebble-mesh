@@ -247,6 +247,8 @@ module.exports = [
         "options": [
           { "label": "5 seconds", "value": "0" },
           { "label": "10 seconds", "value": "1" },
+          { "label": "15 seconds", "value": "3" },
+          { "label": "30 seconds", "value": "4" },
           { "label": "Until dismissed", "value": "2" }
         ]
       }

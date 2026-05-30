@@ -43,6 +43,18 @@ bool s_hourly_data_available = false;
   #define FORECAST_ICON_SIZE 20
 #endif
 
+// Returns auto-hide delay in ms, or 0 for "forever" (no auto-hide).
+static int forecast_display_ms(void) {
+  switch (s_weather_forecast_duration) {
+    case 0: return 5000;
+    case 1: return 10000;
+    case 3: return 15000;
+    case 4: return 30000;
+    case 2:
+    default: return 0;
+  }
+}
+
 void weather_forecast_update_icons() {
   for (int i = 0; i < NUM_FORECAST_SLOTS; i++) {
     bool force_day = (i > 0); // +1d and +2d are always day icons
@@ -379,8 +391,8 @@ static void anim_show_stopped(Animation *animation, bool finished, void *context
   s_top_anim = NULL;
   s_bottom_anim = NULL;
   // Schedule auto-hide after display duration (unless "forever")
-  if (s_weather_forecast_duration != 2) {
-    int display_ms = (s_weather_forecast_duration == 0) ? 5000 : 10000;
+  int display_ms = forecast_display_ms();
+  if (display_ms > 0) {
     s_hide_timer = app_timer_register(display_ms, hide_timer_callback, NULL);
   }
 }
@@ -449,8 +461,8 @@ void weather_forecast_init(Layer *window_layer, GRect bounds) {
     s_is_visible = true;
 
     // Schedule auto-hide if not "forever"
-    if (s_weather_forecast_duration != 2) {
-      int display_ms = (s_weather_forecast_duration == 0) ? 5000 : 10000;
+    int display_ms = forecast_display_ms();
+    if (display_ms > 0) {
       s_hide_timer = app_timer_register(display_ms, hide_timer_callback, NULL);
     }
   }

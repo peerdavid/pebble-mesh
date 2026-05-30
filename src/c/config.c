@@ -8,7 +8,7 @@ int s_is_day = 1; // 1 = day, 0 = night
 int s_enable_animations = 0; // 1 = enabled, 0 = disabled
 int s_disconnect_position = 0; // 0 = disabled, 1-4 = UL/UR/LL/LR
 int s_enable_weather_forecast = 1; // 1 = enabled, 0 = disabled (default enabled)
-int s_weather_forecast_duration = 0; // 0 = 5s, 1 = 10s, 2 = forever
+int s_weather_forecast_duration = 0; // 0 = 5s, 1 = 10s, 2 = forever, 3 = 15s, 4 = 30s
 int s_weather_forecast_flick_mode = 2; // 0 = disabled, 1 = single flick, 2 = double flick
 int s_enable_mesh = 1; // 1 = enabled, 0 = disabled
 char s_date_format[16] = " %a %d"; // strftime format string for date display
@@ -155,13 +155,6 @@ void save_weather_forecast_duration_to_storage() {
 void load_weather_forecast_duration_from_storage() {
   if (persist_exists(PERSIST_KEY_WEATHER_FORECAST_DURATION)) {
     s_weather_forecast_duration = persist_read_int(PERSIST_KEY_WEATHER_FORECAST_DURATION);
-    // Migrate old "disabled" value 3 to the new flick mode setting
-    if (s_weather_forecast_duration == 3) {
-      s_weather_forecast_duration = 0;
-      s_weather_forecast_flick_mode = 0;
-      save_weather_forecast_duration_to_storage();
-      save_weather_forecast_flick_mode_to_storage();
-    }
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded weather forecast duration from storage: %d", s_weather_forecast_duration);
   } else {
     s_weather_forecast_duration = 0; // Default to 5s
