@@ -6,6 +6,7 @@
 #include "battery.h"
 #include "calendar.h"
 #include "disconnect.h"
+#include "heart_rate.h"
 #include "weather_forecast.h"
 
 
@@ -79,6 +80,7 @@ static void update_colors() {
   load_calendar_icon();
   load_battery_icon();
   load_disconnect_icon();
+  load_heart_icon();
 
   // Update all info layers to refresh the display
   update_all_info_layers();
@@ -353,6 +355,7 @@ static void update_time() {
   layer_mark_dirty(s_date_layer);
 
   update_step_count();
+  update_heart_rate();
   update_day();
 }
 
@@ -745,6 +748,9 @@ static void draw_info_for_type(InfoType info_type, InfoLayer* info_layer) {
     case INFO_TYPE_DISCONNECT:
       draw_disconnect_info(info_layer);
       break;
+    case INFO_TYPE_HEART_RATE:
+      draw_heart_rate_info(info_layer);
+      break;
     case INFO_TYPE_COLORED_BOX:
       draw_colored_box_info(info_layer);
       break;
@@ -1001,6 +1007,7 @@ static void main_window_load(Window *window) {
   load_battery_icon();
   load_calendar_icon();
   load_disconnect_icon();
+  load_heart_icon();
   update_day();
 
   // Initialize the display with current layer assignments
@@ -1043,6 +1050,9 @@ static void main_window_unload(Window *window) {
   }
   if (s_disconnect_icon) {
     gdraw_command_image_destroy(s_disconnect_icon);
+  }
+  if (s_heart_icon) {
+    gdraw_command_image_destroy(s_heart_icon);
   }
 }
 

@@ -69,7 +69,8 @@ typedef enum {
   INFO_TYPE_COLORED_BOX = 4,
   INFO_TYPE_NONE = 5,
   INFO_TYPE_CALENDAR = 6,
-  INFO_TYPE_DISCONNECT = 7
+  INFO_TYPE_DISCONNECT = 7,
+  INFO_TYPE_HEART_RATE = 8
 } InfoType;
 
 // Current layer assignments (can be changed dynamically)

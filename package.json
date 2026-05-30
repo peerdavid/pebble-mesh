@@ -144,6 +144,11 @@
           "type": "raw",
           "name": "IMAGE_STEP",
           "file": "images/step.pdc"
+        },
+        {
+          "type": "raw",
+          "name": "IMAGE_HEART",
+          "file": "images/heart.pdc"
         }
       ]
     }
