@@ -61,7 +61,9 @@
       "DATE_FORMAT",
       "LIGHT_SHOW_BACKGROUND",
       "DARK_SHOW_BORDER",
-      "VIBRATE_ON_DISCONNECT"
+      "VIBRATE_ON_DISCONNECT",
+      "LIGHT_BG_COLOR",
+      "DARK_BG_COLOR"
     ],
     "resources": {
       "media": [

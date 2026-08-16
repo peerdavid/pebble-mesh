@@ -302,6 +302,27 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     }
   }
 
+  // Read background colors for light and dark theme (not supported on
+  // aplite, whose app RAM is already exhausted)
+#if !defined(PBL_PLATFORM_APLITE)
+  Tuple *light_bg_color_tuple = dict_find(iterator, MESSAGE_KEY_LIGHT_BG_COLOR);
+  Tuple *dark_bg_color_tuple = dict_find(iterator, MESSAGE_KEY_DARK_BG_COLOR);
+  bool bg_colors_changed = false;
+  if (light_bg_color_tuple && (int)light_bg_color_tuple->value->int32 != s_light_bg_color) {
+    s_light_bg_color = (int)light_bg_color_tuple->value->int32;
+    bg_colors_changed = true;
+  }
+  if (dark_bg_color_tuple && (int)dark_bg_color_tuple->value->int32 != s_dark_bg_color) {
+    s_dark_bg_color = (int)dark_bg_color_tuple->value->int32;
+    bg_colors_changed = true;
+  }
+  if (bg_colors_changed) {
+    save_bg_colors_to_storage();
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Background colors changed to: %x / %x", s_light_bg_color, s_dark_bg_color);
+    update_colors();
+  }
+#endif
+
   // Read disconnect position
   Tuple *disconnect_pos_tuple = dict_find(iterator, MESSAGE_KEY_DISCONNECT_POSITION);
   if (disconnect_pos_tuple) {
@@ -419,6 +440,13 @@ static void animation_timer_callback(void *data) {
 static void draw_frame(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GColor frame_color = get_text_color(); // Use theme-appropriate color
+
+  // On black-and-white displays a gray background is not possible as window
+  // background color, so draw it as a dithered 50% gray fill instead
+  if (is_bw_gray_background()) {
+    graphics_context_set_fill_color(ctx, GColorLightGray);
+    graphics_fill_rect(ctx, bounds, 0, GCornerNone);
+  }
 
   // In case we have dark theme, we draw a border frame
   if(BORDER_THICKNESS > 0 && is_dark_theme() && s_dark_show_border) {
@@ -617,11 +645,15 @@ static void draw_time(Layer *layer, GContext *ctx) {
     strcpy(display_buffer, s_time_buffer);
   }
   
-  // In light mode, draw white outline around black text
-  if (is_light_theme()) {
-    // Draw white outline by drawing the text 4 times with 1-pixel offsets
-    graphics_context_set_text_color(ctx, GColorWhite);
-    
+  // In light mode (and on a dithered gray background) draw an outline
+  // around the text for readability
+  if (is_light_theme() || is_bw_gray_background()) {
+    GColor text_color = get_text_color();
+    GColor outline_color = gcolor_equal(text_color, GColorBlack) ? GColorWhite : GColorBlack;
+
+    // Draw outline by drawing the text 4 times with 1-pixel offsets
+    graphics_context_set_text_color(ctx, outline_color);
+
     // Left
     graphics_draw_text(ctx, display_buffer, font,
                       GRect(bounds.origin.x - 1, bounds.origin.y, bounds.size.w, bounds.size.h),
@@ -638,9 +670,9 @@ static void draw_time(Layer *layer, GContext *ctx) {
     graphics_draw_text(ctx, display_buffer, font,
                       GRect(bounds.origin.x, bounds.origin.y + 1, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
-    
-    // Draw black text in center
-    graphics_context_set_text_color(ctx, GColorBlack);
+
+    // Draw text in center
+    graphics_context_set_text_color(ctx, text_color);
     graphics_draw_text(ctx, display_buffer, font,
                       bounds,
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
@@ -681,11 +713,15 @@ static void draw_date(Layer *layer, GContext *ctx) {
     strcpy(display_buffer, s_date_buffer);
   }
   
-  // In light mode, draw white outline around black text
-  if (is_light_theme()) {
-    // Draw white outline by drawing the text 4 times with 1-pixel offsets
-    graphics_context_set_text_color(ctx, GColorWhite);
-    
+  // In light mode (and on a dithered gray background) draw an outline
+  // around the text for readability
+  if (is_light_theme() || is_bw_gray_background()) {
+    GColor text_color = get_text_color();
+    GColor outline_color = gcolor_equal(text_color, GColorBlack) ? GColorWhite : GColorBlack;
+
+    // Draw outline by drawing the text 4 times with 1-pixel offsets
+    graphics_context_set_text_color(ctx, outline_color);
+
     // Left
     graphics_draw_text(ctx, display_buffer, font,
                       GRect(bounds.origin.x - 1, bounds.origin.y, bounds.size.w, bounds.size.h),
@@ -702,9 +738,9 @@ static void draw_date(Layer *layer, GContext *ctx) {
     graphics_draw_text(ctx, display_buffer, font,
                       GRect(bounds.origin.x, bounds.origin.y + 1, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
-    
-    // Draw black text in center
-    graphics_context_set_text_color(ctx, GColorBlack);
+
+    // Draw text in center
+    graphics_context_set_text_color(ctx, text_color);
     graphics_draw_text(ctx, display_buffer, font,
                       bounds,
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
@@ -1109,6 +1145,7 @@ static void init() {
   load_light_show_background_from_storage();
   load_dark_show_border_from_storage();
   load_vibrate_on_disconnect_from_storage();
+  load_bg_colors_from_storage();
 
   s_last_was_dark = is_dark_theme();
 

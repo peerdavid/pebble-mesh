@@ -28,8 +28,9 @@ Pebble Mesh is an open-source, retro-digital watch face designed for maximum cla
 
 
 ## Donate
-If you like it and want to buy me a coffee:
+If you like it and want to buy me a coffee (a "buy me a coffe" link is in the settings header too):
 
 [![](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=Y4PDJU84LC3N2)
+
 
 Thank you so much!

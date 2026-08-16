@@ -80,6 +80,25 @@ module.exports = [
         "defaultValue": true
       },
       {
+        "type": "color",
+        "messageKey": "LIGHT_BG_COLOR",
+        "label": "Background Color",
+        "defaultValue": "FFFFFF",
+        "sunlight": true,
+        "capabilities": ["COLOR"]
+      },
+      {
+        "type": "select",
+        "messageKey": "LIGHT_BG_COLOR",
+        "label": "Background Color",
+        "defaultValue": "FFFFFF",
+        "capabilities": ["BW", "NOT_PLATFORM_APLITE"],
+        "options": [
+          { "label": "White", "value": "FFFFFF" },
+          { "label": "Gray", "value": "AAAAAA" }
+        ]
+      },
+      {
         "type": "heading",
         "defaultValue": "Dark Theme",
         "size": 4
@@ -89,6 +108,25 @@ module.exports = [
         "messageKey": "DARK_SHOW_BORDER",
         "label": "Show Border",
         "defaultValue": true
+      },
+      {
+        "type": "color",
+        "messageKey": "DARK_BG_COLOR",
+        "label": "Background Color",
+        "defaultValue": "000000",
+        "sunlight": true,
+        "capabilities": ["COLOR"]
+      },
+      {
+        "type": "select",
+        "messageKey": "DARK_BG_COLOR",
+        "label": "Background Color",
+        "defaultValue": "000000",
+        "capabilities": ["BW", "NOT_PLATFORM_APLITE"],
+        "options": [
+          { "label": "Black", "value": "000000" },
+          { "label": "Gray", "value": "AAAAAA" }
+        ]
       }
     ]
   },
