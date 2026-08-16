@@ -436,7 +436,7 @@ static void draw_frame(Layer *layer, GContext *ctx) {
     const int line_x_start_full = (bounds.size.w - max_line_length) / 2;
     const int time_y = bounds.size.h / 2;
 #if defined(PBL_PLATFORM_EMERY)
-    const int line_y_offset = 38;
+    const int line_y_offset = 48;
 #else
     const int line_y_offset = 30;
 #endif
@@ -478,7 +478,7 @@ static void draw_animation(Layer *layer, GContext *ctx) {
   const int line_x_end_full = line_x_start_full + max_line_length;
   const int time_y = bounds.size.h / 2;
 #if defined(PBL_PLATFORM_EMERY)
-  const int line_y_offset = 38;
+  const int line_y_offset = 48;
 #else
   const int line_y_offset = 30;
 #endif
@@ -584,7 +584,22 @@ static void draw_animation(Layer *layer, GContext *ctx) {
 // --- Draw Time with Outline ---
 static void draw_time(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
+#if defined(PBL_PLATFORM_EMERY)
+  // LECO 60 exists only on newer PebbleOS firmware. Older firmware returns
+  // the tiny fallback font for unknown keys, so detect that and use
+  // Roboto 49 instead.
+  static GFont s_emery_time_font = NULL;
+  if (s_emery_time_font == NULL) {
+    GFont leco_60 = fonts_get_system_font(FONT_KEY_LECO_60_NUMBERS_AM_PM);
+    if (leco_60 == fonts_get_system_font("RESOURCE_ID_NONEXISTENT_FONT")) {
+      leco_60 = fonts_get_system_font(FONT_KEY_ROBOTO_BOLD_SUBSET_49);
+    }
+    s_emery_time_font = leco_60;
+  }
+  GFont font = s_emery_time_font;
+#else
   GFont font = fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS);
+#endif
   
   // Calculate animation progress
   float animation_factor = 1.0f - ((float)current_animation_frame / NUM_ANIMATION_FRAMES);
@@ -970,7 +985,7 @@ static void main_window_load(Window *window) {
 
   // Create Time Layer
 #if defined(PBL_PLATFORM_EMERY)
-  const int time_y_pos = bounds.size.h / 2 - 20 - 18;
+  const int time_y_pos = bounds.size.h / 2 - 20 - 26;
 #else
   const int time_y_pos = bounds.size.h / 2 - 20 - 14;
 #endif
@@ -982,7 +997,7 @@ static void main_window_load(Window *window) {
   // Create the Date Layer (Center below time)
 #if defined(PBL_PLATFORM_EMERY)
   s_date_layer = layer_create(
-      GRect(0, time_y_pos + 44, bounds.size.w, 28));
+      GRect(0, time_y_pos + 62, bounds.size.w, 28));
 #else
   s_date_layer = layer_create(
       GRect(0, time_y_pos + 38, bounds.size.w, 24));
