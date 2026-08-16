@@ -62,19 +62,13 @@ bool is_light_theme(){
 }
 
 
-#if !defined(PBL_PLATFORM_APLITE)
 static int get_active_bg_hex() {
   return is_light_theme() ? s_light_bg_color : s_dark_bg_color;
 }
-#endif
 
 // Function to get colors based on theme
-// Note: configurable background colors are compiled out on aplite, whose
-// 24KB app RAM is already exhausted
 GColor get_background_color() {
-#if defined(PBL_PLATFORM_APLITE)
-  return is_light_theme() ? GColorWhite : GColorBlack;
-#elif defined(PBL_COLOR)
+#if defined(PBL_COLOR)
   return GColorFromHEX(get_active_bg_hex());
 #else
   // On black-and-white displays only pure black and white can be a window
@@ -92,7 +86,7 @@ GColor get_background_color() {
 }
 
 bool is_bw_gray_background() {
-#if defined(PBL_PLATFORM_APLITE) || defined(PBL_COLOR)
+#if defined(PBL_COLOR)
   return false;
 #else
   int hex = get_active_bg_hex();
@@ -272,15 +266,12 @@ void load_dark_show_border_from_storage() {
 }
 
 void save_bg_colors_to_storage() {
-#if !defined(PBL_PLATFORM_APLITE)
   persist_write_int(PERSIST_KEY_LIGHT_BG_COLOR, s_light_bg_color);
   persist_write_int(PERSIST_KEY_DARK_BG_COLOR, s_dark_bg_color);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved background colors to storage: %x / %x", s_light_bg_color, s_dark_bg_color);
-#endif
 }
 
 void load_bg_colors_from_storage() {
-#if !defined(PBL_PLATFORM_APLITE)
   if (persist_exists(PERSIST_KEY_LIGHT_BG_COLOR)) {
     s_light_bg_color = persist_read_int(PERSIST_KEY_LIGHT_BG_COLOR);
   }
@@ -288,7 +279,6 @@ void load_bg_colors_from_storage() {
     s_dark_bg_color = persist_read_int(PERSIST_KEY_DARK_BG_COLOR);
   }
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded background colors from storage: %x / %x", s_light_bg_color, s_dark_bg_color);
-#endif
 }
 
 void save_vibrate_on_disconnect_to_storage() {

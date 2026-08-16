@@ -92,7 +92,7 @@ module.exports = [
         "messageKey": "LIGHT_BG_COLOR",
         "label": "Background Color",
         "defaultValue": "FFFFFF",
-        "capabilities": ["BW", "NOT_PLATFORM_APLITE"],
+        "capabilities": ["BW"],
         "options": [
           { "label": "White", "value": "FFFFFF" },
           { "label": "Gray", "value": "AAAAAA" }
@@ -122,7 +122,7 @@ module.exports = [
         "messageKey": "DARK_BG_COLOR",
         "label": "Background Color",
         "defaultValue": "000000",
-        "capabilities": ["BW", "NOT_PLATFORM_APLITE"],
+        "capabilities": ["BW"],
         "options": [
           { "label": "Black", "value": "000000" },
           { "label": "Gray", "value": "AAAAAA" }

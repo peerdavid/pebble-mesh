@@ -302,9 +302,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     }
   }
 
-  // Read background colors for light and dark theme (not supported on
-  // aplite, whose app RAM is already exhausted)
-#if !defined(PBL_PLATFORM_APLITE)
+  // Read background colors for light and dark theme
   Tuple *light_bg_color_tuple = dict_find(iterator, MESSAGE_KEY_LIGHT_BG_COLOR);
   Tuple *dark_bg_color_tuple = dict_find(iterator, MESSAGE_KEY_DARK_BG_COLOR);
   bool bg_colors_changed = false;
@@ -321,7 +319,6 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Background colors changed to: %x / %x", s_light_bg_color, s_dark_bg_color);
     update_colors();
   }
-#endif
 
   // Read disconnect position
   Tuple *disconnect_pos_tuple = dict_find(iterator, MESSAGE_KEY_DISCONNECT_POSITION);

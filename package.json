@@ -22,7 +22,6 @@
       "configurable"
     ],
     "targetPlatforms": [
-      "aplite",
       "basalt",
       "diorite",
       "emery"

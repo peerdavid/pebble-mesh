@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Pebble Mesh is a watchface for Pebble smartwatches written in C (watch-side) and JavaScript (phone-side). It displays time, date, step count, battery level, and real-time weather. It targets three Pebble platforms: aplite, basalt, and diorite.
+Pebble Mesh is a watchface for Pebble smartwatches written in C (watch-side) and JavaScript (phone-side). It displays time, date, step count, battery level, and real-time weather. It targets three Pebble platforms: basalt, diorite, and emery.
 
 ## Build Commands
 
