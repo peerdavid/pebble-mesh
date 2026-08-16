@@ -8,6 +8,7 @@ Pebble Mesh is an open-source, retro-digital watch face designed for maximum cla
 
 ## FEATURES
 - Bold Time Display: Large, easy-to-read
+- Custom colors: Select custom colors for dark and light theme
 - Configurable Infos: Weather, temperature + location, step count, battery level, date, heart rate.
 - Minute Animation: Watch for a subtle, satisfying line animation every time the minute changes!
 - Detailed Weather Screen: Double flickr to open the detailed weather screen.
@@ -28,8 +29,9 @@ Pebble Mesh is an open-source, retro-digital watch face designed for maximum cla
 
 
 ## Donate
-If you like it and want to buy me a coffee (a "buy me a coffe" link is in the settings header too):
+A "buy me a coffe" link is in the settings header :)
 
+Or enter this link:
 [![](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=Y4PDJU84LC3N2)
 
 

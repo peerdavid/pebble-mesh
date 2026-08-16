@@ -6,7 +6,7 @@
 
 // Weather detail bar height extends from top of screen to the upper horizontal line
 #if defined(PBL_PLATFORM_EMERY)
-  #define WEATHER_FORECAST_BAR_HEIGHT 77  // bounds.size.h/2 - 38 on emery (228/2 - 38 = 76)
+  #define WEATHER_FORECAST_BAR_HEIGHT 66  // bounds.size.h/2 - 48 on emery (228/2 - 48 = 66), matches line_y_offset
 #else
   #define WEATHER_FORECAST_BAR_HEIGHT 55  // bounds.size.h/2 - 30 on standard (168/2 - 30 = 54)
 #endif
