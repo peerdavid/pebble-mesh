@@ -461,13 +461,14 @@ static void draw_frame(Layer *layer, GContext *ctx) {
     const int line_x_start_full = (bounds.size.w - max_line_length) / 2;
     const int time_y = bounds.size.h / 2;
 #if defined(PBL_PLATFORM_EMERY)
-    const int line_y_offset = 48;
+    const int line_y_upper = time_y - 41;
+    const int line_y_lower = time_y + 41;
 #else
-    const int line_y_offset = 30;
+    const int line_y_upper = time_y - 30;
+    const int line_y_lower = time_y + 30;
 #endif
-    const int height = (line_y_offset + 2) * 2;
 
-    graphics_fill_rect(ctx, GRect(line_x_start_full, time_y - line_y_offset + 4, max_line_length, height-11), 0, GCornerNone);
+    graphics_fill_rect(ctx, GRect(line_x_start_full, line_y_upper + 4, max_line_length, line_y_lower - line_y_upper - 7), 0, GCornerNone);
   }
 
   // Dots (mesh pattern)
@@ -503,9 +504,11 @@ static void draw_animation(Layer *layer, GContext *ctx) {
   const int line_x_end_full = line_x_start_full + max_line_length;
   const int time_y = bounds.size.h / 2;
 #if defined(PBL_PLATFORM_EMERY)
-  const int line_y_offset = 48;
+  const int line_y_upper = time_y - 41;
+  const int line_y_lower = time_y + 41;
 #else
-  const int line_y_offset = 30;
+  const int line_y_upper = time_y - 30;
+  const int line_y_lower = time_y + 30;
 #endif
   const int segment_length = 12; // Length of each typed segment
   const int segment_gap = 2; // Gap between segments
@@ -543,8 +546,8 @@ static void draw_animation(Layer *layer, GContext *ctx) {
       if (segment_end > max_line_length) segment_end = max_line_length;
       
       graphics_draw_line(ctx,
-          GPoint(line_x_start_full + segment_start, time_y - line_y_offset),
-          GPoint(line_x_start_full + segment_end, time_y - line_y_offset));
+          GPoint(line_x_start_full + segment_start, line_y_upper),
+          GPoint(line_x_start_full + segment_end, line_y_upper));
     }
     
     // Draw blinking cursor at end of last segment
@@ -553,16 +556,16 @@ static void draw_animation(Layer *layer, GContext *ctx) {
       if (cursor_x < max_line_length && (current_animation_frame % 6) < 3) {
         graphics_context_set_stroke_width(ctx, 2);
         graphics_draw_line(ctx,
-            GPoint(line_x_start_full + cursor_x, time_y - line_y_offset - 3),
-            GPoint(line_x_start_full + cursor_x, time_y - line_y_offset + 3));
+            GPoint(line_x_start_full + cursor_x, line_y_upper - 3),
+            GPoint(line_x_start_full + cursor_x, line_y_upper + 3));
         graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
       }
     }
   } else {
     // Upper line complete - draw it fully
     graphics_draw_line(ctx,
-        GPoint(line_x_start_full, time_y - line_y_offset),
-        GPoint(line_x_end_full, time_y - line_y_offset));
+        GPoint(line_x_start_full, line_y_upper),
+        GPoint(line_x_end_full, line_y_upper));
     
     // Lower line typing
     float lower_progress = (animation_factor - 0.70f) / 0.30f; // 0.0 to 1.0
@@ -570,8 +573,8 @@ static void draw_animation(Layer *layer, GContext *ctx) {
     if (lower_progress >= 0.99f) {
       // Lower line complete - draw it fully as a solid line
       graphics_draw_line(ctx,
-          GPoint(line_x_start_full, time_y + line_y_offset),
-          GPoint(line_x_end_full, time_y + line_y_offset));
+          GPoint(line_x_start_full, line_y_lower),
+          GPoint(line_x_end_full, line_y_lower));
     } else {
       // Lower line still typing - draw in segments
       int segments_to_draw = (int)(total_segments * lower_progress);
@@ -586,8 +589,8 @@ static void draw_animation(Layer *layer, GContext *ctx) {
         if (segment_end > max_line_length) segment_end = max_line_length;
         
         graphics_draw_line(ctx,
-            GPoint(line_x_start_full + segment_start, time_y + line_y_offset),
-            GPoint(line_x_start_full + segment_end, time_y + line_y_offset));
+            GPoint(line_x_start_full + segment_start, line_y_lower),
+            GPoint(line_x_start_full + segment_end, line_y_lower));
       }
       
       // Draw blinking cursor at end of last segment
@@ -596,8 +599,8 @@ static void draw_animation(Layer *layer, GContext *ctx) {
         if (cursor_x < max_line_length && (current_animation_frame % 6) < 3) {
           graphics_context_set_stroke_width(ctx, 2);
           graphics_draw_line(ctx,
-              GPoint(line_x_start_full + cursor_x, time_y + line_y_offset - 3),
-              GPoint(line_x_start_full + cursor_x, time_y + line_y_offset + 3));
+              GPoint(line_x_start_full + cursor_x, line_y_lower - 3),
+              GPoint(line_x_start_full + cursor_x, line_y_lower + 3));
           graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
         }
       }
@@ -942,7 +945,11 @@ static void init_info_layers(GRect bounds) {
   const int info_layer_height = 44;
 #endif
 
+#if defined(PBL_PLATFORM_EMERY)
+  int margin_w = 2 + theme_offset;
+#else
   int margin_w = 6 + theme_offset;
+#endif
   const int margin_h = 4;
 
   // Upper left
@@ -1018,7 +1025,7 @@ static void main_window_load(Window *window) {
 
   // Create Time Layer
 #if defined(PBL_PLATFORM_EMERY)
-  const int time_y_pos = bounds.size.h / 2 - 20 - 26;
+  const int time_y_pos = bounds.size.h / 2 - 20 - 28;
 #else
   const int time_y_pos = bounds.size.h / 2 - 20 - 14;
 #endif
@@ -1030,7 +1037,7 @@ static void main_window_load(Window *window) {
   // Create the Date Layer (Center below time)
 #if defined(PBL_PLATFORM_EMERY)
   s_date_layer = layer_create(
-      GRect(0, time_y_pos + 62, bounds.size.w, 28));
+      GRect(0, time_y_pos + 56, bounds.size.w, 28));
 #else
   s_date_layer = layer_create(
       GRect(0, time_y_pos + 38, bounds.size.w, 24));
