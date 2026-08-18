@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include "config.h"
+#include "custom_url.h"
 
 int s_color_theme = 0; // 0 = dark, 1 = light, 2 = auto day/night, 3 = auto quiet time
 int s_step_goal = 10000;
@@ -293,5 +294,19 @@ void load_vibrate_on_disconnect_from_storage() {
   } else {
     s_vibrate_on_disconnect = 0; // Default to disabled
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No vibrate on disconnect preference found, using default disabled");
+  }
+}
+
+void save_custom_data_to_storage() {
+  persist_write_string(PERSIST_KEY_CUSTOM_DATA, s_custom_data);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved custom data to storage: %s", s_custom_data);
+}
+
+void load_custom_data_from_storage() {
+  if (persist_exists(PERSIST_KEY_CUSTOM_DATA)) {
+    persist_read_string(PERSIST_KEY_CUSTOM_DATA, s_custom_data, sizeof(s_custom_data));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded custom data from storage: %s", s_custom_data);
+  } else {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No custom data found in storage, using default");
   }
 }

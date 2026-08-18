@@ -22,7 +22,8 @@ var config = {
   darkShowBorder: true, // Show border in dark theme
   vibrateOnDisconnect: false, // Vibrate on connect/disconnect
   lightBgColor: 0xFFFFFF, // Background color for light theme
-  darkBgColor: 0x000000 // Background color for dark theme
+  darkBgColor: 0x000000, // Background color for dark theme
+  customUrl: '' // URL to fetch custom data from
 };
 
 // Clay's color picker sends an int, the BW select sends a hex string
@@ -87,6 +88,9 @@ if (localStorage.getItem('LIGHT_BG_COLOR') !== null) {
 }
 if (localStorage.getItem('DARK_BG_COLOR') !== null) {
   config.darkBgColor = parseInt(localStorage.getItem('DARK_BG_COLOR'), 10);
+}
+if (localStorage.getItem('CUSTOM_URL') !== null) {
+  config.customUrl = localStorage.getItem('CUSTOM_URL');
 }
 
 // Variables to store weather data
@@ -168,6 +172,11 @@ function getCoordinatesForCityAndFetchWeather(cityName) {
     weatherData.condition = -1;
   };
   xhr.send();
+}
+
+function isCustomDataNeeded() {
+  return [config.layoutUpperLeft, config.layoutUpperRight, config.layoutLowerLeft, config.layoutLowerRight]
+    .some(function(v) { return v === 9; });
 }
 
 // Main function to fetch weather for configured location
@@ -421,6 +430,52 @@ function getWeatherData(latitude, longitude) {
 }
 
 
+// Fetch data from the user-configured custom URL and send it to the watch
+function fetchCustomUrl() {
+  if (!config.customUrl || config.customUrl.trim() === '') {
+    console.log('No custom URL configured, skipping fetch');
+    return;
+  }
+
+  var url = config.customUrl.trim();
+
+  // Only allow https:// URLs to prevent plain-text traffic
+  if (url.indexOf('https://') !== 0) {
+    console.log('Custom URL must use HTTPS, skipping: ' + url);
+    enqueueMessage('custom_data', { 'CUSTOM_DATA': 'HTTPS only' });
+    return;
+  }
+
+  console.log('Fetching custom URL: ' + url);
+
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        // Use the raw response text, trimmed and capped at 32 characters
+        var text = (xhr.responseText || '').trim().substring(0, 32);
+        console.log('Custom URL response: ' + text);
+        enqueueMessage('custom_data', { 'CUSTOM_DATA': text });
+      } else {
+        // Transient failure - keep showing the last known-good value on the watch
+        // instead of overwriting it with an error string (same approach as weather).
+        console.log('Custom URL request failed with status: ' + xhr.status + ', keeping last known value');
+      }
+    }
+  };
+
+  xhr.open('GET', url, true);
+  xhr.timeout = 10000;
+  xhr.ontimeout = function() {
+    console.log('Custom URL request timed out, keeping last known value');
+  };
+  xhr.onerror = function() {
+    console.log('Custom URL request network error, keeping last known value');
+  };
+  xhr.send();
+}
+
+
 function colorThemeStrToInt(themeStr) {
   if (themeStr === 'light') {
     return 1;
@@ -533,6 +588,16 @@ Pebble.addEventListener('appmessage', function(e) {
     console.log('Weather update requested from watch');
     fetchWeatherForLocation();
   }
+
+  // Check if it's a custom URL update request
+  if (e.payload.CUSTOM_URL_REQUEST) {
+    if (isCustomDataNeeded()) {
+      console.log('Custom URL update requested from watch');
+      fetchCustomUrl();
+    } else {
+      console.log('Custom URL update requested but no custom data slot configured, skipping');
+    }
+  }
   
   // Check if it's a location configuration update
   if (e.payload.WEATHER_LOCATION_CONFIG) {
@@ -639,6 +704,13 @@ Pebble.addEventListener('webviewclosed', function(e) {
     layoutChanged = true;
   }
 
+  if (dict.CUSTOM_URL !== undefined) {
+    config.customUrl = dict.CUSTOM_URL.value || '';
+    localStorage.setItem('CUSTOM_URL', config.customUrl);
+    console.log('Custom URL saved to: ' + config.customUrl);
+    if (isCustomDataNeeded()) fetchCustomUrl();
+  }
+
   if (dict.DATE_FORMAT !== undefined) {
     config.dateFormat = dict.DATE_FORMAT.value || ' %a %d';
     localStorage.setItem('DATE_FORMAT', config.dateFormat);
@@ -687,18 +759,19 @@ Pebble.addEventListener('webviewclosed', function(e) {
 
 });
 
-// Update weather every 30 minutes
+// Update weather/custom data every 30 minutes
 setInterval(function() {
-  console.log('Periodic weather update (30min timer) for: ' + config.location);
+  console.log('Periodic update (30min timer)');
   fetchWeatherForLocation();
+  if (isCustomDataNeeded()) fetchCustomUrl();
 }, 30 * 60 * 1000);
 
 
 // Handle Pebble ready event
 Pebble.addEventListener('ready', function() {
   console.log('PebbleKit JS ready!');
-  console.log('Initial weather fetch for location: "' + config.location + '" (empty = GPS)');
-  //fetchWeatherForLocation();
+  // Push layout/config to watch immediately so panels are correct before data arrives
+  sendDataToPebble();
 });
 
 

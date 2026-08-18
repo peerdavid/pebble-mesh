@@ -62,7 +62,10 @@
       "DARK_SHOW_BORDER",
       "VIBRATE_ON_DISCONNECT",
       "LIGHT_BG_COLOR",
-      "DARK_BG_COLOR"
+      "DARK_BG_COLOR",
+      "CUSTOM_URL",
+      "CUSTOM_DATA",
+      "CUSTOM_URL_REQUEST"
     ],
     "resources": {
       "media": [
