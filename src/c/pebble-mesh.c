@@ -8,6 +8,7 @@
 #include "disconnect.h"
 #include "heart_rate.h"
 #include "weather_forecast.h"
+#include "custom_url.h"
 
 
 
@@ -59,6 +60,7 @@ static void draw_time(Layer *layer, GContext *ctx);
 static void draw_date(Layer *layer, GContext *ctx);
 static void inbox_received_callback(DictionaryIterator *iterator, void *context);
 static void delayed_weather_request(void *data);
+static void delayed_custom_url_request(void *data);
 static void init_info_layers(GRect bounds);
 static void update_all_info_layers();
 static void draw_info_for_type(InfoType info_type, InfoLayer* info_layer);
@@ -318,6 +320,16 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     save_bg_colors_to_storage();
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Background colors changed to: %x / %x", s_light_bg_color, s_dark_bg_color);
     update_colors();
+  }
+
+  // Read custom URL data value
+  Tuple *custom_data_tuple = dict_find(iterator, MESSAGE_KEY_CUSTOM_DATA);
+  if (custom_data_tuple) {
+    snprintf(s_custom_data, sizeof(s_custom_data), "%s", custom_data_tuple->value->cstring);
+    s_custom_data_stale = false;
+    save_custom_data_to_storage();
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Custom data updated: %s", s_custom_data);
+    update_all_info_layers();
   }
 
   // Read disconnect position
@@ -802,6 +814,9 @@ static void draw_info_for_type(InfoType info_type, InfoLayer* info_layer) {
     case INFO_TYPE_HEART_RATE:
       draw_heart_rate_info(info_layer);
       break;
+    case INFO_TYPE_CUSTOM_URL:
+      draw_custom_url_info(info_layer);
+      break;
     case INFO_TYPE_COLORED_BOX:
       draw_colored_box_info(info_layer);
       break;
@@ -934,6 +949,32 @@ static void delayed_weather_request(void *data) {
   request_weather_update();
 }
 
+// Retry counter for delayed_custom_url_request — file-level so main_window_appear can reset it.
+static int s_custom_url_retries = 0;
+
+#define CUSTOM_URL_MAX_RETRIES 8
+#define CUSTOM_URL_RETRY_INTERVAL_MS 1500
+
+// Timer callback to request custom URL data after UI is loaded.
+// Retries several times if the outbox is still busy (e.g. weather request in flight).
+// The outbox can only hold one unacknowledged outgoing message at a time, so this only
+// fails transiently while another message (weather, config, ...) is still being delivered.
+static void delayed_custom_url_request(void *data) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting custom URL update (delayed, attempt %d)", s_custom_url_retries + 1);
+  if (!request_custom_url_update()) {
+    if (++s_custom_url_retries < CUSTOM_URL_MAX_RETRIES) {
+      app_timer_register(CUSTOM_URL_RETRY_INTERVAL_MS, delayed_custom_url_request, NULL);
+    } else {
+      APP_LOG(APP_LOG_LEVEL_WARNING, "Custom URL request gave up after %d attempts", CUSTOM_URL_MAX_RETRIES);
+      s_custom_data_stale = true;
+      update_all_info_layers();
+      s_custom_url_retries = 0;
+    }
+  } else {
+    s_custom_url_retries = 0;
+  }
+}
+
 // Initialize the 4 info layers with proper positioning
 static void init_info_layers(GRect bounds) {
 
@@ -1005,6 +1046,13 @@ static void main_window_appear(Window *window) {
 
   // Request weather update after a short delay to prevent blocking UI
   app_timer_register(100, delayed_weather_request, NULL);
+  // Request custom URL update separately, staggered well after the weather request so it
+  // doesn't immediately collide with it for the single-slot outbox (which only holds one
+  // unacknowledged outgoing message at a time). Reset stale state and retry counter so a
+  // fresh window appearance never inherits red text from a previous retry cycle.
+  s_custom_data_stale = false;
+  s_custom_url_retries = 0;
+  app_timer_register(1500, delayed_custom_url_request, NULL);
 }
 
 static void main_window_load(Window *window) {
@@ -1150,6 +1198,7 @@ static void init() {
   load_dark_show_border_from_storage();
   load_vibrate_on_disconnect_from_storage();
   load_bg_colors_from_storage();
+  load_custom_data_from_storage();
 
   s_last_was_dark = is_dark_theme();
 

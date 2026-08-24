@@ -33,6 +33,7 @@
 #define PERSIST_KEY_VIBRATE_ON_DISCONNECT 26
 #define PERSIST_KEY_LIGHT_BG_COLOR 27
 #define PERSIST_KEY_DARK_BG_COLOR 28
+#define PERSIST_KEY_CUSTOM_DATA 29
 
 // Layer position and alignment enums
 typedef enum {
@@ -72,7 +73,8 @@ typedef enum {
   INFO_TYPE_NONE = 5,
   INFO_TYPE_CALENDAR = 6,
   INFO_TYPE_DISCONNECT = 7,
-  INFO_TYPE_HEART_RATE = 8
+  INFO_TYPE_HEART_RATE = 8,
+  INFO_TYPE_CUSTOM_URL = 9
 } InfoType;
 
 // Current layer assignments (can be changed dynamically)
@@ -100,6 +102,7 @@ extern int s_dark_show_border; // 1 = show border in dark theme, 0 = hide
 extern int s_vibrate_on_disconnect; // 1 = vibrate on connect/disconnect, 0 = disabled
 extern int s_light_bg_color; // Background color for light theme as 0xRRGGBB
 extern int s_dark_bg_color; // Background color for dark theme as 0xRRGGBB
+extern char s_custom_data[33]; // Last value fetched from the user-configured URL
 
 /*
  * Function Declarations
@@ -132,6 +135,8 @@ void save_vibrate_on_disconnect_to_storage();
 void load_vibrate_on_disconnect_from_storage();
 void save_bg_colors_to_storage();
 void load_bg_colors_from_storage();
+void save_custom_data_to_storage();
+void load_custom_data_from_storage();
 bool is_dark_theme();
 bool is_light_theme();
 GColor get_background_color();
