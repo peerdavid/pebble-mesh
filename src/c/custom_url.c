@@ -1,12 +1,8 @@
 #include "custom_url.h"
-#include <string.h>
 
-char s_custom_data[33] = "N/A";
+char s_custom_line1[33] = "N/A";
+char s_custom_line2[33] = "";
 bool s_custom_data_stale = false;
-
-// Parsed line buffers used by draw_custom_url_info (must persist after the function returns)
-static char s_line1[33];
-static char s_line2[33];
 
 bool request_custom_url_update() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting custom URL update");
@@ -30,25 +26,11 @@ void draw_custom_url_info(InfoLayer* info_layer) {
   GColor stale_color = is_dark_theme() ? GColorYellow : GColorRed;
   GColor text_color = s_custom_data_stale ? PBL_IF_COLOR_ELSE(stale_color, get_text_color()) : get_text_color();
 
-  // Split on "||" if present
-  const char *sep = strstr(s_custom_data, "||");
-  bool two_lines = (sep != NULL);
-
-  if (two_lines) {
-    int len1 = sep - s_custom_data;
-    if (len1 >= (int)sizeof(s_line1)) len1 = sizeof(s_line1) - 1;
-    strncpy(s_line1, s_custom_data, len1);
-    s_line1[len1] = '\0';
-    snprintf(s_line2, sizeof(s_line2), "%s", sep + 2);
-  } else {
-    snprintf(s_line1, sizeof(s_line1), "%s", s_custom_data);
-    s_line2[0] = '\0';
-  }
-
+  bool two_lines = (s_custom_line2[0] != '\0');
   int y_center = bounds.size.h / 2 - 10;
 
   if (two_lines) {
-    // Line 1 — bigger font (matches temperature line)
+    // Line 1 - bigger font (matches temperature line)
 #if defined(PBL_PLATFORM_EMERY)
     GRect line1_frame = GRect(0, y_center - 16, bounds.size.w, 28);
 #else
@@ -57,7 +39,7 @@ void draw_custom_url_info(InfoLayer* info_layer) {
     info_layer->text_layer1 = text_layer_create(line1_frame);
     text_layer_set_background_color(info_layer->text_layer1, GColorClear);
     text_layer_set_text_color(info_layer->text_layer1, text_color);
-    text_layer_set_text(info_layer->text_layer1, s_line1);
+    text_layer_set_text(info_layer->text_layer1, s_custom_line1);
 #if defined(PBL_PLATFORM_EMERY)
     text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
 #else
@@ -66,7 +48,7 @@ void draw_custom_url_info(InfoLayer* info_layer) {
     text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
     layer_add_child(layer, text_layer_get_layer(info_layer->text_layer1));
 
-    // Line 2 — smaller font (matches location line)
+    // Line 2 - smaller font (matches location line)
 #if defined(PBL_PLATFORM_EMERY)
     GRect line2_frame = GRect(0, y_center + 12, bounds.size.w, 24);
 #else
@@ -75,7 +57,7 @@ void draw_custom_url_info(InfoLayer* info_layer) {
     info_layer->text_layer2 = text_layer_create(line2_frame);
     text_layer_set_background_color(info_layer->text_layer2, GColorClear);
     text_layer_set_text_color(info_layer->text_layer2, text_color);
-    text_layer_set_text(info_layer->text_layer2, s_line2);
+    text_layer_set_text(info_layer->text_layer2, s_custom_line2);
 #if defined(PBL_PLATFORM_EMERY)
     text_layer_set_font(info_layer->text_layer2, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 #else
@@ -85,15 +67,15 @@ void draw_custom_url_info(InfoLayer* info_layer) {
     layer_add_child(layer, text_layer_get_layer(info_layer->text_layer2));
 
   } else {
-    // Single line — centered in the panel
+    // Single line - same large font as line 1 of the two-line layout
     info_layer->text_layer1 = text_layer_create(GRect(0, 0, bounds.size.w, bounds.size.h));
     text_layer_set_background_color(info_layer->text_layer1, GColorClear);
     text_layer_set_text_color(info_layer->text_layer1, text_color);
-    text_layer_set_text(info_layer->text_layer1, s_line1);
+    text_layer_set_text(info_layer->text_layer1, s_custom_line1);
 #if defined(PBL_PLATFORM_EMERY)
-    text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+    text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
 #else
-    text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
+    text_layer_set_font(info_layer->text_layer1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 #endif
     text_layer_set_text_alignment(info_layer->text_layer1, GTextAlignmentCenter);
     text_layer_set_overflow_mode(info_layer->text_layer1, GTextOverflowModeWordWrap);

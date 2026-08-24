@@ -64,9 +64,12 @@
       "LIGHT_BG_COLOR",
       "DARK_BG_COLOR",
       "CUSTOM_URL",
-      "CUSTOM_DATA",
+      "CUSTOM_REGEX_1",
+      "CUSTOM_REGEX_2",
       "CUSTOM_URL_REQUEST",
-      "CUSTOM_DATA_ERROR"
+      "CUSTOM_DATA_ERROR",
+      "CUSTOM_LINE_1",
+      "CUSTOM_LINE_2"
     ],
     "resources": {
       "media": [

@@ -23,7 +23,9 @@ var config = {
   vibrateOnDisconnect: false, // Vibrate on connect/disconnect
   lightBgColor: 0xFFFFFF, // Background color for light theme
   darkBgColor: 0x000000, // Background color for dark theme
-  customUrl: '' // URL to fetch custom data from
+  customUrl: '', // URL to fetch custom data from
+  customRegexLine1: '', // regex to extract the big line; empty = whole page is line 1
+  customRegexLine2: '' // regex to extract the small line; empty = no second line
 };
 
 // Clay's color picker sends an int, the BW select sends a hex string
@@ -91,6 +93,12 @@ if (localStorage.getItem('DARK_BG_COLOR') !== null) {
 }
 if (localStorage.getItem('CUSTOM_URL') !== null) {
   config.customUrl = localStorage.getItem('CUSTOM_URL');
+}
+if (localStorage.getItem('CUSTOM_REGEX_1') !== null) {
+  config.customRegexLine1 = localStorage.getItem('CUSTOM_REGEX_1');
+}
+if (localStorage.getItem('CUSTOM_REGEX_2') !== null) {
+  config.customRegexLine2 = localStorage.getItem('CUSTOM_REGEX_2');
 }
 
 // Variables to store weather data
@@ -430,7 +438,18 @@ function getWeatherData(latitude, longitude) {
 }
 
 
-// Fetch data from the user-configured custom URL and send it to the watch
+// Fetch the user-configured URL, extract the two lines with the user's
+// regexes and send them to the watch.
+function extractLine(text, pattern) {
+  var m = (text || '').match(pattern);
+  if (!m) {
+    return null;
+  }
+  // Prefer the first capture group, fall back to the whole match
+  var value = (m.length > 1 && m[1] !== undefined) ? m[1] : m[0];
+  return value.trim().substring(0, 32);
+}
+
 function fetchCustomUrl() {
   if (!config.customUrl || config.customUrl.trim() === '') {
     console.log('No custom URL configured, skipping fetch');
@@ -439,27 +458,44 @@ function fetchCustomUrl() {
 
   var url = config.customUrl.trim();
 
-  // Only allow https:// URLs to prevent plain-text traffic
-  if (url.indexOf('https://') !== 0) {
-    console.log('Custom URL must use HTTPS, skipping: ' + url);
-    // Don't send an error string as data; flag the last value as stale on the watch
+  if (!/^(https?|ftp):\/\//i.test(url)) {
+    console.log('Custom URL must be a valid URL, skipping: ' + url);
     enqueueMessage('custom_data', { 'CUSTOM_DATA_ERROR': 1 });
     return;
   }
 
   console.log('Fetching custom URL: ' + url);
 
+  var re1 = null;
+  var re2 = null;
+  try {
+    if (config.customRegexLine1) re1 = new RegExp(config.customRegexLine1);
+    if (config.customRegexLine2) re2 = new RegExp(config.customRegexLine2);
+  } catch (err) {
+    console.log('Invalid custom regex, skipping fetch: ' + err.message);
+    enqueueMessage('custom_data', { 'CUSTOM_DATA_ERROR': 1 });
+    return;
+  }
+
   var xhr = new XMLHttpRequest();
   xhr.onreadystatechange = function() {
     if (xhr.readyState === 4) {
       if (xhr.status === 200) {
-        // Use the raw response text, trimmed and capped at 32 characters
-        var text = (xhr.responseText || '').trim().substring(0, 32);
-        console.log('Custom URL response: ' + text);
-        enqueueMessage('custom_data', { 'CUSTOM_DATA': text });
+        var text = (xhr.responseText || '').trim();
+        var line1 = re1 ? extractLine(text, re1) : text.substring(0, 32);
+        var line2 = re2 ? extractLine(text, re2) : '';
+        // Only send a line 2 if a line 1 exists, so the watch never shows
+        // an orphaned second line or wipes a working single-line value.
+        if (line1 === null || line1 === '') {
+          console.log('Line 1 is empty, keeping last known value');
+          return;
+        }
+        if (line2 === null) line2 = '';
+        console.log('Custom lines: [' + line1 + '] | [' + line2 + ']');
+        enqueueMessage('custom_data', { 'CUSTOM_LINE_1': line1, 'CUSTOM_LINE_2': line2 });
       } else {
         // Transient failure - keep showing the last known-good value on the watch
-        // instead of overwriting it with an error string (same approach as weather).
+        // instead of overwriting it (same approach as weather).
         console.log('Custom URL request failed with status: ' + xhr.status + ', keeping last known value');
       }
     }
@@ -705,11 +741,27 @@ Pebble.addEventListener('webviewclosed', function(e) {
     layoutChanged = true;
   }
 
+  var customUrlChanged = false;
   if (dict.CUSTOM_URL !== undefined) {
     config.customUrl = dict.CUSTOM_URL.value || '';
     localStorage.setItem('CUSTOM_URL', config.customUrl);
     console.log('Custom URL saved to: ' + config.customUrl);
-    if (isCustomDataNeeded()) fetchCustomUrl();
+    customUrlChanged = true;
+  }
+  if (dict.CUSTOM_REGEX_1 !== undefined) {
+    config.customRegexLine1 = dict.CUSTOM_REGEX_1.value || '';
+    localStorage.setItem('CUSTOM_REGEX_1', config.customRegexLine1);
+    console.log('Custom line 1 regex saved to: ' + config.customRegexLine1);
+    customUrlChanged = true;
+  }
+  if (dict.CUSTOM_REGEX_2 !== undefined) {
+    config.customRegexLine2 = dict.CUSTOM_REGEX_2.value || '';
+    localStorage.setItem('CUSTOM_REGEX_2', config.customRegexLine2);
+    console.log('Custom line 2 regex saved to: ' + config.customRegexLine2);
+    customUrlChanged = true;
+  }
+  if (customUrlChanged && isCustomDataNeeded()) {
+    fetchCustomUrl();
   }
 
   if (dict.DATE_FORMAT !== undefined) {

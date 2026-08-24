@@ -297,16 +297,18 @@ void load_vibrate_on_disconnect_from_storage() {
   }
 }
 
-void save_custom_data_to_storage() {
-  persist_write_string(PERSIST_KEY_CUSTOM_DATA, s_custom_data);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved custom data to storage: %s", s_custom_data);
+void save_custom_lines_to_storage() {
+  persist_write_string(PERSIST_KEY_CUSTOM_LINE_1, s_custom_line1);
+  persist_write_string(PERSIST_KEY_CUSTOM_LINE_2, s_custom_line2);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved custom lines to storage: %s | %s", s_custom_line1, s_custom_line2);
 }
 
-void load_custom_data_from_storage() {
-  if (persist_exists(PERSIST_KEY_CUSTOM_DATA)) {
-    persist_read_string(PERSIST_KEY_CUSTOM_DATA, s_custom_data, sizeof(s_custom_data));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded custom data from storage: %s", s_custom_data);
+void load_custom_lines_from_storage() {
+  if (persist_exists(PERSIST_KEY_CUSTOM_LINE_1)) {
+    persist_read_string(PERSIST_KEY_CUSTOM_LINE_1, s_custom_line1, sizeof(s_custom_line1));
+    persist_read_string(PERSIST_KEY_CUSTOM_LINE_2, s_custom_line2, sizeof(s_custom_line2));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded custom lines from storage: %s | %s", s_custom_line1, s_custom_line2);
   } else {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "No custom data found in storage, using default");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "No custom lines found in storage, using defaults");
   }
 }

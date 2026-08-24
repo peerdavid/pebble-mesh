@@ -322,13 +322,19 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     update_colors();
   }
 
-  // Read custom URL data value
-  Tuple *custom_data_tuple = dict_find(iterator, MESSAGE_KEY_CUSTOM_DATA);
-  if (custom_data_tuple) {
-    snprintf(s_custom_data, sizeof(s_custom_data), "%s", custom_data_tuple->value->cstring);
+  // Read custom data lines (extracted on the phone from the user-configured URL)
+  Tuple *custom_line1_tuple = dict_find(iterator, MESSAGE_KEY_CUSTOM_LINE_1);
+  Tuple *custom_line2_tuple = dict_find(iterator, MESSAGE_KEY_CUSTOM_LINE_2);
+  if (custom_line1_tuple || custom_line2_tuple) {
+    if (custom_line1_tuple) {
+      snprintf(s_custom_line1, sizeof(s_custom_line1), "%s", custom_line1_tuple->value->cstring);
+    }
+    if (custom_line2_tuple) {
+      snprintf(s_custom_line2, sizeof(s_custom_line2), "%s", custom_line2_tuple->value->cstring);
+    }
     s_custom_data_stale = false;
-    save_custom_data_to_storage();
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Custom data updated: %s", s_custom_data);
+    save_custom_lines_to_storage();
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Custom lines updated: %s | %s", s_custom_line1, s_custom_line2);
     update_all_info_layers();
   }
 
@@ -1206,7 +1212,7 @@ static void init() {
   load_dark_show_border_from_storage();
   load_vibrate_on_disconnect_from_storage();
   load_bg_colors_from_storage();
-  load_custom_data_from_storage();
+  load_custom_lines_from_storage();
 
   s_last_was_dark = is_dark_theme();
 

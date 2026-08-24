@@ -4,9 +4,10 @@
 #include <pebble.h>
 #include "config.h"
 
-// Buffer holding the last value fetched from the user-configured URL.
-// Max 32 displayable characters (plus null terminator).
-extern char s_custom_data[33];
+// Extracted lines sent from the phone, each max 32 displayable characters.
+// Line 1 renders in the large font, line 2 in the small font (empty = single line).
+extern char s_custom_line1[33];
+extern char s_custom_line2[33];
 // True when all retry attempts were exhausted and no fresh data was received.
 extern bool s_custom_data_stale;
 

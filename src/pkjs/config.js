@@ -312,9 +312,29 @@ module.exports = [
         "messageKey": "CUSTOM_URL",
         "label": "Custom Data URL",
         "defaultValue": "",
-        "description": "Enter an HTTPS URL that returns a short plain-text value (max 32 characters shown). Refreshed automatically every 30 minutes, when the watch face is opened, and after saving settings. Example: a URL that returns your server's uptime or a custom sensor reading. Use || to split into two lines: the text before || is shown in a large font and the text after || in a smaller font (e.g. '25°C||Vienna').",
+        "description": "Fetch data from a URL and show it accordingly to regex1 and regex2. Refreshed every 30 min.",
         "attributes": {
-          "placeholder": "https://example.com/data.txt"
+          "placeholder": "https://example.com/data"
+        }
+      },
+      {
+        "type": "input",
+        "messageKey": "CUSTOM_REGEX_1",
+        "label": "Line 1 regex",
+        "defaultValue": "([^\|]*)",
+        "description": "Regex for the first line.",
+        "attributes": {
+          "placeholder": "temp\":([\\d]+)"
+        }
+      },
+      {
+        "type": "input",
+        "messageKey": "CUSTOM_REGEX_2",
+        "label": "Line 2 regex",
+        "defaultValue": "\|([^\|]*)",
+        "description": "Regex for the second line (smaller font).",
+        "attributes": {
+          "placeholder": "city\":([\\w ]+)"
         }
       }
     ]

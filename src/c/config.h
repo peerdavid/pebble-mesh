@@ -33,7 +33,8 @@
 #define PERSIST_KEY_VIBRATE_ON_DISCONNECT 26
 #define PERSIST_KEY_LIGHT_BG_COLOR 27
 #define PERSIST_KEY_DARK_BG_COLOR 28
-#define PERSIST_KEY_CUSTOM_DATA 29
+#define PERSIST_KEY_CUSTOM_LINE_1 29
+#define PERSIST_KEY_CUSTOM_LINE_2 30
 
 // Layer position and alignment enums
 typedef enum {
@@ -102,7 +103,8 @@ extern int s_dark_show_border; // 1 = show border in dark theme, 0 = hide
 extern int s_vibrate_on_disconnect; // 1 = vibrate on connect/disconnect, 0 = disabled
 extern int s_light_bg_color; // Background color for light theme as 0xRRGGBB
 extern int s_dark_bg_color; // Background color for dark theme as 0xRRGGBB
-extern char s_custom_data[33]; // Last value fetched from the user-configured URL
+extern char s_custom_line1[33]; // Extracted first line (large font)
+extern char s_custom_line2[33]; // Extracted second line (small font), empty = single line
 
 /*
  * Function Declarations
@@ -135,8 +137,8 @@ void save_vibrate_on_disconnect_to_storage();
 void load_vibrate_on_disconnect_from_storage();
 void save_bg_colors_to_storage();
 void load_bg_colors_from_storage();
-void save_custom_data_to_storage();
-void load_custom_data_from_storage();
+void save_custom_lines_to_storage();
+void load_custom_lines_from_storage();
 bool is_dark_theme();
 bool is_light_theme();
 GColor get_background_color();
