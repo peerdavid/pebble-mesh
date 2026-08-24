@@ -442,7 +442,8 @@ function fetchCustomUrl() {
   // Only allow https:// URLs to prevent plain-text traffic
   if (url.indexOf('https://') !== 0) {
     console.log('Custom URL must use HTTPS, skipping: ' + url);
-    enqueueMessage('custom_data', { 'CUSTOM_DATA': 'HTTPS only' });
+    // Don't send an error string as data; flag the last value as stale on the watch
+    enqueueMessage('custom_data', { 'CUSTOM_DATA_ERROR': 1 });
     return;
   }
 
@@ -557,21 +558,21 @@ function sendDataToPebble() {
   });
 
   // Message 2: Weather data + forecast
-  enqueueMessage('weather', {
-    'WEATHER_TEMPERATURE': weatherData.temperature,
-    'WEATHER_LOCATION': weatherData.location,
-    'WEATHER_CONDITION': weatherData.condition,
-    'WEATHER_IS_DAY': weatherData.is_day ? 1 : 0,
-    'FORECAST_TEMP_1': weatherData.forecast[0].temp,
-    'FORECAST_TEMP_2': weatherData.forecast[1].temp,
-    'FORECAST_TEMP_3': weatherData.forecast[2].temp,
-    'FORECAST_CONDITION_1': weatherData.forecast[0].condition,
-    'FORECAST_CONDITION_2': weatherData.forecast[1].condition,
-    'FORECAST_CONDITION_3': weatherData.forecast[2].condition
-  });
-
-  // Message 3: Hourly data (the two big strings)
-  if (weatherData.hourlyTemps && weatherData.hourlyPrecip) {
+  // Skip when we only have placeholder data (e.g. right after app start), so a
+  // pending push never overwrites the live weather already on the watch.
+  if (weatherData.location !== 'Loading...') {
+    enqueueMessage('weather', {
+      'WEATHER_TEMPERATURE': weatherData.temperature,
+      'WEATHER_LOCATION': weatherData.location,
+      'WEATHER_CONDITION': weatherData.condition,
+      'WEATHER_IS_DAY': weatherData.is_day ? 1 : 0,
+      'FORECAST_TEMP_1': weatherData.forecast[0].temp,
+      'FORECAST_TEMP_2': weatherData.forecast[1].temp,
+      'FORECAST_TEMP_3': weatherData.forecast[2].temp,
+      'FORECAST_CONDITION_1': weatherData.forecast[0].condition,
+      'FORECAST_CONDITION_2': weatherData.forecast[1].condition,
+      'FORECAST_CONDITION_3': weatherData.forecast[2].condition
+    });
     enqueueMessage('hourly', {
       'HOURLY_TEMPS': weatherData.hourlyTemps,
       'HOURLY_PRECIP': weatherData.hourlyPrecip

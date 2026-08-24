@@ -312,7 +312,7 @@ module.exports = [
         "messageKey": "CUSTOM_URL",
         "label": "Custom Data URL",
         "defaultValue": "",
-        "description": "Enter an HTTPS URL that returns a short plain-text value (max 32 characters shown). Fetched every 30 minutes. Example: a URL that returns your server's uptime or a custom sensor reading. Use || to split into two lines: the text before || is shown in a large font and the text after || in a smaller font (e.g. '25°C||Vienna').",
+        "description": "Enter an HTTPS URL that returns a short plain-text value (max 32 characters shown). Refreshed automatically every 30 minutes, when the watch face is opened, and after saving settings. Example: a URL that returns your server's uptime or a custom sensor reading. Use || to split into two lines: the text before || is shown in a large font and the text after || in a smaller font (e.g. '25°C||Vienna').",
         "attributes": {
           "placeholder": "https://example.com/data.txt"
         }

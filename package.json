@@ -65,7 +65,8 @@
       "DARK_BG_COLOR",
       "CUSTOM_URL",
       "CUSTOM_DATA",
-      "CUSTOM_URL_REQUEST"
+      "CUSTOM_URL_REQUEST",
+      "CUSTOM_DATA_ERROR"
     ],
     "resources": {
       "media": [

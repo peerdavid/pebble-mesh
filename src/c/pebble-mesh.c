@@ -332,6 +332,14 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     update_all_info_layers();
   }
 
+  // Custom URL error (e.g. non-HTTPS URL) - keep last good value but mark it stale
+  Tuple *custom_data_error_tuple = dict_find(iterator, MESSAGE_KEY_CUSTOM_DATA_ERROR);
+  if (custom_data_error_tuple) {
+    s_custom_data_stale = true;
+    APP_LOG(APP_LOG_LEVEL_WARNING, "Custom data error received, marking data as stale");
+    update_all_info_layers();
+  }
+
   // Read disconnect position
   Tuple *disconnect_pos_tuple = dict_find(iterator, MESSAGE_KEY_DISCONNECT_POSITION);
   if (disconnect_pos_tuple) {
