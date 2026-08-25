@@ -22,11 +22,14 @@ Pebble Mesh is an open-source, retro-digital watch face designed for maximum cla
 - Step Goal: 10k per default
 - Layout: You can select what info to display where.
 
+## CONTRIBUTORS
+- peerdavid (https://github.com/peerdavid)
+- koichirose (https://github.com/koichirose)
+
 ## THANKS TO
 - Weather provided by https://open-meteo.com/
 - Reverse GeoCoding provided by https://bigdatacloud.net/
 - Pebble Dev Iconography https://github.com/pebble-dev/iconography
-
 
 ## Donate
 A "buy me a coffe" link is in the settings header :)
