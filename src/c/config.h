@@ -139,6 +139,7 @@ void save_bg_colors_to_storage();
 void load_bg_colors_from_storage();
 void save_custom_lines_to_storage();
 void load_custom_lines_from_storage();
+bool refresh_theme();
 bool is_dark_theme();
 bool is_light_theme();
 GColor get_background_color();

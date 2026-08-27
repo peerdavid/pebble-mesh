@@ -39,7 +39,6 @@ static uint32_t s_last_tap_time = 0;
 // Animation
 static AppTimer *s_animation_timer = NULL;
 static int current_animation_frame = 0; // Ranges from NUM_ANIMATION_FRAMES down to 0
-static bool s_last_was_dark = false;
 static int s_last_connected = -1; // -1 = unknown (init), 0 = disconnected, 1 = connected
 static bool s_is_vibrating = false;
 
@@ -71,6 +70,10 @@ static void tap_handler(AccelAxisType axis, int32_t direction);
 
 // Function to update all colors based on current theme
 static void update_colors() {
+  // Sync the cached theme state so background, icons and text are all
+  // rendered from the same theme decision
+  refresh_theme();
+
   window_set_background_color(s_main_window, get_background_color());
 
   layer_mark_dirty(s_time_layer);
@@ -782,15 +785,24 @@ static void draw_date(Layer *layer, GContext *ctx) {
 
 // --- Tick Handler ---
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  // Detect dynamic theme changes (e.g., quiet time toggling)
-  bool current_dark = is_dark_theme();
-  if (current_dark != s_last_was_dark) {
-    s_last_was_dark = current_dark;
+  // Detect dynamic theme changes (e.g., a scheduled quiet time starting)
+  if (refresh_theme()) {
     update_colors();
   }
 
   try_start_animation_timer();
   update_time();
+}
+
+// Called when the watchface loses/regains focus, e.g. when the system
+// "Quiet Time On/Off" overlay or a notification is dismissed. Re-check the
+// dynamic theme right away instead of waiting for the next minute tick, so
+// toggling quiet time never leaves new-theme text on an old-theme background.
+static void app_focus_handler(bool in_focus) {
+  if (in_focus && refresh_theme()) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Theme changed while out of focus, updating colors");
+    update_colors();
+  }
 }
 
 
@@ -1214,7 +1226,8 @@ static void init() {
   load_bg_colors_from_storage();
   load_custom_lines_from_storage();
 
-  s_last_was_dark = is_dark_theme();
+  // Initialize the cached theme state before any color is computed
+  refresh_theme();
 
   s_main_window = window_create();
   window_set_background_color(s_main_window, get_background_color());
@@ -1242,6 +1255,9 @@ static void init() {
   // Subscribe to tap/flick events for weather forecast bar
   accel_tap_service_subscribe(tap_handler);
 
+  // Subscribe to focus events to catch quiet-time toggles immediately
+  app_focus_service_subscribe(app_focus_handler);
+
   window_stack_push(s_main_window, true);
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Finished init");
@@ -1254,6 +1270,7 @@ static void deinit() {
   battery_state_service_unsubscribe();
   connection_service_unsubscribe();
   accel_tap_service_unsubscribe();
+  app_focus_service_unsubscribe();
 }
 
 // --- Main Program Loop ---
