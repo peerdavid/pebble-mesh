@@ -44,13 +44,7 @@ void load_theme_from_storage() {
   }
 }
 
-// Cached theme state. All rendering reads this cache so that a dynamic theme
-// source (quiet time, sunrise/sunset) flipping mid-frame can never produce a
-// mix of old-theme background and new-theme foreground. The cache only moves
-// in refresh_theme(), and every change is followed by a full repaint.
-static bool s_theme_is_dark = false;
-
-static bool evaluate_dark_theme(){
+bool is_dark_theme(){
   if(s_color_theme == 0) {
     return true;
   }
@@ -62,17 +56,6 @@ static bool evaluate_dark_theme(){
   }
 
   return false;
-}
-
-bool refresh_theme(){
-  bool dark = evaluate_dark_theme();
-  bool changed = dark != s_theme_is_dark;
-  s_theme_is_dark = dark;
-  return changed;
-}
-
-bool is_dark_theme(){
-  return s_theme_is_dark;
 }
 
 bool is_light_theme(){
