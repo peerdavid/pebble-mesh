@@ -38,6 +38,8 @@
 #define PERSIST_KEY_CUSTOM_LINE_2 30
 #define PERSIST_KEY_LIGHT_BG_COLOR 31
 #define PERSIST_KEY_DARK_BG_COLOR 32
+#define PERSIST_KEY_WEATHER_TIMESTAMP 33
+#define PERSIST_KEY_CUSTOM_DATA_TIMESTAMP 34
 
 // Background color choices. Must match BG_COLOR_ENUM in src/pkjs/index.js.
 // The settings UI only offers WHITE, BLACK and GRAY on BW platforms.
@@ -120,6 +122,7 @@ extern int s_light_bg_color; // Background color for light theme (BgColor enum)
 extern int s_dark_bg_color; // Background color for dark theme (BgColor enum)
 extern char s_custom_line1[33]; // Extracted first line (large font)
 extern char s_custom_line2[33]; // Extracted second line (small font), empty = single line
+extern time_t s_custom_data_last_received; // 0 = never received live data
 
 /*
  * Function Declarations

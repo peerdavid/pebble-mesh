@@ -312,9 +312,12 @@ void load_vibrate_on_disconnect_from_storage() {
   }
 }
 
+time_t s_custom_data_last_received = 0;
+
 void save_custom_lines_to_storage() {
   persist_write_string(PERSIST_KEY_CUSTOM_LINE_1, s_custom_line1);
   persist_write_string(PERSIST_KEY_CUSTOM_LINE_2, s_custom_line2);
+  persist_write_int(PERSIST_KEY_CUSTOM_DATA_TIMESTAMP, (int)s_custom_data_last_received);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved custom lines to storage: %s | %s", s_custom_line1, s_custom_line2);
 }
 
@@ -325,5 +328,8 @@ void load_custom_lines_from_storage() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded custom lines from storage: %s | %s", s_custom_line1, s_custom_line2);
   } else {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "No custom lines found in storage, using defaults");
+  }
+  if (persist_exists(PERSIST_KEY_CUSTOM_DATA_TIMESTAMP)) {
+    s_custom_data_last_received = (time_t)persist_read_int(PERSIST_KEY_CUSTOM_DATA_TIMESTAMP);
   }
 }

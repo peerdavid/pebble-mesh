@@ -32,12 +32,29 @@ static Layer *s_animation_layer;
 // Double-flick detection for weather detail screen
 #define DOUBLE_FLICK_WINDOW_MS 1500
 
+// How old phone-fetched data (weather, custom URL) may get before a window
+// re-appearance triggers a new request. Matches the phone's own 30-minute
+// refresh interval. Without this check, every return from a notification or
+// app re-requested everything (GPS fix + HTTP + Bluetooth), which drains
+// both batteries for users who get frequent notifications.
+#define DATA_MAX_AGE_SECONDS (30 * 60)
+
 static uint32_t s_last_tap_time = 0;
 
 // Animation
 static AppTimer *s_animation_timer = NULL;
 static int s_animation_refreshes_left = 0; // ANIMATION_FRAMES down to 0
 static bool s_last_was_dark = false;
+
+// Cached rendering of the frame layer (background, border, mesh). The frame
+// only changes with theme/config, but its update proc runs on every render
+// pass (every minute plus every animation frame), so drawing the mesh
+// dot-by-dot each time wastes battery. Instead the frame is drawn once,
+// captured from the framebuffer into this bitmap, and blitted afterwards.
+// If the allocation fails (low heap) it stays NULL and the frame is simply
+// drawn directly every pass, as before.
+static GBitmap *s_frame_cache = NULL;
+static bool s_frame_cache_valid = false;
 static int s_last_connected = -1; // -1 = unknown (init), 0 = disconnected, 1 = connected
 static bool s_is_vibrating = false;
 
@@ -53,6 +70,7 @@ static void animation_timer_callback(void *data);
 static void try_start_animation_timer();
 static void try_stop_animation_timer();
 static void draw_frame(Layer *layer, GContext *ctx);
+static void invalidate_frame_cache();
 static void draw_animation(Layer *layer, GContext *ctx);
 static void draw_time(Layer *layer, GContext *ctx);
 static void draw_date(Layer *layer, GContext *ctx);
@@ -89,15 +107,19 @@ static void update_colors() {
   update_all_info_layers();
 
   // Force redraw
-  layer_mark_dirty(s_frame_layer);
+  invalidate_frame_cache();
   layer_mark_dirty(s_animation_layer);
 }
 
 // --- Weather Functions ---
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Message received");
-  
+
   bool weather_data_updated = false;
+  // A single message can carry several settings that each require rebuilding
+  // the info layers. Rebuilding tears down and recreates every quadrant, so
+  // collect the need in this flag and rebuild once at the end instead.
+  bool info_layers_need_update = false;
 
   // Read temperature unit first to know what symbol to use
   Tuple *temp_unit_tuple = dict_find(iterator, MESSAGE_KEY_TEMPERATURE_UNIT);
@@ -117,6 +139,9 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     const char* unit_symbol = s_temperature_unit == 1 ? "°F" : "°C";
     snprintf(s_temperature_buffer, sizeof(s_temperature_buffer), "%s%s", temperature_tuple->value->cstring, unit_symbol);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Temperature: %s", s_temperature_buffer);
+    // Live weather from the phone - remember when, so window re-appearances
+    // don't re-request data that is still fresh
+    s_weather_last_received = time(NULL);
     weather_data_updated = true;
   }
 
@@ -138,14 +163,24 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     weather_data_updated = true;
   }
 
-  // Read is_day
+  // Read is_day. It arrives with every weather push (every 30 minutes), so
+  // only react when the value actually flipped - a full update_colors() pass
+  // reloads all icons, drops the frame cache and rebuilds every quadrant.
   Tuple *is_day_tuple = dict_find(iterator, MESSAGE_KEY_WEATHER_IS_DAY);
   if (is_day_tuple) {
-    s_is_day = (int)is_day_tuple->value->int32;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Is day: %d", s_is_day);
-    
-    // In case lets update the background colors (dynamic day/night theme)
-    update_colors();
+    int new_is_day = (int)is_day_tuple->value->int32;
+    if (new_is_day != s_is_day) {
+      s_is_day = new_is_day;
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "Is day changed to: %d", s_is_day);
+      weather_data_updated = true; // persist the new value
+      if (s_color_theme == 2) {
+        // Dynamic day/night theme follows is_day - switch the whole theme
+        update_colors();
+      } else {
+        // Only the day/night variant of the weather icon depends on is_day
+        load_weather_icon();
+      }
+    }
   }
 
   // Read color theme
@@ -169,15 +204,15 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       save_step_goal_to_storage(); // Save the new step goal preference
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Step goal changed to: %d", s_step_goal);
       // Redraw steps info layer to update the progress bar
-      update_all_info_layers();
+      info_layers_need_update = true;
     }
   }
-  
+
   // Save weather data to persistent storage if any was updated
   if (weather_data_updated) {
     save_weather_to_storage();
     // Redraw all info layers to show updated weather data
-    update_all_info_layers();
+    info_layers_need_update = true;
   }
 
   // Read forecast data (now, +1d, +2d)
@@ -266,7 +301,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       s_enable_mesh = new_enable_mesh;
       save_enable_mesh_to_storage();
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Enable mesh changed to: %d", s_enable_mesh);
-      layer_mark_dirty(s_frame_layer);
+      invalidate_frame_cache();
     }
   }
 
@@ -278,7 +313,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       s_light_show_background = new_val;
       save_light_show_background_to_storage();
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Light show background changed to: %d", s_light_show_background);
-      layer_mark_dirty(s_frame_layer);
+      invalidate_frame_cache();
     }
   }
 
@@ -290,7 +325,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       s_dark_show_border = new_val;
       save_dark_show_border_to_storage();
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Dark show border changed to: %d", s_dark_show_border);
-      layer_mark_dirty(s_frame_layer);
+      invalidate_frame_cache();
     }
   }
 
@@ -334,9 +369,10 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       snprintf(s_custom_line2, sizeof(s_custom_line2), "%s", custom_line2_tuple->value->cstring);
     }
     s_custom_data_stale = false;
+    s_custom_data_last_received = time(NULL);
     save_custom_lines_to_storage();
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Custom lines updated: %s | %s", s_custom_line1, s_custom_line2);
-    update_all_info_layers();
+    info_layers_need_update = true;
   }
 
   // Custom URL error (e.g. non-HTTPS URL) - keep last good value but mark it stale
@@ -344,7 +380,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (custom_data_error_tuple) {
     s_custom_data_stale = true;
     APP_LOG(APP_LOG_LEVEL_WARNING, "Custom data error received, marking data as stale");
-    update_all_info_layers();
+    info_layers_need_update = true;
   }
 
   // Read disconnect position
@@ -355,7 +391,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       s_disconnect_position = new_disconnect_position;
       save_disconnect_position_to_storage();
       APP_LOG(APP_LOG_LEVEL_DEBUG, "Disconnect position changed to: %d", s_disconnect_position);
-      update_all_info_layers();
+      info_layers_need_update = true;
     }
   }
 
@@ -373,11 +409,32 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Layout updated: %d %d %d %d",
             s_layer_assignments[0], s_layer_assignments[1],
             s_layer_assignments[2], s_layer_assignments[3]);
+    info_layers_need_update = true;
+  }
+
+  // Rebuild the info layers once for everything above. update_colors() (theme,
+  // day/night, background color changes) already rebuilds them itself.
+  if (info_layers_need_update) {
     update_all_info_layers();
   }
 }
 
 // --- Update Time Function ---
+
+// Repaint only the quadrants whose content update_time() rewrites (steps,
+// heart rate, calendar day). Their text layers point at static buffers, so
+// rewriting the buffer alone doesn't schedule a redraw - and dirtying the
+// full-screen frame layer instead forces a whole-display refresh every
+// minute, which wastes battery.
+static void mark_time_dependent_info_layers_dirty() {
+  for (int i = 0; i < NUM_INFO_LAYERS; i++) {
+    InfoType type = s_layer_assignments[i];
+    if (s_info_layers[i].layer &&
+        (type == INFO_TYPE_STEPS || type == INFO_TYPE_HEART_RATE || type == INFO_TYPE_CALENDAR)) {
+      layer_mark_dirty(s_info_layers[i].layer);
+    }
+  }
+}
 
 static void update_time() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Update time");
@@ -392,7 +449,6 @@ static void update_time() {
   }
 
   layer_mark_dirty(s_time_layer);
-  layer_mark_dirty(s_frame_layer);
 
   if (strftime(s_date_buffer, sizeof(s_date_buffer), s_date_format, tick_time) == 0) {
     // Directly show the text of the date format -- e.g. its just a text
@@ -403,6 +459,7 @@ static void update_time() {
   update_step_count();
   update_heart_rate();
   update_day();
+  mark_time_dependent_info_layers_dirty();
 }
 
 // --- Battery Handler ---
@@ -468,9 +525,63 @@ static void animation_timer_callback(void *data) {
 }
 
 
+/**
+ * @brief Marks the cached frame bitmap stale so the next render pass redraws
+ * the frame from scratch (and re-captures it). Call whenever anything the
+ * frame depends on changes: theme, background color, mesh/border/box config.
+ */
+static void invalidate_frame_cache() {
+  s_frame_cache_valid = false;
+  if (s_frame_layer) {
+    layer_mark_dirty(s_frame_layer);
+  }
+}
+
+/**
+ * @brief Copies the just-rendered frame from the framebuffer into
+ * s_frame_cache so later passes can blit it instead of redrawing.
+ * Safe to call only from draw_frame, right after drawing, while the frame
+ * layer is the only thing rendered so far (it is the bottom layer).
+ */
+static void frame_cache_store(GContext *ctx) {
+  GBitmap *fb = graphics_capture_frame_buffer(ctx);
+  if (!fb) {
+    return;
+  }
+
+  GRect fb_bounds = gbitmap_get_bounds(fb);
+  if (!s_frame_cache) {
+    s_frame_cache = gbitmap_create_blank(fb_bounds.size, gbitmap_get_format(fb));
+  }
+
+  if (s_frame_cache) {
+    uint8_t *src = gbitmap_get_data(fb);
+    uint8_t *dst = gbitmap_get_data(s_frame_cache);
+    uint16_t src_stride = gbitmap_get_bytes_per_row(fb);
+    uint16_t dst_stride = gbitmap_get_bytes_per_row(s_frame_cache);
+    uint16_t copy_bytes = src_stride < dst_stride ? src_stride : dst_stride;
+    for (int y = 0; y < fb_bounds.size.h; y++) {
+      memcpy(dst + y * dst_stride, src + y * src_stride, copy_bytes);
+    }
+    s_frame_cache_valid = true;
+  } else {
+    APP_LOG(APP_LOG_LEVEL_WARNING, "Frame cache alloc failed, drawing frame directly");
+  }
+
+  graphics_release_frame_buffer(ctx, fb);
+}
+
 // --- Frame Layer Drawing Update Procedure (Modified for Line Fly-In) ---
 static void draw_frame(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
+
+  // Fast path: blit the cached frame instead of redrawing it
+  if (s_frame_cache_valid && s_frame_cache) {
+    graphics_context_set_compositing_mode(ctx, GCompOpAssign);
+    graphics_draw_bitmap_in_rect(ctx, s_frame_cache, bounds);
+    return;
+  }
+
   GColor frame_color = get_text_color(); // Use theme-appropriate color
 
   // Paint the background ourselves instead of relying on the window
@@ -535,6 +646,10 @@ static void draw_frame(Layer *layer, GContext *ctx) {
       }
     }
   }
+
+  // The frame layer is the bottom layer, so the framebuffer now holds
+  // exactly the frame content - snapshot it for the fast path
+  frame_cache_store(ctx);
 }
 
 static void draw_animation(Layer *layer, GContext *ctx) {
@@ -697,7 +812,9 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     update_colors();
   }
 
-  try_start_animation_timer();
+  // The type-in animation only plays on window appear (see
+  // main_window_appear) - replaying it every minute costs 5 extra display
+  // refreshes and timer wakeups per minute, which adds up on battery.
   update_time();
 }
 
@@ -957,6 +1074,27 @@ static void init_info_layers(GRect bounds) {
 }
 
 
+// Returns true if data received at `last_received` is old enough to
+// re-request from the phone. 0 means "never received". A last_received in
+// the future means the clock changed - treat as stale to recover.
+static bool is_data_stale(time_t last_received) {
+  time_t now = time(NULL);
+  return last_received == 0 || last_received > now ||
+         (now - last_received) >= DATA_MAX_AGE_SECONDS;
+}
+
+// Returns true if any quadrant shows custom URL data. The phone ignores
+// custom URL requests anyway when no slot is configured, so the watch can
+// save the Bluetooth message (and its retry cycle) entirely.
+static bool is_custom_url_slot_configured() {
+  for (int i = 0; i < NUM_INFO_LAYERS; i++) {
+    if (s_layer_assignments[i] == INFO_TYPE_CUSTOM_URL) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // --- Window Load/Unload Handlers ---
 static void main_window_appear(Window *window) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Window appear");
@@ -968,15 +1106,28 @@ static void main_window_appear(Window *window) {
   battery_handler(battery_state_service_peek());
   update_time(); // Ensure time is displayed immediately
 
-  // Request weather update after a short delay to prevent blocking UI
-  app_timer_register(100, delayed_weather_request, NULL);
-  // Request custom URL update separately, staggered well after the weather request so it
-  // doesn't immediately collide with it for the single-slot outbox (which only holds one
-  // unacknowledged outgoing message at a time). Reset stale state and retry counter so a
-  // fresh window appearance never inherits red text from a previous retry cycle.
-  s_custom_data_stale = false;
-  s_custom_url_retries = 0;
-  app_timer_register(1500, delayed_custom_url_request, NULL);
+  // The window re-appears every time the firmware hands the screen back
+  // (dismissed notification, closed app, ...). Only re-request data from the
+  // phone when the persisted data is actually stale - the phone pushes fresh
+  // data every 30 minutes on its own.
+  if (is_data_stale(s_weather_last_received)) {
+    // Request weather update after a short delay to prevent blocking UI
+    app_timer_register(100, delayed_weather_request, NULL);
+  } else {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Weather still fresh, skipping request");
+  }
+
+  if (is_custom_url_slot_configured() && is_data_stale(s_custom_data_last_received)) {
+    // Request custom URL update separately, staggered well after the weather request so it
+    // doesn't immediately collide with it for the single-slot outbox (which only holds one
+    // unacknowledged outgoing message at a time). Reset stale state and retry counter so a
+    // fresh window appearance never inherits red text from a previous retry cycle.
+    s_custom_data_stale = false;
+    s_custom_url_retries = 0;
+    app_timer_register(1500, delayed_custom_url_request, NULL);
+  } else {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Custom data still fresh, skipping request");
+  }
 }
 
 static void main_window_load(Window *window) {
@@ -1058,7 +1209,14 @@ static void main_window_unload(Window *window) {
   layer_destroy(s_time_layer);
   layer_destroy(s_date_layer);
   layer_destroy(s_frame_layer);
+  s_frame_layer = NULL;
   layer_destroy(s_animation_layer);
+
+  if (s_frame_cache) {
+    gbitmap_destroy(s_frame_cache);
+    s_frame_cache = NULL;
+    s_frame_cache_valid = false;
+  }
 
   // Destroy weather forecast layer
   weather_forecast_deinit();

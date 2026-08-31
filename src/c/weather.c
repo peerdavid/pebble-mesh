@@ -9,6 +9,7 @@ int s_current_weather_code = -1; // -1 indicates no weather data yet
 GDrawCommandImage *s_weather_icon = NULL;
 char s_temperature_buffer[8];
 char s_location_buffer[20];
+time_t s_weather_last_received = 0;
 
  /*
   * Draw Functions
@@ -153,6 +154,7 @@ void save_weather_to_storage() {
   persist_write_string(PERSIST_KEY_TEMPERATURE, s_temperature_buffer);
   persist_write_string(PERSIST_KEY_LOCATION, s_location_buffer);
   persist_write_int(PERSIST_KEY_IS_DAY, s_is_day);
+  persist_write_int(PERSIST_KEY_WEATHER_TIMESTAMP, (int)s_weather_last_received);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Saved weather to storage: code=%d, temp=%s, location=%s", 
           s_current_weather_code, s_temperature_buffer, s_location_buffer);
 }
@@ -188,5 +190,12 @@ void load_weather_from_storage() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded is_day from storage: %d", s_is_day);
   } else {
     s_is_day = 1; // Default to day
+  }
+
+  // Load the time the weather was last received, so a watchface restart
+  // (e.g. after visiting an app) doesn't re-request still-fresh data
+  if (persist_exists(PERSIST_KEY_WEATHER_TIMESTAMP)) {
+    s_weather_last_received = (time_t)persist_read_int(PERSIST_KEY_WEATHER_TIMESTAMP);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Loaded weather timestamp from storage");
   }
 }

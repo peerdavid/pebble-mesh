@@ -20,6 +20,7 @@ extern int s_current_weather_code;
 extern GDrawCommandImage *s_weather_icon;
 extern char s_temperature_buffer[8];
 extern char s_location_buffer[20];
+extern time_t s_weather_last_received; // 0 = never received live data
 
 /*
  * Function Declarations
