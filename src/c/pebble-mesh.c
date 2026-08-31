@@ -23,11 +23,9 @@ static Layer *s_animation_layer;
 #define GRID_SIZE 8
 #define CROSS_SIZE 0
 
-#define VERY_FIRST_ANIMATION_FRAME 500
-#define DECREASE_PER_FRAME 10
-#define ANIMATION_RATE_MS 50
-
-#define NUM_ANIMATION_FRAMES 500
+#define ANIMATION_FRAMES 5 // number of screen refreshes for the time type-in
+#define ANIMATION_RATE_MS 100 // interval between type-in refreshes
+#define ANIMATION_FIRST_DELAY_MS 300 // beat before type-in starts, so the time is briefly visible
 
 #define BORDER_THICKNESS 3
 
@@ -38,7 +36,7 @@ static uint32_t s_last_tap_time = 0;
 
 // Animation
 static AppTimer *s_animation_timer = NULL;
-static int current_animation_frame = 0; // Ranges from NUM_ANIMATION_FRAMES down to 0
+static int s_animation_refreshes_left = 0; // ANIMATION_FRAMES down to 0
 static bool s_last_was_dark = false;
 static int s_last_connected = -1; // -1 = unknown (init), 0 = disconnected, 1 = connected
 static bool s_is_vibrating = false;
@@ -418,7 +416,7 @@ static void battery_handler(BatteryChargeState state) {
 }
 
 /**
- * @brief Stops the animation timer and resets the running flag.
+ * @brief Stops the animation timer and resets the refresh counter.
  */
 static void try_stop_animation_timer() {
   if (s_animation_timer) {
@@ -427,37 +425,44 @@ static void try_stop_animation_timer() {
     s_animation_timer = NULL;
   }
 
-  current_animation_frame = 0;
+  s_animation_refreshes_left = 0;
 }
 
 /**
  * @brief Starts the animation timer if it's not already running.
  */
 static void try_start_animation_timer() {
+  if (s_animation_timer) {
+    return; // already running
+  }
+
+  if (s_enable_animations == 0) {
+    // Animations disabled - show the time in full, no type-in
+    s_animation_refreshes_left = 0;
+    layer_mark_dirty(s_time_layer);
+    return;
+  }
+
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Start animation timer");
-
-  if(current_animation_frame == 0){
-    current_animation_frame = s_enable_animations == 0 ? 0 : NUM_ANIMATION_FRAMES;
-  }
-
-  if(current_animation_frame > 0){
-    s_animation_timer = app_timer_register(VERY_FIRST_ANIMATION_FRAME, animation_timer_callback, NULL);
-  } else {
-    layer_mark_dirty(s_animation_layer);
-  }
+  s_animation_refreshes_left = ANIMATION_FRAMES;
+  s_animation_timer = app_timer_register(ANIMATION_FIRST_DELAY_MS, animation_timer_callback, NULL);
 }
 
 /**
- * @brief AppTimer callback that triggers the frame redraw and reschedules itself.
+ * @brief AppTimer callback that triggers one type-in refresh and reschedules itself.
  */
 static void animation_timer_callback(void *data) {
-  layer_mark_dirty(s_animation_layer);
-  layer_mark_dirty(s_time_layer);
-  layer_mark_dirty(s_date_layer);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Current animation frame: %d", current_animation_frame);
+  s_animation_timer = NULL;
+  s_animation_refreshes_left -= 1;
 
-  // Reschedule the timer for the next frame, creating a continuous loop
-  if(current_animation_frame > 0){
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Animation refreshes left: %d", s_animation_refreshes_left);
+
+  // Only the time changes during the animation - the date and lines
+  // are already fully drawn, so don't waste redraws on them
+  layer_mark_dirty(s_time_layer);
+
+  // Reschedule the timer for the next refresh, creating a short type-in
+  if (s_animation_refreshes_left > 0) {
     s_animation_timer = app_timer_register(ANIMATION_RATE_MS, animation_timer_callback, NULL);
   }
 }
@@ -545,104 +550,19 @@ static void draw_animation(Layer *layer, GContext *ctx) {
   const int line_y_lower = time_y + 41;
 #else
   const int line_y_upper = time_y - 30;
-  const int line_y_lower = time_y + 30;
+    const int line_y_lower = time_y + 30;
 #endif
-  const int segment_length = 12; // Length of each typed segment
-  const int segment_gap = 2; // Gap between segments
 
-  current_animation_frame -= DECREASE_PER_FRAME;
-  current_animation_frame = current_animation_frame < 0 ? 0 : current_animation_frame;
-
-  float animation_factor = 1.0f - ((float)current_animation_frame / NUM_ANIMATION_FRAMES);
-  
-  // Don't draw lines until time and date are done (after 0.40)
-  if (animation_factor < 0.40f) {
-    return;
-  }
-  
+  // The lines are static - only the time is animated
   graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
-  
-  // Calculate total number of segments needed for the full line
-  int total_segments = (max_line_length + segment_length + segment_gap - 1) / (segment_length + segment_gap);
-  
-  // Typewriter effect: draw lines in discrete segments
-  // Phase 3 (0.40 - 0.70): upper line, Phase 4 (0.70 - 1.0): lower line
-  if (animation_factor < 0.70f) {
-    // Upper line typing
-    float upper_progress = (animation_factor - 0.40f) / 0.30f; // 0.0 to 1.0
-    int segments_to_draw = (int)(total_segments * upper_progress);
-    
-    // Draw complete segments only
-    for (int i = 0; i < segments_to_draw; i++) {
-      int segment_start = i * (segment_length + segment_gap);
-      int segment_end = segment_start + segment_length;
-      
-      // Don't exceed line length
-      if (segment_start >= max_line_length) break;
-      if (segment_end > max_line_length) segment_end = max_line_length;
-      
-      graphics_draw_line(ctx,
-          GPoint(line_x_start_full + segment_start, line_y_upper),
-          GPoint(line_x_start_full + segment_end, line_y_upper));
-    }
-    
-    // Draw blinking cursor at end of last segment
-    if (segments_to_draw < total_segments) {
-      int cursor_x = segments_to_draw * (segment_length + segment_gap);
-      if (cursor_x < max_line_length && (current_animation_frame % 6) < 3) {
-        graphics_context_set_stroke_width(ctx, 2);
-        graphics_draw_line(ctx,
-            GPoint(line_x_start_full + cursor_x, line_y_upper - 3),
-            GPoint(line_x_start_full + cursor_x, line_y_upper + 3));
-        graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
-      }
-    }
-  } else {
-    // Upper line complete - draw it fully
-    graphics_draw_line(ctx,
-        GPoint(line_x_start_full, line_y_upper),
-        GPoint(line_x_end_full, line_y_upper));
-    
-    // Lower line typing
-    float lower_progress = (animation_factor - 0.70f) / 0.30f; // 0.0 to 1.0
-    
-    if (lower_progress >= 0.99f) {
-      // Lower line complete - draw it fully as a solid line
-      graphics_draw_line(ctx,
-          GPoint(line_x_start_full, line_y_lower),
-          GPoint(line_x_end_full, line_y_lower));
-    } else {
-      // Lower line still typing - draw in segments
-      int segments_to_draw = (int)(total_segments * lower_progress);
-      
-      // Draw complete segments only
-      for (int i = 0; i < segments_to_draw; i++) {
-        int segment_start = i * (segment_length + segment_gap);
-        int segment_end = segment_start + segment_length;
-        
-        // Don't exceed line length
-        if (segment_start >= max_line_length) break;
-        if (segment_end > max_line_length) segment_end = max_line_length;
-        
-        graphics_draw_line(ctx,
-            GPoint(line_x_start_full + segment_start, line_y_lower),
-            GPoint(line_x_start_full + segment_end, line_y_lower));
-      }
-      
-      // Draw blinking cursor at end of last segment
-      if (segments_to_draw < total_segments) {
-        int cursor_x = segments_to_draw * (segment_length + segment_gap);
-        if (cursor_x < max_line_length && (current_animation_frame % 6) < 3) {
-          graphics_context_set_stroke_width(ctx, 2);
-          graphics_draw_line(ctx,
-              GPoint(line_x_start_full + cursor_x, line_y_lower - 3),
-              GPoint(line_x_start_full + cursor_x, line_y_lower + 3));
-          graphics_context_set_stroke_width(ctx, BORDER_THICKNESS);
-        }
-      }
-    }
-  }
+
+  graphics_draw_line(ctx,
+      GPoint(line_x_start_full, line_y_upper),
+      GPoint(line_x_end_full, line_y_upper));
+  graphics_draw_line(ctx,
+      GPoint(line_x_start_full, line_y_lower),
+      GPoint(line_x_end_full, line_y_lower));
 }
 
 
@@ -666,21 +586,17 @@ static void draw_time(Layer *layer, GContext *ctx) {
   GFont font = fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS);
 #endif
   
-  // Calculate animation progress
-  float animation_factor = 1.0f - ((float)current_animation_frame / NUM_ANIMATION_FRAMES);
-  
-  // Typewriter effect: only show characters progressively during first phase (0.0 - 0.25)
+  // Calculate animation progress: 0.0 = nothing typed, 1.0 = fully typed
+  float animation_factor = 1.0f - ((float)s_animation_refreshes_left / ANIMATION_FRAMES);
+
+  // Typewriter effect: the time is the only animated element
   char display_buffer[9];
-  if (animation_factor < 0.25f) {
-    float time_progress = animation_factor / 0.25f; // 0.0 to 1.0
-    int time_len = strlen(s_time_buffer);
-    int chars_to_show = (int)(time_len * time_progress);
-    
-    strncpy(display_buffer, s_time_buffer, chars_to_show);
-    display_buffer[chars_to_show] = '\0';
-  } else {
-    strcpy(display_buffer, s_time_buffer);
-  }
+  int time_len = strlen(s_time_buffer);
+  int chars_to_show = (int)(time_len * animation_factor + 0.5f);
+  if (chars_to_show > time_len) chars_to_show = time_len;
+
+  strncpy(display_buffer, s_time_buffer, chars_to_show);
+  display_buffer[chars_to_show] = '\0';
   
   // In light mode (and on a dithered gray background) draw an outline
   // around the text for readability
@@ -731,25 +647,6 @@ static void draw_date(Layer *layer, GContext *ctx) {
   GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
 #endif
   
-  // Calculate animation progress
-  float animation_factor = 1.0f - ((float)current_animation_frame / NUM_ANIMATION_FRAMES);
-  
-  // Typewriter effect: only show characters progressively during second phase (0.25 - 0.40)
-  char display_buffer[20];
-  if (animation_factor < 0.25f) {
-    // Time still typing - don't show date yet
-    display_buffer[0] = '\0';
-  } else if (animation_factor < 0.40f) {
-    float date_progress = (animation_factor - 0.25f) / 0.15f; // 0.0 to 1.0
-    int date_len = strlen(s_date_buffer);
-    int chars_to_show = (int)(date_len * date_progress);
-    
-    strncpy(display_buffer, s_date_buffer, chars_to_show);
-    display_buffer[chars_to_show] = '\0';
-  } else {
-    strcpy(display_buffer, s_date_buffer);
-  }
-  
   // In light mode (and on a dithered gray background) draw an outline
   // around the text for readability
   if (is_light_theme() || is_bw_gray_background()) {
@@ -760,31 +657,31 @@ static void draw_date(Layer *layer, GContext *ctx) {
     graphics_context_set_text_color(ctx, outline_color);
 
     // Left
-    graphics_draw_text(ctx, display_buffer, font,
+    graphics_draw_text(ctx, s_date_buffer, font,
                       GRect(bounds.origin.x - 1, bounds.origin.y, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     // Right
-    graphics_draw_text(ctx, display_buffer, font,
+    graphics_draw_text(ctx, s_date_buffer, font,
                       GRect(bounds.origin.x + 1, bounds.origin.y, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     // Up
-    graphics_draw_text(ctx, display_buffer, font,
+    graphics_draw_text(ctx, s_date_buffer, font,
                       GRect(bounds.origin.x, bounds.origin.y - 1, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     // Down
-    graphics_draw_text(ctx, display_buffer, font,
+    graphics_draw_text(ctx, s_date_buffer, font,
                       GRect(bounds.origin.x, bounds.origin.y + 1, bounds.size.w, bounds.size.h),
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
 
     // Draw text in center
     graphics_context_set_text_color(ctx, text_color);
-    graphics_draw_text(ctx, display_buffer, font,
+    graphics_draw_text(ctx, s_date_buffer, font,
                       bounds,
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   } else {
     // Dark mode: just draw white text without outline
     graphics_context_set_text_color(ctx, GColorWhite);
-    graphics_draw_text(ctx, display_buffer, font,
+    graphics_draw_text(ctx, s_date_buffer, font,
                       bounds,
                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   }
@@ -1098,16 +995,25 @@ static void main_window_load(Window *window) {
   layer_set_update_proc(s_animation_layer, draw_animation);
   layer_add_child(window_layer, s_animation_layer);
 
-  // Create Time Layer
+   // Create Time Layer
 #if defined(PBL_PLATFORM_EMERY)
-  const int time_y_pos = bounds.size.h / 2 - 20 - 28;
+   const int time_y_pos = bounds.size.h / 2 - 20 - 28;
 #else
-  const int time_y_pos = bounds.size.h / 2 - 20 - 14;
+   const int time_y_pos = bounds.size.h / 2 - 20 - 14;
 #endif
-  s_time_layer = layer_create(
-      GRect(0, time_y_pos, bounds.size.w, bounds.size.h));
-  layer_set_update_proc(s_time_layer, draw_time);
-  layer_add_child(window_layer, s_time_layer);
+   // Tight band around the time glyphs (instead of the whole window
+   // height) so animation refreshes repaint less area - better for battery
+   // on the always-on display. Anchored at the time position and ending
+   // just above the date layer.
+#if defined(PBL_PLATFORM_EMERY)
+   const int time_band_height = 72;
+#else
+   const int time_band_height = 48;
+#endif
+   s_time_layer = layer_create(
+       GRect(0, time_y_pos, bounds.size.w, time_band_height));
+   layer_set_update_proc(s_time_layer, draw_time);
+   layer_add_child(window_layer, s_time_layer);
 
   // Create the Date Layer (Center below time)
 #if defined(PBL_PLATFORM_EMERY)

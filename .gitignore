@@ -3,6 +3,7 @@ build/
 .lock*
 node_modules/
 .venv/
+tmp/
 
 # Prerequisites
 *.d
