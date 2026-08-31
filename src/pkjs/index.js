@@ -21,16 +21,29 @@ var config = {
   lightShowBackground: true, // Show gray box in light theme
   darkShowBorder: true, // Show border in dark theme
   vibrateOnDisconnect: false, // Vibrate on connect/disconnect
-  lightBgColor: 0xFFFFFF, // Background color for light theme
-  darkBgColor: 0x000000, // Background color for dark theme
+  lightBgColor: 'white', // Background color for light theme (named enum color)
+  darkBgColor: 'black', // Background color for dark theme (named enum color)
   customUrl: '', // URL to fetch custom data from
   customRegexLine1: '', // regex to extract the big line; empty = whole page is line 1
   customRegexLine2: '' // regex to extract the small line; empty = no second line
 };
 
-// Clay's color picker sends an int, the BW select sends a hex string
-function toColorInt(value) {
-  return typeof value === 'number' ? value : parseInt(value, 16);
+// Background colors are a fixed enum of named colors; the watch receives the
+// index. Must match the BgColor enum in src/c/config.h.
+var BG_COLOR_ENUM = {
+  white: 0,
+  black: 1,
+  red: 2,
+  green: 3,
+  blue: 4,
+  yellow: 5,
+  gray: 6
+};
+
+// Values saved by older versions (free-form hex ints) fail this check and
+// fall back to the defaults.
+function isValidBgColor(name) {
+  return BG_COLOR_ENUM[name] !== undefined;
 }
 
 // Load saved configuration
@@ -85,11 +98,11 @@ if (localStorage.getItem('DARK_SHOW_BORDER') !== null) {
 if (localStorage.getItem('VIBRATE_ON_DISCONNECT') !== null) {
   config.vibrateOnDisconnect = (localStorage.getItem('VIBRATE_ON_DISCONNECT') === 'true');
 }
-if (localStorage.getItem('LIGHT_BG_COLOR') !== null) {
-  config.lightBgColor = parseInt(localStorage.getItem('LIGHT_BG_COLOR'), 10);
+if (isValidBgColor(localStorage.getItem('LIGHT_BG_COLOR_ENUM'))) {
+  config.lightBgColor = localStorage.getItem('LIGHT_BG_COLOR_ENUM');
 }
-if (localStorage.getItem('DARK_BG_COLOR') !== null) {
-  config.darkBgColor = parseInt(localStorage.getItem('DARK_BG_COLOR'), 10);
+if (isValidBgColor(localStorage.getItem('DARK_BG_COLOR_ENUM'))) {
+  config.darkBgColor = localStorage.getItem('DARK_BG_COLOR_ENUM');
 }
 if (localStorage.getItem('CUSTOM_URL') !== null) {
   config.customUrl = localStorage.getItem('CUSTOM_URL');
@@ -589,8 +602,8 @@ function sendDataToPebble() {
     'LIGHT_SHOW_BACKGROUND': config.lightShowBackground ? 1 : 0,
     'DARK_SHOW_BORDER': config.darkShowBorder ? 1 : 0,
     'VIBRATE_ON_DISCONNECT': config.vibrateOnDisconnect ? 1 : 0,
-    'LIGHT_BG_COLOR': config.lightBgColor,
-    'DARK_BG_COLOR': config.darkBgColor
+    'LIGHT_BG_COLOR_ENUM': BG_COLOR_ENUM[config.lightBgColor],
+    'DARK_BG_COLOR_ENUM': BG_COLOR_ENUM[config.darkBgColor]
   });
 
   // Message 2: Weather data + forecast
@@ -720,16 +733,16 @@ Pebble.addEventListener('webviewclosed', function(e) {
     layoutChanged = true;
   }
 
-  if (dict.LIGHT_BG_COLOR !== undefined) {
-    config.lightBgColor = toColorInt(dict.LIGHT_BG_COLOR.value);
-    localStorage.setItem('LIGHT_BG_COLOR', config.lightBgColor);
+  if (dict.LIGHT_BG_COLOR_ENUM !== undefined && isValidBgColor(dict.LIGHT_BG_COLOR_ENUM.value)) {
+    config.lightBgColor = dict.LIGHT_BG_COLOR_ENUM.value;
+    localStorage.setItem('LIGHT_BG_COLOR_ENUM', config.lightBgColor);
     console.log('Light background color saved to: ' + config.lightBgColor);
     layoutChanged = true;
   }
 
-  if (dict.DARK_BG_COLOR !== undefined) {
-    config.darkBgColor = toColorInt(dict.DARK_BG_COLOR.value);
-    localStorage.setItem('DARK_BG_COLOR', config.darkBgColor);
+  if (dict.DARK_BG_COLOR_ENUM !== undefined && isValidBgColor(dict.DARK_BG_COLOR_ENUM.value)) {
+    config.darkBgColor = dict.DARK_BG_COLOR_ENUM.value;
+    localStorage.setItem('DARK_BG_COLOR_ENUM', config.darkBgColor);
     console.log('Dark background color saved to: ' + config.darkBgColor);
     layoutChanged = true;
   }

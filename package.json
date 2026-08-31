@@ -1,7 +1,7 @@
 {
   "name": "pebble-mesh",
   "author": "David Peer",
-  "version": "1.62",
+  "version": "1.63",
   "keywords": [
     "clock",
     "minimal",
@@ -61,8 +61,8 @@
       "LIGHT_SHOW_BACKGROUND",
       "DARK_SHOW_BORDER",
       "VIBRATE_ON_DISCONNECT",
-      "LIGHT_BG_COLOR",
-      "DARK_BG_COLOR",
+      "LIGHT_BG_COLOR_ENUM",
+      "DARK_BG_COLOR_ENUM",
       "CUSTOM_URL",
       "CUSTOM_REGEX_1",
       "CUSTOM_REGEX_2",

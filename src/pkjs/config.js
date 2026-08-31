@@ -80,22 +80,31 @@ module.exports = [
         "defaultValue": true
       },
       {
-        "type": "color",
-        "messageKey": "LIGHT_BG_COLOR",
+        "type": "select",
+        "messageKey": "LIGHT_BG_COLOR_ENUM",
         "label": "Background Color",
-        "defaultValue": "FFFFFF",
-        "sunlight": true,
-        "capabilities": ["COLOR"]
+        "defaultValue": "white",
+        "capabilities": ["COLOR"],
+        "options": [
+          { "label": "White", "value": "white" },
+          { "label": "Black", "value": "black" },
+          { "label": "Red", "value": "red" },
+          { "label": "Green", "value": "green" },
+          { "label": "Blue", "value": "blue" },
+          { "label": "Yellow", "value": "yellow" },
+          { "label": "Gray", "value": "gray" }
+        ]
       },
       {
         "type": "select",
-        "messageKey": "LIGHT_BG_COLOR",
+        "messageKey": "LIGHT_BG_COLOR_ENUM",
         "label": "Background Color",
-        "defaultValue": "FFFFFF",
+        "defaultValue": "white",
         "capabilities": ["BW"],
         "options": [
-          { "label": "White", "value": "FFFFFF" },
-          { "label": "Gray", "value": "AAAAAA" }
+          { "label": "White", "value": "white" },
+          { "label": "Black", "value": "black" },
+          { "label": "Gray", "value": "gray" }
         ]
       },
       {
@@ -110,22 +119,31 @@ module.exports = [
         "defaultValue": true
       },
       {
-        "type": "color",
-        "messageKey": "DARK_BG_COLOR",
+        "type": "select",
+        "messageKey": "DARK_BG_COLOR_ENUM",
         "label": "Background Color",
-        "defaultValue": "000000",
-        "sunlight": true,
-        "capabilities": ["COLOR"]
+        "defaultValue": "black",
+        "capabilities": ["COLOR"],
+        "options": [
+          { "label": "White", "value": "white" },
+          { "label": "Black", "value": "black" },
+          { "label": "Red", "value": "red" },
+          { "label": "Green", "value": "green" },
+          { "label": "Blue", "value": "blue" },
+          { "label": "Yellow", "value": "yellow" },
+          { "label": "Gray", "value": "gray" }
+        ]
       },
       {
         "type": "select",
-        "messageKey": "DARK_BG_COLOR",
+        "messageKey": "DARK_BG_COLOR_ENUM",
         "label": "Background Color",
-        "defaultValue": "000000",
+        "defaultValue": "black",
         "capabilities": ["BW"],
         "options": [
-          { "label": "Black", "value": "000000" },
-          { "label": "Gray", "value": "AAAAAA" }
+          { "label": "White", "value": "white" },
+          { "label": "Black", "value": "black" },
+          { "label": "Gray", "value": "gray" }
         ]
       }
     ]

@@ -31,10 +31,25 @@
 #define PERSIST_KEY_LIGHT_SHOW_BACKGROUND 24
 #define PERSIST_KEY_DARK_SHOW_BORDER 25
 #define PERSIST_KEY_VIBRATE_ON_DISCONNECT 26
-#define PERSIST_KEY_LIGHT_BG_COLOR 27
-#define PERSIST_KEY_DARK_BG_COLOR 28
+// Keys 27/28 held free-form 0xRRGGBB colors in older versions; the enum
+// colors use fresh keys so stale hex values are ignored and everyone
+// starts from the defaults again.
 #define PERSIST_KEY_CUSTOM_LINE_1 29
 #define PERSIST_KEY_CUSTOM_LINE_2 30
+#define PERSIST_KEY_LIGHT_BG_COLOR 31
+#define PERSIST_KEY_DARK_BG_COLOR 32
+
+// Background color choices. Must match BG_COLOR_ENUM in src/pkjs/index.js.
+// The settings UI only offers WHITE, BLACK and GRAY on BW platforms.
+typedef enum {
+  BG_COLOR_WHITE = 0,
+  BG_COLOR_BLACK = 1,
+  BG_COLOR_RED = 2,
+  BG_COLOR_GREEN = 3,
+  BG_COLOR_BLUE = 4,
+  BG_COLOR_YELLOW = 5,
+  BG_COLOR_GRAY = 6
+} BgColor;
 
 // Layer position and alignment enums
 typedef enum {
@@ -101,8 +116,8 @@ extern char s_date_format[16]; // strftime format string for date display
 extern int s_light_show_background; // 1 = show gray box in light theme, 0 = hide
 extern int s_dark_show_border; // 1 = show border in dark theme, 0 = hide
 extern int s_vibrate_on_disconnect; // 1 = vibrate on connect/disconnect, 0 = disabled
-extern int s_light_bg_color; // Background color for light theme as 0xRRGGBB
-extern int s_dark_bg_color; // Background color for dark theme as 0xRRGGBB
+extern int s_light_bg_color; // Background color for light theme (BgColor enum)
+extern int s_dark_bg_color; // Background color for dark theme (BgColor enum)
 extern char s_custom_line1[33]; // Extracted first line (large font)
 extern char s_custom_line2[33]; // Extracted second line (small font), empty = single line
 

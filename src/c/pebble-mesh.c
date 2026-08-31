@@ -306,8 +306,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   }
 
   // Read background colors for light and dark theme
-  Tuple *light_bg_color_tuple = dict_find(iterator, MESSAGE_KEY_LIGHT_BG_COLOR);
-  Tuple *dark_bg_color_tuple = dict_find(iterator, MESSAGE_KEY_DARK_BG_COLOR);
+  Tuple *light_bg_color_tuple = dict_find(iterator, MESSAGE_KEY_LIGHT_BG_COLOR_ENUM);
+  Tuple *dark_bg_color_tuple = dict_find(iterator, MESSAGE_KEY_DARK_BG_COLOR_ENUM);
   bool bg_colors_changed = false;
   if (light_bg_color_tuple && (int)light_bg_color_tuple->value->int32 != s_light_bg_color) {
     s_light_bg_color = (int)light_bg_color_tuple->value->int32;
@@ -319,7 +319,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   }
   if (bg_colors_changed) {
     save_bg_colors_to_storage();
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Background colors changed to: %x / %x", s_light_bg_color, s_dark_bg_color);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Background colors changed to: %d / %d", s_light_bg_color, s_dark_bg_color);
     update_colors();
   }
 
