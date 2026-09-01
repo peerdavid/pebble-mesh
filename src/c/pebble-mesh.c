@@ -87,6 +87,11 @@ static void tap_handler(AccelAxisType axis, int32_t direction);
 
 // Function to update all colors based on current theme
 static void update_colors() {
+  // The display now reflects this theme. Tracking it here (rather than at each
+  // call site) keeps tick_handler from detecting a "change" that this pass has
+  // already applied and repeating the whole thing a minute later.
+  s_last_was_dark = is_dark_theme();
+
   window_set_background_color(s_main_window, get_background_color());
   // window_set_background_color() is a no-op in the firmware when the color is
   // unchanged (white is the window default), so force a full repaint explicitly
@@ -806,10 +811,8 @@ static void draw_date(Layer *layer, GContext *ctx) {
 // --- Tick Handler ---
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   // Detect dynamic theme changes (e.g., quiet time toggling)
-  bool current_dark = is_dark_theme();
-  if (current_dark != s_last_was_dark) {
-    s_last_was_dark = current_dark;
-    update_colors();
+  if (is_dark_theme() != s_last_was_dark) {
+    update_colors(); // updates s_last_was_dark itself
   }
 
   // The type-in animation only plays on window appear (see
