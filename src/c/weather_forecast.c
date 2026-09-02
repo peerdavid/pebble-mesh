@@ -407,10 +407,25 @@ static void anim_hide_stopped(Animation *animation, bool finished, void *context
 static void animate_slide(bool show) {
   cancel_animations();
 
-  GRect top_from = show ? top_hidden_frame() : top_visible_frame();
   GRect top_to = show ? top_visible_frame() : top_hidden_frame();
-  GRect bot_from = show ? bottom_hidden_frame() : bottom_visible_frame();
   GRect bot_to = show ? bottom_visible_frame() : bottom_hidden_frame();
+
+  if (s_enable_animations == 0) {
+    // Animations disabled - snap straight to the target position
+    layer_set_frame(s_forecast_top_layer, top_to);
+    layer_set_frame(s_forecast_bottom_layer, bot_to);
+    layer_mark_dirty(s_forecast_top_layer);
+    layer_mark_dirty(s_forecast_bottom_layer);
+    if (show) {
+      anim_show_stopped(NULL, true, NULL);
+    } else {
+      anim_hide_stopped(NULL, true, NULL);
+    }
+    return;
+  }
+
+  GRect top_from = show ? top_hidden_frame() : top_visible_frame();
+  GRect bot_from = show ? bottom_hidden_frame() : bottom_visible_frame();
 
   s_top_anim = property_animation_create_layer_frame(s_forecast_top_layer, &top_from, &top_to);
   s_bottom_anim = property_animation_create_layer_frame(s_forecast_bottom_layer, &bot_from, &bot_to);
